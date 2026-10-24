@@ -17,6 +17,11 @@ export const AUDIO_LEVELS = {
   warning: 0.9,
   switch: 1.2,
   displayBoot: 1,
+  // Hydraulik (hydraulic-audio.ts): Ereignisse ca. 6 dB unter dem Schrittaufprall,
+  // die Pumpe knapp unter dem Antrieb.
+  hydraulics: 1.1,
+  hydPump: 0.7,
+  creak: 0.9,
 } as const;
 export function ambientGain(s: MachineState) {
   const alert = dcSupply(s) && unacknowledgedServiceAlerts(s).length > 0;

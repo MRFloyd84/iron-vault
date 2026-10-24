@@ -50,6 +50,8 @@ function setup() {
     state: 'running',
     destination: { name: 'speakers' },
     createGain: () => ({ ...node(), gain: param() }),
+    createBiquadFilter: () => ({ ...node(), frequency: param(), Q: param(), type: '' }),
+    createStereoPanner: () => ({ ...node(), pan: param() }),
     createOscillator() {
       const v = voice();
       oscillators.push(v);
@@ -102,13 +104,14 @@ function setup() {
   };
 }
 
-test('all 19 active sound paths are preloaded through versioned URLs', async () => {
+// 19 Bestandsgeräusche + 16 Hydraulik-Ereignisse + Hydraulikpumpe (v56)
+test('all 36 active sound paths are preloaded through versioned URLs', async () => {
   const f = setup();
   try {
     await setImmediate();
     const paths = f.requests.map((url) => new URL(url, 'https://example.test'));
-    assert.equal(paths.length, 19);
-    assert.equal(new Set(paths.map((url) => url.pathname)).size, 19);
+    assert.equal(paths.length, 36);
+    assert.equal(new Set(paths.map((url) => url.pathname)).size, 36);
     assert.ok(paths.every((url) => url.searchParams.has('v')));
   } finally {
     f.restore();

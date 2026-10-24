@@ -76,3 +76,50 @@ test('storm: lightning only in heavy rain, thunder follows by distance, flash fl
   assert.equal(lightningFlash(0.7, false), 0);
   for (let a = 0; a < 0.6; a += 0.02) assert.ok(lightningFlash(a, true) <= 0.45);
 });
+
+test('Hydraulikgeräusche folgen dem Gangzyklus jedes Beins', async () => {
+  const { hydraulicEvents, HYDRAULIC_VARIANTS, HYDRAULIC_PUMP } =
+    await import('../lib/hydraulic-audio.ts');
+  const fs = await import('node:fs');
+  // Ein ganzer Doppelschritt in kleinen Schritten: je Bein genau einmal jedes Ereignis.
+  const count = {};
+  for (let i = 0; i < 100; i++) {
+    const a = { phase: 3 + i / 100, speed: 2, turnRate: 0 },
+      b = { phase: 3 + (i + 1) / 100, speed: 2, turnRate: 0 };
+    for (const e of hydraulicEvents(a, b, 0)) {
+      const key = e.kind + e.side;
+      count[key] = (count[key] ?? 0) + 1;
+      assert.ok(e.variant >= 0 && e.variant < HYDRAULIC_VARIANTS[e.kind]);
+    }
+  }
+  for (const side of [-1, 1])
+    for (const kind of ['vent', 'retract', 'extend', 'settle'])
+      assert.equal(count[kind + side], 1, kind + ' ' + side);
+  // Im Stand und bei Sprüngen (Zurücksetzen) still.
+  assert.deepEqual(
+    hydraulicEvents({ phase: 1, speed: 0, turnRate: 0 }, { phase: 1.6, speed: 0, turnRate: 0 }),
+    [],
+  );
+  assert.deepEqual(
+    hydraulicEvents({ phase: 0.1, speed: 2, turnRate: 0 }, { phase: 4, speed: 2, turnRate: 0 }),
+    [],
+  );
+  // Nässe lässt die Gelenke öfter knarzen.
+  const creaks = (wet) => {
+    let n = 0;
+    for (let i = 0; i < 400; i++)
+      n += hydraulicEvents(
+        { phase: i * 0.5 - 0.01, speed: 2, turnRate: 0 },
+        { phase: i * 0.5 + 0.01, speed: 2, turnRate: 0 },
+        wet,
+      ).filter((e) => e.kind === 'creak').length;
+    return n;
+  };
+  assert.ok(creaks(0) > 20 && creaks(0) < 160, 'trocken: gelegentlich ' + creaks(0));
+  assert.ok(creaks(1) > creaks(0) * 2, 'nass: deutlich öfter ' + creaks(1));
+  // Alle Dateien vorhanden.
+  for (const [kind, n] of Object.entries(HYDRAULIC_VARIANTS))
+    for (let i = 1; i <= n; i++)
+      assert.ok(fs.existsSync(new URL(`../public/audio/hyd-${kind}-${i}.ogg`, import.meta.url)));
+  assert.ok(fs.existsSync(new URL('../public/audio/' + HYDRAULIC_PUMP, import.meta.url)));
+});

@@ -9,6 +9,7 @@ import type { DisplayPhase } from './display-boot';
 export type AudioStatus = 'idle' | 'active' | 'muted' | 'blocked' | 'error';
 import { RainAudio } from './rain-audio';
 import { WeaponAudio } from './weapon-audio';
+import { HydraulicAudio, preloadHydraulics } from './hydraulic-audio';
 
 export class MachineAudio {
   private rain: RainAudio | null = null;
@@ -16,6 +17,8 @@ export class MachineAudio {
   /** Regengeräusch (synthetisch). Wird erst beim ersten Regen angelegt. */
   setRain(amount: number, cabin: boolean) {
     this.rainState = { amount, cabin };
+    this.hydraulics?.setCabin(cabin);
+    this.hydraulics?.setWet(amount);
     if (!this.ctx || !this.master || this.disposed) return;
     if (!this.rain && amount > 0) this.rain = new RainAudio(this.ctx, this.master);
     this.rain?.set(amount, cabin);
@@ -50,6 +53,8 @@ export class MachineAudio {
   disposed = false;
   private steps: StepAudio | null = null;
   private stepBytes = preloadStep();
+  private hydraulics: HydraulicAudio | null = null;
+  private hydraulicBytes = preloadHydraulics();
   private effects: MachineEffects | null = null;
   private effectBytes = preloadMachineEffects();
   private driveBytes: Promise<ArrayBuffer | null>;
@@ -207,6 +212,9 @@ export class MachineAudio {
         this.master.connect(c.destination);
         this.steps = new StepAudio(c, this.master, this.stepBytes);
         if (this.lastState) this.steps.update(this.lastState);
+        this.hydraulics = new HydraulicAudio(c, this.master, this.hydraulicBytes);
+        this.hydraulics.setCabin(this.rainState.cabin);
+        this.hydraulics.setWet(this.rainState.amount);
         this.hum = c.createGain();
         this.hum.gain.value = 0;
         this.hum.connect(this.master);
@@ -299,6 +307,7 @@ export class MachineAudio {
     this.effects?.update(s);
     this.serviceAudio?.update(s);
     this.steps?.update(s);
+    this.hydraulics?.update(s);
     const load = actualDriveLoad(s),
       bed = ambientGain(s);
     this.hum!.gain.setTargetAtTime(p * 0.045 + (dcPowerAvailable(s) ? 0.006 : 0), t, 0.4);
@@ -338,6 +347,7 @@ export class MachineAudio {
     this.airRequest++;
     this.bootSound?.dispose();
     this.steps?.dispose();
+    this.hydraulics?.dispose();
     this.rain?.dispose();
     this.effects?.dispose();
     this.serviceAudio?.dispose();
