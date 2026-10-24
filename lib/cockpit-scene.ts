@@ -24,6 +24,7 @@ import {
   insideShelter,
   RAIN_RATE,
   RainField,
+  Storm,
   weatherParams,
 } from './weather';
 import { DisplayBoot, renderDisplay, coldCockpit, batteryBeacon } from './display-boot';
@@ -195,6 +196,10 @@ export class CockpitScene {
   rainTarget = 0;
   rainAmount = 0;
   wet = { value: 0 };
+  storm = new Storm();
+  private flashing = false;
+  /** Wird beim Donnerschlag aufgerufen (Audio hängt sich hier an). */
+  onThunder: ((variant: number, distance: number) => void) | null = null;
   private camWorld = new THREE.Vector3();
   constructor(
     host: HTMLElement,
@@ -964,6 +969,17 @@ export class CockpitScene {
     }
     const n = this.nightAmount,
       w = weatherParams(this.rainAmount);
+    // Gewitter: Blitz erhellt Himmel und Umgebung, Donner folgt nach Entfernung.
+    const storm = this.storm.update(time, this.rainAmount, this.reduced);
+    for (const t of storm.thunder) this.onThunder?.(t.variant, t.distance);
+    if (storm.flash > 0 || this.flashing) {
+      this.applyDayNight();
+      const f = storm.flash * (0.35 + 0.65 * n);
+      this.hemi.intensity += f * 3;
+      this.hemi.color.lerp(new THREE.Color(0xc8d4ff), Math.min(1, f));
+      this.scene.backgroundIntensity += f * 1.4;
+      this.flashing = storm.flash > 0;
+    }
     const sheltered = insideShelter(walk.x, walk.z);
     // Sonne (tief, warm) bei Tag, Mond (hoch, kalt) bei Nacht; unter dem Hallendach aus.
     const open = THREE.MathUtils.smoothstep(-walk.z, 30, 37.5);

@@ -284,6 +284,8 @@ export default function Cockpit() {
             (boot) => audio.current?.setDisplayBoot(boot.phase, boot.elapsed, boot.cycle),
           );
           // Nur im Entwicklungsmodus: Szene für Experimente in der Browserkonsole.
+          scene.current.onThunder = (variant, distance) =>
+            audio.current?.thunder(variant, distance);
           if (import.meta.env.DEV)
             (window as unknown as { ironVault?: unknown }).ironVault = {
               scene: scene.current,
@@ -868,8 +870,10 @@ export default function Cockpit() {
             <dd>
               Lässt es regnen: Regenschleier, der im Scheinwerferkegel aufleuchtet, nasser Asphalt
               mit Pfützen, nasse Panzerung (trocknet in der Halle langsam), Tropfen auf der
-              Frontscheibe und Regenrauschen – in der Kanzel dumpf trommelnd, draußen hell. Unter
-              dem Hallendach bleibt es trocken. Licht und Schatten werden trüber, der Nebel dichter.
+              Frontscheibe und Regenrauschen – in der Kanzel dumpf trommelnd, draußen hell. Bei
+              starkem Regen zieht ein Gewitter auf: Blitze erhellen den Himmel, der Donner folgt je
+              nach Entfernung. Unter dem Hallendach bleibt es trocken. Licht und Schatten werden
+              trüber, der Nebel dichter.
             </dd>
             <dt>Gewicht beim Gehen</dt>
             <dd>

@@ -47,3 +47,32 @@ test('the hall stays dry, the yard does not', () => {
   assert.ok(SHELTER.top > 10);
   assert.ok(PRINT_LIFE >= 60);
 });
+
+test('storm: lightning only in heavy rain, thunder follows by distance, flash flickers', async () => {
+  const { Storm, lightningFlash } = await import('../lib/weather.ts');
+  const s = new Storm();
+  for (let t = 0; t < 120; t += 0.1) assert.equal(s.update(t, 0.3).thunder.length, 0);
+  const storm = new Storm();
+  const strikes = [],
+    thunders = [];
+  for (let t = 0; t < 600; t += 0.05) {
+    const r = storm.update(t, 1);
+    if (r.flash === 1) strikes.push(t);
+    for (const th of r.thunder) thunders.push({ t, ...th });
+  }
+  const first = strikes[0];
+  assert.ok(first >= 6 && first <= 14.2, 'first strike soon after rain starts: ' + first);
+  const distinct = strikes.filter((t, i) => i === 0 || t - strikes[i - 1] > 1);
+  assert.ok(
+    distinct.length >= 12 && distinct.length <= 40,
+    'strikes in 10 min: ' + distinct.length,
+  );
+  assert.ok(thunders.length >= distinct.length - 1);
+  assert.ok(thunders[0].t - first >= 0.6 && thunders[0].t - first <= 5.7, 'thunder delay');
+  assert.ok(thunders.every((th) => th.variant === (th.distance < 0.45 ? 1 : 0)));
+  // Doppelflackern, danach dunkel; reduzierte Bewegung ohne Flackern.
+  assert.equal(lightningFlash(0.02, false), 1);
+  assert.ok(lightningFlash(0.08, false) < 0.3 && lightningFlash(0.15, false) > 0.8);
+  assert.equal(lightningFlash(0.7, false), 0);
+  for (let a = 0; a < 0.6; a += 0.02) assert.ok(lightningFlash(a, true) <= 0.45);
+});

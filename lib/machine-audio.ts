@@ -19,6 +19,10 @@ export class MachineAudio {
     if (!this.rain && amount > 0) this.rain = new RainAudio(this.ctx, this.master);
     this.rain?.set(amount, cabin);
   }
+  /** Donnerschlag (nur wenn das Regengeräusch läuft). */
+  thunder(variant: number, distance: number) {
+    this.rain?.strike(variant, distance);
+  }
   private onStatus: (status: AudioStatus) => void;
   ctx: AudioContext | null = null;
   master: GainNode | null = null;

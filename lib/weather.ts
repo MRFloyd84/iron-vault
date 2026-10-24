@@ -236,12 +236,12 @@ export class GlassRain {
       w = c.canvas.width,
       h = c.canvas.height;
     // Neue Tropfen schlagen auf; große laufen ab, kleine bleiben haften.
-    const spawn = Math.round(amount * 14 * this.rand() + amount * 5);
-    for (let i = 0; i < spawn && this.drops.length < 650; i++)
+    const spawn = Math.round(amount * 8 * this.rand() + amount * 2);
+    for (let i = 0; i < spawn && this.drops.length < 380; i++)
       this.drops.push({
         x: this.rand() * w,
         y: this.rand() * h,
-        r: 2 + this.rand() * 6.5,
+        r: 1 + this.rand() * this.rand() * 3.4,
         vy: 0,
         trail: 0,
       });
@@ -249,19 +249,19 @@ export class GlassRain {
     if (amount < 0.05) this.drops.splice(0, Math.ceil(this.drops.length * 0.08));
     c.clearRect(0, 0, w, h);
     for (const d of this.drops) {
-      if (d.r > 6.2) {
-        d.vy = Math.min(140, d.vy + 260 * dt);
+      if (d.r > 3.3) {
+        d.vy = Math.min(90, d.vy + 160 * dt);
         d.y += d.vy * dt;
         d.x += (this.rand() - 0.5) * 2;
-        d.trail = Math.min(60, d.trail + d.vy * dt);
+        d.trail = Math.min(28, d.trail + d.vy * dt);
       }
     }
     this.drops = this.drops.filter((d) => d.y < h + 10);
-    const a = Math.min(1, 0.55 + 0.6 * light);
+    const a = Math.min(0.9, 0.45 + 0.45 * light);
     for (const d of this.drops) {
       if (d.trail > 0) {
-        c.strokeStyle = `rgba(200,215,230,${0.22 * a})`;
-        c.lineWidth = d.r * 0.7;
+        c.strokeStyle = `rgba(200,215,230,${0.12 * a})`;
+        c.lineWidth = d.r * 0.5;
         c.beginPath();
         c.moveTo(d.x, d.y - d.trail);
         c.lineTo(d.x, d.y);
@@ -283,5 +283,56 @@ export class GlassRain {
 
   dispose() {
     this.texture?.dispose();
+  }
+}
+
+// ---------- Gewitter ----------
+
+/** Helligkeit eines Blitzes `age` Sekunden nach dem Einschlag (0…1, Doppelflackern). */
+export function lightningFlash(age: number, reduced: boolean) {
+  if (age < 0 || age > 0.6) return 0;
+  if (reduced) return 0.45 * (1 - age / 0.6); // ohne Flackern, nur sanft
+  if (age < 0.05) return 1;
+  if (age < 0.11) return 0.25;
+  if (age < 0.19) return 0.85;
+  return 0.85 * Math.pow(1 - (age - 0.19) / 0.41, 2);
+}
+
+export type Thunder = { variant: number; distance: number };
+
+/**
+ * Plant Blitze bei starkem Regen: der erste 6–14 s nach Regenbeginn, danach alle
+ * 15–45 s. Der Donner folgt verzögert nach Entfernung (nah: 0,6 s, fern: ~5,6 s).
+ * Deterministisch über einen Zähler – keine Zufallswerte im Zustand.
+ */
+export class Storm {
+  private count = 0;
+  private next = Infinity;
+  private strikeAt = -1e9;
+  private pending: (Thunder & { at: number })[] = [];
+
+  update(time: number, rain: number, reduced = false): { flash: number; thunder: Thunder[] } {
+    if (rain < 0.6) {
+      this.next = Infinity;
+    } else if (this.next === Infinity) {
+      this.next = time + 6 + 8 * hash(this.count, 301);
+    } else if (time >= this.next) {
+      const distance = hash(this.count, 302);
+      this.strikeAt = time;
+      this.pending.push({
+        at: time + 0.6 + 5 * distance,
+        variant: distance < 0.45 ? 1 : 0,
+        distance,
+      });
+      this.count++;
+      this.next = time + 15 + 30 * hash(this.count, 303);
+    }
+    const thunder: Thunder[] = [];
+    this.pending = this.pending.filter((p) => {
+      if (time < p.at) return true;
+      thunder.push({ variant: p.variant, distance: p.distance });
+      return false;
+    });
+    return { flash: lightningFlash(time - this.strikeAt, reduced), thunder };
   }
 }

@@ -1,0 +1,26 @@
+[
+  {
+    "file": "rain-loop.ogg",
+    "duration_seconds": 16.0,
+    "peak": 0.4101,
+    "rms_dbfs": -24.0,
+    "source": "rain-original.mp3",
+    "source_sha256": "1dfc8a021e3e864568576640d833ed30d2fd031ad78feb29607cee99a4eab632"
+  },
+  {
+    "file": "thunder-1.ogg",
+    "duration_seconds": 5.0,
+    "peak": 0.7,
+    "rms_dbfs": -23.95,
+    "source": "thunder-original.mp3",
+    "source_sha256": "9d1cc8507450e1071d5527118f679ede5dedba0f052c5716d532bef51ef8cfda"
+  },
+  {
+    "file": "thunder-2.ogg",
+    "duration_seconds": 5.1,
+    "peak": 0.9,
+    "rms_dbfs": -21.33,
+    "source": "thunder-original.mp3",
+    "source_sha256": "9d1cc8507450e1071d5527118f679ede5dedba0f052c5716d532bef51ef8cfda"
+  }
+]
