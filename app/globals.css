@@ -1,4 +1,8 @@
-/* Minimaler Reset (entspricht den von der App genutzten Teilen des früheren Tailwind-Preflight). */
+/* IRON VAULT – Oberfläche über der 3D-Szene.
+   Aufbau: Reset → Farben → Grundlayout → Kopfzeile → HUD (Ansichten, Hinweise) →
+   Seitenpanels → Overlays → Responsive. */
+
+/* ---------- Reset ---------- */
 *,
 ::before,
 ::after {
@@ -9,10 +13,7 @@
 }
 h1,
 h2,
-h3,
-h4,
-h5,
-h6 {
+h3 {
   font-size: inherit;
   font-weight: inherit;
 }
@@ -34,52 +35,42 @@ audio {
   display: block;
   vertical-align: middle;
 }
-dl,
-dd,
-p {
-  margin: 0;
-}
+
+/* ---------- Farben ---------- */
 :root {
   color-scheme: dark;
-  --background: #080c0c;
-  --foreground: #e4e7dc;
-  --card: #131b19;
-  --card-foreground: #e4e7dc;
-  --popover: #131b19;
-  --popover-foreground: #e4e7dc;
-  --primary: #beeb85;
-  --primary-foreground: #111b10;
-  --secondary: #202b25;
-  --secondary-foreground: #e4e7dc;
-  --muted: #1d2721;
-  --muted-foreground: #9ca598;
-  --accent: #263829;
-  --accent-foreground: #e4e7dc;
-  --destructive: #e37051;
-  --border: #354138;
-  --input: #354138;
-  --ring: #beeb85;
-  --radius: 0.25rem;
+  --bg: #080c0c;
+  --fg: #e4e7dc;
+  --panel: #101a18f2;
+  --panel-border: #738374;
+  --accent: #b6cba1;
+  --accent-strong: #c4ef93;
+  --button: #243328;
+  --button-hover: #3b5135;
+  --button-border: #5c715c;
+  --text-soft: #b5c2ae;
+  --text-dim: #9eaa98;
+  --warn: #f2bd73;
+  --mono: ui-monospace, 'DejaVu Sans Mono', Menlo, Consolas, monospace;
+  /* Lesbarkeit über hellen Szenen (z. B. Himmel im Testgelände). */
+  --hud-shadow: 0 1px 2px #000, 0 0 10px #000c;
 }
-* {
-  box-sizing: border-box;
-}
+
+/* ---------- Grundlayout ---------- */
 html,
 body {
-  margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #080c0c;
-}
-body {
+  background: var(--bg);
+  color: var(--fg);
   font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 button {
-  font: inherit;
   cursor: pointer;
 }
 button:focus-visible {
-  outline: 2px solid #c4ef93;
+  outline: 2px solid var(--accent-strong);
   outline-offset: 4px;
 }
 button:disabled {
@@ -100,6 +91,16 @@ button:disabled {
   height: 100%;
   touch-action: none;
 }
+.screen-reader-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- Kopfzeile ---------- */
 .topbar {
   position: absolute;
   top: 0;
@@ -111,7 +112,7 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   pointer-events: none;
-  background: linear-gradient(#080d0dda, transparent);
+  background: linear-gradient(#080d0de6, transparent);
   z-index: 2;
 }
 .brand {
@@ -133,16 +134,16 @@ button:disabled {
 }
 .brand h1 {
   font-size: 19px;
-  margin: 0;
   letter-spacing: 0.23em;
   font-weight: 600;
+  text-shadow: var(--hud-shadow);
 }
 .eyebrow {
-  font-family: monospace;
-  font-size: 12px;
+  font: 12px var(--mono);
   letter-spacing: 0.17em;
-  color: #a1ac9c;
+  color: #b4bfae;
   margin-top: 6px;
+  text-shadow: var(--hud-shadow);
 }
 .top-right {
   display: flex;
@@ -151,12 +152,13 @@ button:disabled {
   pointer-events: auto;
 }
 .status-pill {
-  font: 12px monospace;
+  font: 12px var(--mono);
   letter-spacing: 0.13em;
-  color: #b3b7a9;
+  color: #c3c7b9;
   display: flex;
   align-items: center;
   gap: 9px;
+  text-shadow: var(--hud-shadow);
 }
 .status-pill i {
   width: 6px;
@@ -169,6 +171,13 @@ button:disabled {
   background: #b5f17a;
   box-shadow: 0 0 14px #b5f17a;
 }
+.status-pill.warning {
+  color: var(--warn);
+}
+.status-pill.warning i {
+  background: #f1a260;
+  box-shadow: 0 0 12px #db684955;
+}
 .toolbar {
   display: flex;
   gap: 5px;
@@ -180,211 +189,76 @@ button:disabled {
   place-items: center;
   color: #c3c9bd;
   border: 1px solid #6f7c623e;
-  background: #101a17aa;
+  background: #101a17cc;
   border-radius: 3px;
 }
 .icon-button:hover {
   background: #30412b;
 }
-.mission-tag {
+
+/* ---------- HUD: Standort links, Kameraansichten rechts ----------
+   Ein gemeinsamer Flex-Container verhindert, dass sich die Elemente bei schmalen
+   Fenstern überlagern; sie umbrechen stattdessen. */
+.hud {
   position: absolute;
-  top: 105px;
-  left: 33px;
-  border-left: 2px solid #adbb8e;
-  padding-left: 12px;
-  font: 12px monospace;
-  letter-spacing: 0.12em;
-  color: #9eaa98;
+  top: 100px;
+  left: 32px;
+  right: 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px 24px;
   pointer-events: none;
+  z-index: 2;
+}
+.hud-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.mission-tag {
+  border-left: 2px solid #adbb8e;
+  padding: 4px 28px 4px 12px;
+  background: linear-gradient(90deg, #080c0ca6, #080c0c00);
+  font: 12px var(--mono);
+  letter-spacing: 0.12em;
+  color: #b2bdab;
+  text-shadow: var(--hud-shadow);
 }
 .mission-tag strong {
   display: block;
-  color: #d2d8c8;
+  color: #e0e6d6;
   font-size: 14px;
   letter-spacing: 0.16em;
   margin-bottom: 8px;
 }
-.bottom {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: linear-gradient(transparent, #080c0ce8 22%, #080c0cf5);
-  padding: 44px 32px 20px;
-  pointer-events: none;
-}
-.command-line {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 15px;
-  font: 14px monospace;
-  min-height: 25px;
-}
-.message {
-  color: #ccd7bd;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-.message.error {
-  color: #f3a280;
-}
-.message svg {
-  flex-shrink: 0;
-}
-.hint {
-  color: #839080;
-  font-size: 12px;
-  white-space: nowrap;
-}
-.sequence {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 7px;
+.audio-notice {
   pointer-events: auto;
-}
-.step {
-  border: 1px solid #56634775;
-  background: #111a16d9;
-  text-align: left;
-  padding: 13px 14px;
-  position: relative;
-  color: #c3c8ba;
-  min-height: 73px;
-  border-radius: 3px;
-  transition:
-    background 0.2s,
-    border-color 0.2s;
-}
-.step:hover {
-  background: #233021;
-  border-color: #b4c593;
-}
-.step.next {
-  border-color: #a7ba80;
-  background: #25301bbb;
-}
-.step.active {
-  border-color: #608249;
-  background: #182a1bcf;
-}
-.step.busy {
-  border-color: #e1b875;
-}
-.step-line {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 5px;
-}
-.step-name {
-  font-size: 14px;
-  font-weight: 500;
-}
-.step-num {
-  font: 12px monospace;
-  color: #8b9b7d;
-  border: 1px solid #4e6046;
-  padding: 2px 4px;
-}
-.step small {
-  display: block;
-  font: 11px monospace;
-  letter-spacing: 0.12em;
-  color: #86927e;
-  margin-top: 7px;
-}
-.step.active small {
-  color: #afe982;
-}
-.step.busy small {
-  color: #e9ba78;
-}
-.footnote {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 14px;
-  font: 11px monospace;
-  letter-spacing: 0.14em;
-  color: #66725f;
-}
-.hover-label {
-  position: fixed;
-  transform: translate(15px, 15px);
-  padding: 8px 11px;
-  pointer-events: none;
-  z-index: 5;
-  background: #101a14ef;
-  border: 1px solid #82986d;
+  border: 1px solid #667a51;
+  background: #101a17e8;
   color: #d4edba;
-  font: 13px monospace;
-  max-width: 260px;
+  padding: 8px 11px;
+  border-radius: 3px;
+  font: 12px var(--mono);
+  text-align: left;
 }
-.help {
-  position: absolute;
-  right: 32px;
-  top: 85px;
-  width: 335px;
-  max-height: calc(100vh - 285px);
-  overflow: auto;
-  padding: 23px;
-  background: #111a17f5;
-  border: 1px solid #5c6d4e;
-  box-shadow: 0 20px 80px #000a;
-  z-index: 4;
-}
-.help h2 {
-  font-size: 17px;
-  margin: 0 0 20px;
-}
-.help p {
-  font-size: 14px;
-  line-height: 1.6;
-  color: #acb7a4;
-}
-.help dl {
-  font-size: 14px;
-  margin: 0;
-}
-.help dt {
-  color: #d0debf;
-  margin-top: 15px;
-}
-.help dd {
-  color: #99a68f;
-  margin: 4px 0 0;
-  line-height: 1.5;
-}
-.loading {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-content: center;
-  background: #0b100e;
-  color: #c5d6b4;
-  text-align: center;
-  z-index: 1;
-  gap: 12px;
-}
-.loading small {
-  color: #7f9471;
-  font: 13px monospace;
+.audio-notice:hover {
+  background: #1d2b22;
 }
 .view-presets {
-  position: absolute;
-  right: 32px;
-  top: 107px;
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 5px;
+  pointer-events: auto;
 }
 .view-presets button {
-  border: 1px solid #667a513a;
-  background: #0e1812a8;
-  color: #a8b49d;
-  font: 12px monospace;
+  border: 1px solid #667a5166;
+  background: #0e1812d0;
+  color: #b4c0a9;
+  font: 12px var(--mono);
   padding: 7px 10px;
   border-radius: 2px;
 }
@@ -392,196 +266,33 @@ button:disabled {
   color: #daf8b9;
   border-color: #9aaf7c;
 }
-.error-panel {
-  position: absolute;
-  inset: 20%;
-  display: grid;
-  place-content: center;
-  text-align: center;
-  background: #101711;
-  padding: 35px;
-  border: 1px solid #76895e;
-  z-index: 10;
-}
-.error-panel p {
-  font-size: 16px;
-  line-height: 1.6;
-}
-.error-panel button {
-  padding: 12px;
-  background: #b5d68c;
-  color: #142010;
-  border: 0;
-}
-.audio-notice {
-  position: absolute;
-  left: 33px;
-  top: 164px;
-  font: 12px monospace;
-  color: #75866d;
-  pointer-events: none;
-}
-@media (max-width: 1000px) {
-  .topbar {
-    padding: 19px 20px;
-  }
-  .bottom {
-    padding: 40px 18px 15px;
-  }
-  .hint {
-    display: none;
-  }
-  .step {
-    padding: 10px;
-  }
-  .step-name {
-    font-size: 12px;
-  }
-  .mission-tag {
-    left: 20px;
-  }
-  .top-right {
-    gap: 10px;
-  }
-  .view-presets {
-    right: 20px;
-  }
-  .footnote {
-    font-size: 10px;
-  }
-}
-@media (max-width: 700px) {
-  .sequence {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .brand h1 {
-    font-size: 15px;
-  }
-  .status-pill {
-    display: none;
-  }
-  .mission-tag {
-    display: none;
-  }
-  .view-presets {
-    top: 90px;
-  }
-  .command-line {
-    font-size: 12px;
-  }
-  .footnote span:last-child {
-    display: none;
-  }
-  .step {
-    min-height: 60px;
-  }
-  .step small {
-    font-size: 10px;
-  }
-  .help {
-    right: 18px;
-    width: calc(100% - 36px);
-  }
-  .audio-notice {
-    display: none;
-  }
-}
-
-.screen-reader-status {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
-}
-.help {
-  max-height: calc(100dvh - 110px);
-}
-
-.view-presets button[aria-pressed='true'] {
+.view-presets button[aria-pressed='true'],
+.view-presets button[aria-expanded='true'] {
   background: #283d28;
   color: #d8efbb;
   border-color: #a7c385;
 }
-.view-presets .hangar-view {
-  border-color: #a7c385;
-  color: #d8efbb;
+/* Optische Gruppierung: Mech/Gelenke | Außenkameras | Cockpitblicke */
+.view-presets .group-end {
+  margin-right: 8px;
 }
+
+/* ---------- Hinweiskarten unten links ---------- */
+.mech-inspection,
 .hangar-camera-note {
   position: absolute;
   left: 32px;
   bottom: 28px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 16px 18px;
-  background: #0c1719ed;
-  border: 1px solid #647c7d;
-  color: #cedcdd;
-  font: 14px monospace;
-}
-.hangar-camera-note strong {
-  letter-spacing: 0.12em;
-}
-.hangar-camera-note span {
-  color: #afc0c2;
-}
-.hangar-camera-note button {
-  background: #22393b;
-  color: #e0e9e5;
-  border: 1px solid #829d94;
-  padding: 9px 12px;
-  font: 14px monospace;
-}
-.hangar-camera-note button:hover {
-  background: #355153;
-}
-@media (max-width: 1000px) {
-  .view-presets {
-    max-width: calc(100% - 40px);
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-  .hangar-camera-note {
-    left: 20px;
-    bottom: 20px;
-  }
-}
-
-.status-pill.warning {
-  color: #f2bd73;
-}
-.status-pill.warning i {
-  background: #f1a260;
-  box-shadow: 0 0 12px #db684955;
-}
-
-.view-presets .mech-view {
-  border-color: #b4c8ae;
-  color: #e3efd9;
-}
-.view-presets {
-  max-width: calc(100% - 385px);
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  color: #dce6d3;
+  font: 14px var(--mono);
+  box-shadow: 0 12px 35px #0005;
 }
 .mech-inspection {
-  position: absolute;
-  left: 32px;
-  bottom: 28px;
   width: 272px;
   padding: 18px;
-  background: #101a18ed;
-  border: 1px solid #738374;
-  border-top: 3px solid #b6cba1;
-  box-shadow: 0 12px 35px #0005;
-  color: #dce6d3;
-  font: 14px monospace;
+  border-top: 3px solid var(--accent);
 }
 .mech-inspection strong {
   font-size: 14px;
@@ -589,80 +300,133 @@ button:disabled {
 }
 .mech-inspection p {
   margin: 12px 0;
-  color: #b5c2ae;
+  color: var(--text-soft);
   line-height: 1.6;
-  font-size: 14px;
 }
 .mech-angles {
   display: flex;
   gap: 6px;
 }
-.mech-inspection button {
-  border: 1px solid #5c715c;
-  background: #243328;
+.mech-inspection button,
+.hangar-camera-note button {
+  border: 1px solid var(--button-border);
+  background: var(--button);
   color: #e3eed9;
   padding: 8px 10px;
-  font-size: 14px;
 }
-.mech-inspection button:hover {
-  background: #3b5135;
+.mech-inspection button:hover,
+.hangar-camera-note button:hover {
+  background: var(--button-hover);
 }
 .mech-return {
   width: 100%;
 }
-@media (max-width: 1000px) {
-  .view-presets {
-    max-width: calc(100% - 40px);
-    top: 158px;
-  }
-  .mech-inspection {
-    left: 20px;
-    bottom: 20px;
-  }
+.hangar-camera-note {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px 18px;
 }
-@media (max-width: 700px) {
-  .view-presets {
-    top: 85px;
-  }
-  .mech-inspection {
-    left: 12px;
-    bottom: 12px;
-    width: 250px;
-    padding: 12px;
-  }
-  .mech-inspection p {
-    margin: 7px 0;
-  }
+.hangar-camera-note strong {
+  letter-spacing: 0.12em;
 }
-.articulation-panel {
+.hangar-camera-note span {
+  color: var(--text-soft);
+}
+
+/* ---------- Seitenpanels (Hilfe, Gelenke, Audioprüfung) ---------- */
+.help,
+.articulation-panel,
+.audio-check {
   position: absolute;
+  overflow: auto;
+  background: #101a18f8;
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 20px 80px #000a;
+  color: #dce6d3;
+  overscroll-behavior: contain;
+}
+.help {
+  right: 32px;
+  top: 85px;
+  width: 360px;
+  max-height: calc(100dvh - 110px);
+  padding: 23px;
+  z-index: 4;
+}
+.help-heading,
+.articulation-heading,
+.audio-check-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.help h2 {
+  font-size: 17px;
+}
+.help-tools {
+  display: flex;
+  gap: 6px;
+  margin: 14px 0 6px;
+}
+.help-tools button,
+.help-close {
+  border: 1px solid var(--button-border);
+  background: var(--button);
+  color: #e3eed9;
+  padding: 6px 10px;
+  font: 12px var(--mono);
+}
+.help-tools button:hover,
+.help-close:hover {
+  background: var(--button-hover);
+}
+.help p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #acb7a4;
+  margin-top: 14px;
+}
+.help dl {
+  font-size: 14px;
+}
+.help dt {
+  color: #d0debf;
+  margin-top: 15px;
+  font-weight: 600;
+}
+.help dd {
+  color: #a3b099;
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+.help kbd {
+  font: 12px var(--mono);
+  border: 1px solid #5c6d4e;
+  border-bottom-width: 2px;
+  padding: 0 4px;
+  border-radius: 3px;
+  color: #d8e6c6;
+}
+
+.articulation-panel {
   right: 28px;
   top: 205px;
   bottom: 24px;
   max-height: 570px;
   width: 310px;
-  overflow: auto;
   padding: 18px;
-  background: #101a18f5;
-  border: 1px solid #738374;
-  border-top: 3px solid #b6cba1;
-  box-shadow: 0 12px 35px #0005;
-  color: #dce6d3;
-  font: 13px monospace;
+  border-top: 3px solid var(--accent);
+  font: 13px var(--mono);
   z-index: 3;
 }
-.articulation-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
 .articulation-panel button {
-  border: 1px solid #5c715c;
-  background: #243328;
+  border: 1px solid var(--button-border);
+  background: var(--button);
   color: #e3eed9;
   padding: 8px;
-  cursor: pointer;
 }
 .articulation-panel button:disabled {
   opacity: 0.4;
@@ -690,11 +454,11 @@ button:disabled {
 }
 .arm-select button {
   flex: 1;
-  font: 12px monospace;
+  font: 12px var(--mono);
 }
 .arm-select button[aria-pressed='true'] {
   border-color: #b3d08f;
-  background: #3b5135;
+  background: var(--button-hover);
 }
 .joint-control {
   display: block;
@@ -723,93 +487,33 @@ button:disabled {
 }
 .joint-reset {
   width: 100%;
-  font: 11px monospace;
+  font: 11px var(--mono);
 }
 .joint-note {
   border-top: 1px solid #43513e;
   padding-top: 10px;
 }
-.view-presets .joint-toggle {
-  color: #ccecae;
-  border-color: #7d9861;
-}
-@media (max-height: 750px) {
-  .articulation-panel {
-    top: 190px;
-    padding: 12px;
-  }
-  .joint-control {
-    margin: 10px 0;
-  }
-  .articulation-panel p {
-    margin: 6px 0;
-  }
-  .arm-select {
-    margin: 8px 0;
-  }
-}
-.audio-notice {
-  display: block;
-  pointer-events: auto;
-  border: 1px solid #667a51;
-  background: #101a17e8;
-  color: #d4edba;
-  padding: 8px 11px;
-  border-radius: 3px;
-  z-index: 3;
-  max-width: calc(100vw - 66px);
-  text-align: left;
-}
-@media (max-width: 700px) {
-  .audio-notice {
-    left: 18px;
-    top: 164px;
-    max-width: calc(100vw - 36px);
-  }
-}
-.audio-check-toggle {
-  position: absolute;
-  left: 33px;
-  top: 215px;
-  z-index: 3;
-  font: 12px monospace;
-  border: 1px solid #667a51;
-  background: #101a17e8;
-  color: #d4edba;
-  padding: 8px 11px;
-  border-radius: 3px;
-}
+
 .audio-check {
-  position: absolute;
   left: 18px;
   top: 85px;
   z-index: 6;
   width: min(440px, calc(100vw - 36px));
   max-height: calc(100dvh - 110px);
-  overflow: auto;
   padding: 18px;
-  background: #101a18fa;
-  border: 1px solid #738374;
-  color: #dce6d3;
-  font: 13px monospace;
-}
-.audio-check-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  font: 13px var(--mono);
 }
 .audio-check h2 {
-  margin: 0;
   font-size: 18px;
 }
 .audio-check p {
   line-height: 1.5;
+  margin: 10px 0;
 }
 .audio-check button {
   padding: 9px;
   border: 1px solid #7d9861;
-  background: #243328;
+  background: var(--button);
   color: #e3eed9;
 }
 .audio-check button:disabled {
@@ -826,14 +530,163 @@ button:disabled {
   background: #080d0c;
   border: 1px solid #667a51;
   padding: 10px;
-  font: 12px monospace;
+  font: 12px var(--mono);
 }
 .audio-check label {
   display: block;
   line-height: 1.5;
 }
+
+/* ---------- Overlays ---------- */
+.hover-label {
+  position: fixed;
+  transform: translate(15px, 15px);
+  padding: 8px 11px;
+  pointer-events: none;
+  z-index: 5;
+  background: #101a14ef;
+  border: 1px solid #82986d;
+  color: #d4edba;
+  font: 13px var(--mono);
+  max-width: 260px;
+}
+.loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  background: #0b100e;
+  color: #c5d6b4;
+  text-align: center;
+  z-index: 1;
+  gap: 14px;
+}
+.loading small {
+  color: #8a9e7c;
+  font: 13px var(--mono);
+}
+.loading-bar {
+  width: 220px;
+  height: 2px;
+  background: #1e2a22;
+  overflow: hidden;
+  margin: 0 auto;
+}
+.loading-bar::after {
+  content: '';
+  display: block;
+  width: 40%;
+  height: 100%;
+  background: var(--accent);
+  animation: loading-slide 1.4s ease-in-out infinite;
+}
+@keyframes loading-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading-bar::after {
+    animation: none;
+    width: 100%;
+    opacity: 0.5;
+  }
+}
+.error-panel {
+  position: absolute;
+  inset: 20%;
+  display: grid;
+  place-content: center;
+  gap: 16px;
+  text-align: center;
+  background: #101711;
+  padding: 35px;
+  border: 1px solid #76895e;
+  z-index: 10;
+}
+.error-panel p {
+  font-size: 16px;
+  line-height: 1.6;
+}
+.error-panel button {
+  padding: 12px;
+  background: #b5d68c;
+  color: #142010;
+}
+
+/* ---------- Responsive ---------- */
+/* Mittlere Breite: Ansichtsleiste über die volle Breite, Standort darunter. */
+@media (max-width: 1180px) {
+  .hud {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .view-presets {
+    justify-content: flex-start;
+  }
+}
+@media (max-width: 1000px) {
+  .topbar {
+    padding: 19px 20px;
+  }
+  .hud {
+    top: 88px;
+    left: 20px;
+    right: 20px;
+  }
+  .top-right {
+    gap: 10px;
+  }
+  .mech-inspection,
+  .hangar-camera-note {
+    left: 20px;
+    bottom: 20px;
+  }
+}
+@media (max-height: 750px) {
+  .articulation-panel {
+    top: 190px;
+    padding: 12px;
+  }
+  .joint-control {
+    margin: 10px 0;
+  }
+  .articulation-panel p {
+    margin: 6px 0;
+  }
+  .arm-select {
+    margin: 8px 0;
+  }
+}
 @media (max-width: 700px) {
-  .audio-check-toggle {
-    left: 18px;
+  .brand h1 {
+    font-size: 15px;
+  }
+  .status-pill,
+  .mission-tag {
+    display: none;
+  }
+  .view-presets button {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+  .view-presets .group-end {
+    margin-right: 0;
+  }
+  .help {
+    right: 18px;
+    width: calc(100% - 36px);
+  }
+  .mech-inspection {
+    left: 12px;
+    bottom: 12px;
+    width: 250px;
+    padding: 12px;
+  }
+  .mech-inspection p {
+    margin: 7px 0;
   }
 }

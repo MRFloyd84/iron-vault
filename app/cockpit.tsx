@@ -29,6 +29,27 @@ import { mobilityCommand, restraintLabel } from '../lib/mobility';
 import { serviceWarning, electricalReadings, sourceLabel } from '../lib/service-systems';
 import { MachineAudio, type AudioStatus } from '../lib/machine-audio';
 import type { CockpitScene, CameraView } from '../lib/cockpit-scene';
+/** Text der Statusanzeige oben rechts, nach Dringlichkeit geordnet. */
+function statusText(state: MachineState): string {
+  if (state.thermalLimited) return 'TEMPERATURSCHUTZ';
+  if (state.thermalWarning) return 'TEMPERATURWARNUNG';
+  if (serviceWarning(state)) return 'SYSTEMWARNUNG';
+  if (shutdownActive(state)) return 'ABSCHALTSEQUENZ';
+  if (state.shutdownPhase === 'complete') return 'ABGESCHALTET';
+  if (state.stage === 6) return 'SYSTEME ONLINE';
+  if (state.busy >= 0) return 'STARTVORGANG';
+  if (state.stage) return 'STANDBY';
+  if (state.overhead.apuPhase === 'starting') return 'APU START';
+  if (dcPowerAvailable(state)) return sourceLabel(electricalReadings(state).source);
+  return 'KALTSTART';
+}
+
+function statusTone(state: MachineState): '' | 'warning' | 'online' {
+  if (state.thermalWarning || serviceWarning(state)) return 'warning';
+  if (shutdownActive(state)) return '';
+  return state.stage === 6 ? 'online' : '';
+}
+
 export default function Cockpit() {
   const container = useRef<HTMLDivElement>(null),
     scene = useRef<CockpitScene | null>(null),
@@ -333,6 +354,7 @@ export default function Cockpit() {
       if (e.key === 'Escape') {
         stopInput();
         setHelp(false);
+        setAudioCheckOpen(false);
         if (scene.current?.inHangar || scene.current?.inYard || scene.current?.inMech)
           changeView('front');
         return;
@@ -427,6 +449,7 @@ export default function Cockpit() {
         <div className="loading">
           <strong>IRON VAULT</strong>
           <small>Pilotenkanzel und Mech werden geladen …</small>
+          <div className="loading-bar" aria-hidden="true" />
         </div>
       )}
       {failure && (
@@ -445,40 +468,9 @@ export default function Cockpit() {
           </div>
         </div>
         <div className="top-right">
-          <div
-            className={
-              'status-pill ' +
-              (state.thermalWarning || serviceWarning(state)
-                ? 'warning'
-                : shutdownActive(state)
-                  ? ''
-                  : state.stage === 6
-                    ? 'online'
-                    : '')
-            }
-          >
+          <div className={'status-pill ' + statusTone(state)}>
             <i />
-            {state.thermalLimited
-              ? 'TEMPERATURSCHUTZ'
-              : state.thermalWarning
-                ? 'TEMPERATURWARNUNG'
-                : serviceWarning(state)
-                  ? 'SYSTEMWARNUNG'
-                  : shutdownActive(state)
-                    ? 'ABSCHALTSEQUENZ'
-                    : state.shutdownPhase === 'complete'
-                      ? 'ABGESCHALTET'
-                      : state.stage === 6
-                        ? 'SYSTEME ONLINE'
-                        : state.busy >= 0
-                          ? 'STARTVORGANG'
-                          : state.stage
-                            ? 'STANDBY'
-                            : state.overhead.apuPhase === 'starting'
-                              ? 'APU START'
-                              : dcPowerAvailable(state)
-                                ? sourceLabel(electricalReadings(state).source)
-                                : 'KALTSTART'}
+            {statusText(state)}
           </div>
           <div className="toolbar">
             <button
@@ -521,78 +513,79 @@ export default function Cockpit() {
           </div>
         </div>
       </header>
-      {!audioActive && (
-        <button className="audio-notice" onClick={toggleSound}>
-          {soundLabel}
-        </button>
-      )}
-      <button
-        className="audio-check-toggle"
-        onClick={() => setAudioCheckOpen((v) => !v)}
-        aria-expanded={audioCheckOpen}
-      >
-        AUDIOPRÜFUNG
-      </button>
       {audioCheckOpen && (
         <AudioCheck read={() => audio.current} close={() => setAudioCheckOpen(false)} />
       )}
-      <div className="mission-tag">
-        <strong>
-          {cameraView === 'yard' || (cameraView !== 'hangar' && state.walk.z < -35)
-            ? 'TESTGELÄNDE 07'
-            : 'HANGAR 07'}
-        </strong>
-        {cameraView === 'mech'
-          ? 'IV–04 · AUSSENANSICHT'
-          : cameraView === 'yard'
-            ? 'AUSSENKAMERA · PRÜFSTRECKE'
-            : cameraView === 'hangar'
-              ? 'HALLENKAMERA · WARTUNGSBEREICH'
-              : 'PILOTENSICHT · ' + restraintLabel(state)}
-      </div>
-      <div className="view-presets" aria-label="Kameraansichten">
-        <button
-          className="joint-toggle"
-          aria-expanded={jointsOpen}
-          onClick={() => {
-            stopInput();
-            setJointsOpen((v) => !v);
-          }}
-        >
-          GELENKE [B]
-        </button>
-        <button
-          className="mech-view"
-          aria-pressed={cameraView === 'mech'}
-          onClick={() => changeView('mech')}
-        >
-          MECH [V]
-        </button>
-        <button
-          className="hangar-view"
-          aria-pressed={cameraView === 'hangar'}
-          onClick={() => changeView('hangar')}
-        >
-          HANGAR [H]
-        </button>
-        <button aria-pressed={cameraView === 'yard'} onClick={() => changeView('yard')}>
-          TESTGELÄNDE [U]
-        </button>
-        <button aria-pressed={cameraView === 'overhead'} onClick={() => changeView('overhead')}>
-          OVERHEAD [O]
-        </button>
-        <button aria-pressed={cameraView === 'left'} onClick={() => changeView('left')}>
-          LINKS
-        </button>
-        <button aria-pressed={cameraView === 'front'} onClick={() => changeView('front')}>
-          COCKPIT [F]
-        </button>
-        <button aria-pressed={cameraView === 'right'} onClick={() => changeView('right')}>
-          RECHTS
-        </button>
-        <button aria-pressed={cameraView === 'panel'} onClick={() => changeView('panel')}>
-          INSTRUMENTE
-        </button>
+      <div className="hud">
+        <div className="hud-left">
+          <div className="mission-tag">
+            <strong>
+              {cameraView === 'yard' || (cameraView !== 'hangar' && state.walk.z < -35)
+                ? 'TESTGELÄNDE 07'
+                : 'HANGAR 07'}
+            </strong>
+            {cameraView === 'mech'
+              ? 'IV–04 · AUSSENANSICHT'
+              : cameraView === 'yard'
+                ? 'AUSSENKAMERA · PRÜFSTRECKE'
+                : cameraView === 'hangar'
+                  ? 'HALLENKAMERA · WARTUNGSBEREICH'
+                  : 'PILOTENSICHT · ' + restraintLabel(state)}
+          </div>
+          {!audioActive && (
+            <button className="audio-notice" onClick={toggleSound}>
+              {soundLabel}
+            </button>
+          )}
+        </div>
+        <div className="view-presets" aria-label="Kameraansichten">
+          <button
+            className="joint-toggle"
+            aria-expanded={jointsOpen}
+            onClick={() => {
+              stopInput();
+              setJointsOpen((v) => !v);
+            }}
+          >
+            GELENKE [B]
+          </button>
+          <button
+            className="mech-view group-end"
+            aria-pressed={cameraView === 'mech'}
+            onClick={() => changeView('mech')}
+          >
+            MECH [V]
+          </button>
+          <button
+            className="hangar-view"
+            aria-pressed={cameraView === 'hangar'}
+            onClick={() => changeView('hangar')}
+          >
+            HANGAR [H]
+          </button>
+          <button
+            className="group-end"
+            aria-pressed={cameraView === 'yard'}
+            onClick={() => changeView('yard')}
+          >
+            TESTGELÄNDE [U]
+          </button>
+          <button aria-pressed={cameraView === 'overhead'} onClick={() => changeView('overhead')}>
+            OVERHEAD [O]
+          </button>
+          <button aria-pressed={cameraView === 'left'} onClick={() => changeView('left')}>
+            LINKS
+          </button>
+          <button aria-pressed={cameraView === 'front'} onClick={() => changeView('front')}>
+            COCKPIT [F]
+          </button>
+          <button aria-pressed={cameraView === 'right'} onClick={() => changeView('right')}>
+            RECHTS
+          </button>
+          <button aria-pressed={cameraView === 'panel'} onClick={() => changeView('panel')}>
+            INSTRUMENTE
+          </button>
+        </div>
       </div>
       {cameraView === 'mech' && (
         <aside className="mech-inspection" aria-label="Mech-Außenansicht">
@@ -625,8 +618,27 @@ export default function Cockpit() {
         </div>
       )}
       {help && (
-        <aside className="help">
-          <h2>Deine Pilotenkanzel</h2>
+        <aside className="help" aria-label="Bedienung">
+          <div className="help-heading">
+            <h2>Deine Pilotenkanzel</h2>
+            <button
+              className="help-close"
+              aria-label="Hilfe schließen"
+              onClick={() => setHelp(false)}
+            >
+              ×
+            </button>
+          </div>
+          <div className="help-tools">
+            <button
+              onClick={() => {
+                setHelp(false);
+                setAudioCheckOpen(true);
+              }}
+            >
+              Audioprüfung öffnen
+            </button>
+          </div>
           <dl>
             <dt>Kaltstart / Anzeigen</dt>
             <dd>
