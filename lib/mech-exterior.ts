@@ -6,6 +6,7 @@ import type { MachineState } from './machine';
 import { groundHeight, WALK } from './walking';
 import { neutralJoints, type JointPose } from './articulation';
 import { applyWear, bakeRestPositions, buildWaistRing, MechLights } from './mech-details';
+import { Hydraulics } from './mech-hydraulics';
 
 // Authored cabin coordinates stay intact, uniformly scaled into the torso.
 export const MECH = {
@@ -166,6 +167,73 @@ export function legCycle(phase: number, side: number, speed: number, turnRate: n
   };
 }
 
+type FootTarget = { x: number; z: number; yaw: number };
+type Plant = FootTarget & { locked: boolean; from: FootTarget; start: number };
+const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
+
+/**
+ * Foot-Locking: Ein Fuß, der den Boden trägt, bleibt an seiner Weltposition stehen,
+ * auch wenn der Mech dabei dreht, bremst oder beschleunigt. In der Schwungphase
+ * fliegt er von der Abhebestelle zum Aufsetzpunkt des Gangmusters.
+ */
+export class FootPlanting {
+  /** Weiter als das darf ein stehender Fuß nicht vom Gangmuster abweichen (m). */
+  static slip = 0.9;
+  /** Größte Verdrehung des stehenden Fußes gegenüber dem Rumpf (rad). */
+  static twist = 0.35;
+  private feet = new Map<number, Plant>();
+  private last: { x: number; z: number; phase: number } | null = null;
+  reset() {
+    this.feet.clear();
+    this.last = null;
+  }
+  /** Einmal je Bild: Sprünge (Zurücksetzen, lange Pause der Außenansicht) lösen alle Füße. */
+  begin(walk: WalkPose) {
+    const l = this.last;
+    if (!l || Math.hypot(walk.x - l.x, walk.z - l.z) > 1 || Math.abs(walk.phase - l.phase) > 0.25)
+      this.feet.clear();
+    this.last = { x: walk.x, z: walk.z, phase: walk.phase };
+  }
+  resolve(
+    side: number,
+    gait: FootTarget,
+    cycle: { swing: boolean; progress: number },
+    moving: number,
+  ): FootTarget {
+    const planted = !cycle.swing || moving < 0.05;
+    let f = this.feet.get(side);
+    if (!f) {
+      f = { ...gait, locked: planted, from: { ...gait }, start: 0 };
+      this.feet.set(side, f);
+      return { ...gait };
+    }
+    if (planted) {
+      f.locked = true;
+      // Nur wenn das Gangmuster zu weit wegläuft, rutscht der Fuß nach.
+      const dx = f.x - gait.x,
+        dz = f.z - gait.z,
+        d = Math.hypot(dx, dz);
+      if (d > FootPlanting.slip) {
+        f.x = gait.x + (dx * FootPlanting.slip) / d;
+        f.z = gait.z + (dz * FootPlanting.slip) / d;
+      }
+      f.yaw = gait.yaw + clamp(wrap(f.yaw - gait.yaw), -FootPlanting.twist, FootPlanting.twist);
+    } else {
+      if (f.locked) {
+        f.locked = false;
+        f.from = { x: f.x, z: f.z, yaw: f.yaw };
+        // Mitten im Schwung gelöst (Anfahren aus dem Stand): Rest des Schwungs nutzen.
+        f.start = Math.min(cycle.progress, 0.95);
+      }
+      const k = smooth((cycle.progress - f.start) / (1 - f.start));
+      f.x = f.from.x + (gait.x - f.from.x) * k;
+      f.z = f.from.z + (gait.z - f.from.z) * k;
+      f.yaw = f.from.yaw + wrap(gait.yaw - f.from.yaw) * k;
+    }
+    return { x: f.x, z: f.z, yaw: f.yaw };
+  }
+}
+
 // Two-link IK with a bend pole and bounded reach: never stretch a solid link.
 export function solveLeg(
   hip: THREE.Vector3,
@@ -257,7 +325,10 @@ export function animateMechanicalRig(
   legs: Leg[],
   walk: WalkPose,
   joints?: JointPose,
+  planting?: FootPlanting,
 ) {
+  planting?.begin(walk);
+  const moving = gaitAmount(walk);
   const pelvis = model.getObjectByName('PelvisFrame');
   if (pelvis) {
     pelvis.rotation.y = -(joints?.torso ?? 0);
@@ -269,14 +340,18 @@ export function animateMechanicalRig(
     // Source faces +Z; simulation faces -Z.
     const localX = -leg.restFoot.x * MECH.modelScale,
       localZ = -leg.restFoot.z * MECH.modelScale + cycle.offset;
-    const x = walk.x + Math.cos(walk.yaw) * localX + Math.sin(walk.yaw) * localZ;
-    const z = walk.z - Math.sin(walk.yaw) * localX + Math.cos(walk.yaw) * localZ;
-    const dz = Math.cos(walk.yaw) * 0.5,
-      dx = Math.sin(walk.yaw) * 0.5;
+    const gait = {
+      x: walk.x + Math.cos(walk.yaw) * localX + Math.sin(walk.yaw) * localZ,
+      z: walk.z - Math.sin(walk.yaw) * localX + Math.cos(walk.yaw) * localZ,
+      yaw: walk.yaw,
+    };
+    const { x, z, yaw } = planting ? planting.resolve(leg.side, gait, cycle, moving) : gait;
+    const dz = Math.cos(yaw) * 0.5,
+      dx = Math.sin(yaw) * 0.5;
     const pitch = -Math.atan2(groundHeight(x - dx, z - dz) - groundHeight(x + dx, z + dz), 1);
     const roll = Math.atan2(groundHeight(x - dz, z + dx) - groundHeight(x + dz, z - dx), 1);
     const orientation = new THREE.Quaternion().setFromEuler(
-      new THREE.Euler(pitch + cycle.pitch, walk.yaw + Math.PI, roll, 'YXZ'),
+      new THREE.Euler(pitch + cycle.pitch, yaw + Math.PI, roll, 'YXZ'),
     );
     let contact = -Infinity;
     const sample = new THREE.Vector3();
@@ -294,7 +369,7 @@ export function animateMechanicalRig(
       .multiply(orientation);
     leg.foot.updateMatrixWorld(true);
   }
-  const amount = gaitAmount(walk),
+  const amount = moving,
     phase = walk.phase * Math.PI * 2;
   const direction = clamp(walk.speed / 0.4, -1, 1);
   for (const [prefix, sign] of [
@@ -333,6 +408,10 @@ export class MechExterior {
   root = new THREE.Group();
   model: THREE.Group | null = null;
   legs: Leg[] = [];
+  /** Hält stehende Füße am Boden fest (siehe FootPlanting). */
+  planting = new FootPlanting();
+  /** Hydraulikzylinder an Knie und Sprunggelenk (siehe mech-hydraulics.ts). */
+  hydraulics: Hydraulics | null = null;
   ready: Promise<void>;
   shadow: THREE.Mesh;
   inspectionKey: THREE.DirectionalLight;
@@ -389,6 +468,8 @@ export class MechExterior {
       prepareTorsoRig(this.model);
       this.legs = prepareMechanicalRig(this.model);
       bakeRestPositions(this.model);
+      // Nach bakeRestPositions: Die Zylinder bekommen keinen Verschleiß-Shader.
+      this.hydraulics = new Hydraulics(this.model);
       this.lights.attach(this.model.getObjectByName('Torso')!);
       this.root.add(this.model);
       this.model.traverse((o) => {
@@ -492,7 +573,7 @@ export class MechExterior {
     this.root.visible = outside;
     if (this.model && outside) {
       this.root.updateMatrixWorld(true);
-      animateMechanicalRig(this.model, this.legs, walk, joints);
+      animateMechanicalRig(this.model, this.legs, walk, joints, this.planting);
       // Rückstoß: Unterarm schlägt kurz nach oben/hinten aus.
       for (const [name, k] of [
         ['L_Forearm', 0],
@@ -504,6 +585,7 @@ export class MechExterior {
         arm.rotation.x -= 0.07 * this.recoil[k];
         arm.updateMatrixWorld(true);
       }
+      this.hydraulics?.update();
     }
     this.shadow.position.set(walk.x, MECH.floor + groundHeight(walk.x, walk.z) + 0.026, walk.z);
     this.shadow.rotation.z = -walk.yaw;

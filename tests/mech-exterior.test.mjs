@@ -11,9 +11,11 @@ import {
   prepareTorsoRig,
   animateMechanicalRig,
   applyMechBodyPose,
+  FootPlanting,
 } from '../lib/mech-exterior.ts';
+import { Hydraulics } from '../lib/mech-hydraulics.ts';
 import { neutralJoints, ARM_RADIUS, TORSO_RADIUS, RAD } from '../lib/articulation.ts';
-import { WALK, groundHeight } from '../lib/walking.ts';
+import { WALK, groundHeight, turnStepFactor } from '../lib/walking.ts';
 import { CABIN } from '../lib/cockpit-envelope.ts';
 
 async function asset() {
@@ -400,4 +402,118 @@ test('shoulders, elbows, hips, knees and ankles articulate and settle without an
     'Joint angular travel (degrees)',
     Object.fromEntries([...ranges].map(([n, a]) => [n, Math.round((a * 180) / Math.PI)])),
   );
+});
+
+// Fortlaufender Gang mit 60 Bildern/s: stehende Füße dürfen nicht rutschen, auch beim
+// Anfahren, Bremsen, Kurvengehen und Drehen auf der Stelle.
+async function walkScenario(segments) {
+  const { scene: model } = await asset(),
+    legs = prepareMechanicalRig(model),
+    cabin = new THREE.Group(),
+    root = new THREE.Group();
+  cabin.scale.setScalar(MECH.cabinScale);
+  root.position.set(0, (MECH.floor - MECH.cabinLift) / MECH.cabinScale, WALK.originZ);
+  root.scale.setScalar(MECH.modelScale / MECH.cabinScale);
+  root.rotation.y = Math.PI;
+  cabin.add(root);
+  root.add(model);
+  const hydraulics = new Hydraulics(model),
+    planting = new FootPlanting(),
+    w = { x: 0, z: -70, yaw: 0.4, height: 0, pitch: 0, roll: 0, phase: 0, speed: 0, turnRate: 0 },
+    h = 1 / 60;
+  const stats = { slide: 0, jump: 0, reach: 0, planted: 0, stroke: [Infinity, -Infinity] };
+  const prev = new Map();
+  for (const [seconds, speed, turn] of segments)
+    for (let i = 0; i < seconds * 60; i++) {
+      w.speed += Math.max(-WALK.brake * h, Math.min(WALK.accel * h, speed - w.speed));
+      w.turnRate += Math.max(-0.35 * h, Math.min(0.35 * h, turn - w.turnRate));
+      w.yaw += w.turnRate * h;
+      const dx = -Math.sin(w.yaw) * w.speed * h,
+        dz = -Math.cos(w.yaw) * w.speed * h;
+      w.x += dx;
+      w.z += dz;
+      w.phase +=
+        (Math.hypot(dx, dz) + Math.abs(w.turnRate) * h * turnStepFactor(w.speed)) / WALK.stride;
+      applyMechBodyPose(cabin, w);
+      animateMechanicalRig(model, legs, w, undefined, planting);
+      hydraulics.update();
+      for (const a of hydraulics.actuators) {
+        // Anteil der Stange, der aus dem Zylinder ragt (0 = ganz eingefahren, 1 = ganz draußen)
+        const out = (a.length - a.barrel) / a.stroke;
+        stats.stroke = [Math.min(stats.stroke[0], out), Math.max(stats.stroke[1], out)];
+      }
+      for (const leg of legs) {
+        const foot = leg.foot.getWorldPosition(new THREE.Vector3()),
+          cycle = legCycle(w.phase, leg.side, w.speed, w.turnRate),
+          moving = Math.min(1, Math.abs(w.speed) / 0.4 + Math.abs(w.turnRate) * 6),
+          planted = !cycle.swing || moving < 0.05,
+          last = prev.get(leg.side);
+        if (last) {
+          const step = Math.hypot(foot.x - last.foot.x, foot.z - last.foot.z);
+          stats.jump = Math.max(stats.jump, step);
+          if (planted && last.planted) {
+            stats.slide = Math.max(stats.slide, step);
+            stats.planted++;
+          }
+        }
+        prev.set(leg.side, { foot, planted });
+        const hip = leg.thigh.getWorldPosition(new THREE.Vector3());
+        stats.reach = Math.max(
+          stats.reach,
+          hip.distanceTo(foot) / (leg.upperLength + leg.lowerLength),
+        );
+      }
+    }
+  return stats;
+}
+function checkStroke(stats) {
+  assert.ok(stats.stroke[0] > 0.05, `Kolbenstange verschwindet im Zylinder: ${stats.stroke[0]}`);
+  assert.ok(stats.stroke[1] < 0.92, `Kolbenstange fährt aus dem Zylinder: ${stats.stroke[1]}`);
+}
+test('Hydraulikzylinder sitzen auf der Panzerung, je Bein Knie und Sprunggelenk', async () => {
+  const { scene: model } = await asset();
+  prepareMechanicalRig(model);
+  const h = new Hydraulics(model);
+  assert.equal(h.actuators.length, 4);
+  for (const a of h.actuators) assert.ok(a.seated, `${a.side} ${a.name} schwebt`);
+  assert.deepEqual(
+    h.actuators.map((a) => a.side + ' ' + a.name),
+    ['L Knie', 'L Sprunggelenk', 'R Knie', 'R Sprunggelenk'],
+  );
+});
+test('stehende Füße bleiben beim Gehen, Kurven und Bremsen am Boden', async () => {
+  const stats = await walkScenario([
+    [1, 0, 0],
+    [5, 2.2, 0],
+    [4, 1.2, 0.2],
+    [3, 0, 0],
+  ]);
+  console.log('Foot-Locking Gehen', stats);
+  checkStroke(stats);
+  assert.ok(stats.planted > 500);
+  assert.ok(stats.slide < 1e-6, `Stehender Fuß rutscht ${stats.slide} m`);
+  assert.ok(stats.jump < 0.2, `Fuß springt ${stats.jump} m in einem Bild`);
+  // Rückwärts aus dem Stand: Der Fuß darf am Rand der Reichweite kurz nachrutschen.
+  const reverse = await walkScenario([
+    [1, 0, 0],
+    [3, 1.2, 0],
+    [2, 0, 0],
+    [3, -1.1, 0],
+    [2, 0, 0],
+  ]);
+  console.log('Foot-Locking Rückwärts', reverse);
+  assert.ok(reverse.slide < 0.05);
+  assert.ok(reverse.jump < 0.2);
+  assert.ok(stats.reach < 1, 'Bein bleibt in Reichweite');
+});
+test('Drehen auf der Stelle: kurze Schritte, Fuß rutscht höchstens am Rand nach', async () => {
+  const stats = await walkScenario([
+    [1, 0, 0],
+    [8, 0, 0.28],
+    [3, 0, 0],
+  ]);
+  console.log('Foot-Locking Drehen', stats);
+  checkStroke(stats);
+  assert.ok(stats.slide < 0.01, `Stehender Fuß rutscht ${stats.slide} m`);
+  assert.ok(stats.jump < 0.12);
 });

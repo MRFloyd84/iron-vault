@@ -200,6 +200,9 @@ function floorPose(x: number, z: number, yaw: number) {
     roll: Math.atan2(right - left, 3.6),
   };
 }
+/** Schrittfortschritt je Radiant Drehung: im Stand 5, beim Gehen (ab 0,4 m/s) 1,5. */
+export const turnStepFactor = (speed: number) =>
+  1.5 + 3.5 * (1 - Math.min(1, Math.abs(speed) / 0.4));
 const approach = (a: number, b: number, step: number) => a + Math.max(-step, Math.min(step, b - a));
 export function advanceWalking(state: MachineState, dt: number): MachineState {
   if (dt <= 0) return state;
@@ -247,7 +250,8 @@ export function advanceWalking(state: MachineState, dt: number): MachineState {
       w.yaw = yaw;
       const distance = Math.hypot(dx, dz);
       w.distance += distance;
-      const stepTravel = distance + Math.abs(w.turnRate) * h * 1.5;
+      // Drehen im Stand: kürzere Schritte, damit ein stehender Fuß nicht zu weit verdreht wird.
+      const stepTravel = distance + Math.abs(w.turnRate) * h * turnStepFactor(w.speed);
       w.phase += stepTravel / WALK.stride;
       w.step = Math.floor(w.phase * 2);
       w.height = pose.height;

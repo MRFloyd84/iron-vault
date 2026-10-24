@@ -1,6 +1,6 @@
 # IRON VAULT · Pilotenkanzel
 
-> **Version 54:** Start, Befehle und Ordner stehen in `START_HIER.md`, die Änderungen gegenüber v45 in `AENDERUNGEN_v46.md` bis `AENDERUNGEN_v54.md`. Die folgenden Abschnitte beschreiben die Funktionen und ihre Entwicklung bis v45. Hinweise darin auf Vinext, Cloudflare oder Sites-Hosting sind seit v46 überholt.
+> **Version 55:** Start, Befehle und Ordner stehen in `START_HIER.md`, die Änderungen gegenüber v45 in `AENDERUNGEN_v46.md` bis `AENDERUNGEN_v55.md`. Die folgenden Abschnitte beschreiben die Funktionen und ihre Entwicklung bis v45. Hinweise darin auf Vinext, Cloudflare oder Sites-Hosting sind seit v46 überholt.
 
 Eigenständiger 3D-Cockpit-Prototyp für Laptop-Browser. Das Cockpit wird mit Three.js aufgebaut; alle Instrumente werden als dynamische Texturen auf echte 3D-Displays gerendert. Das vom Nutzer bereitgestellte Tripo-Außenmodell wird lokal mit der Anwendung ausgeliefert; keine Laufzeit-CDNs erforderlich.
 
