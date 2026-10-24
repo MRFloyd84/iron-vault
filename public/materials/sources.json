@@ -1,0 +1,42 @@
+{
+  "source": "User supplied material archives, September 2026",
+  "materials": {
+    "shutter": {
+      "archive": "worn_shutter_2k.blend.zip",
+      "color": "worn_shutter_diff_2k.jpg",
+      "normal": "worn_shutter_nor_gl_2k.exr",
+      "rough": "worn_shutter_rough_2k.exr",
+      "usage": "Eighteen large side lining panels; 2K color and 1K linear data maps, 1.45 scene units per tile, neutral AO and constant metalness 64/255. No displacement geometry."
+    },
+    "paint": {
+      "color": "PaintedMetal014_2K-JPG_Color.jpg",
+      "normal": "PaintedMetal014_2K-JPG_NormalGL.jpg",
+      "rough": "PaintedMetal014_2K-JPG_Roughness.jpg",
+      "metal": "PaintedMetal014_2K-JPG_Metalness.jpg",
+      "ao": "PaintedMetal014_2K-JPG_AmbientOcclusion.jpg"
+    },
+    "hull": {
+      "color": "metal_plate_02_diff_2k.jpg",
+      "normal": "metal_plate_02_nor_gl_2k.exr",
+      "rough": "metal_plate_02_rough_2k.exr",
+      "metal": "metal_plate_02_metal_2k.exr"
+    },
+    "tread": {
+      "color": "metal_plate_diff_2k.jpg",
+      "normal": "metal_plate_nor_gl_2k.exr",
+      "rough": "metal_plate_rough_2k.exr",
+      "metal": "metal_plate_metal_2k.exr"
+    },
+    "seat": {
+      "color": "fabric_leather_02_diff_2k.jpg",
+      "normal": "fabric_leather_02_nor_gl_2k.exr",
+      "rough": "fabric_leather_02_rough_2k.jpg"
+    },
+    "leather": {
+      "color": "brown_leather_albedo_2k.jpg",
+      "normal": "brown_leather_nor_gl_2k.exr",
+      "rough": "brown_leather_rough_2k.jpg"
+    }
+  },
+  "processing": "Color WebP; linear EXR data converted without gamma; OpenGL normals normalized after downsampling; R=occlusion G=roughness B=metalness."
+}

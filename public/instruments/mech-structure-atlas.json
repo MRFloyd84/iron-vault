@@ -1,0 +1,31 @@
+{
+  "source": "models/iron-vault-rigged.glb",
+  "sourceSha256": "d208a6c771796991577fca07713b8b8cb57e922ea40713a487b8d1a4a33e13d0",
+  "triangleCount": 159999,
+  "tile": 512,
+  "columns": [
+    "base",
+    "leftArm",
+    "rightArm",
+    "leftLeg",
+    "rightLeg"
+  ],
+  "rows": [
+    "front+Z",
+    "rear-Z"
+  ],
+  "maskCounts": [
+    [
+      61282,
+      56188,
+      77477,
+      77712
+    ],
+    [
+      65402,
+      58590,
+      77796,
+      77980
+    ]
+  ]
+}

@@ -1,0 +1,72 @@
+[
+  {
+    "file": "apu-start.ogg",
+    "source": "derrickmckinnon-jet-engine-starting-303626.mp3",
+    "source_sha256": "47d4a644faf36e83da1bbff4702b741ed44bdad0a3f1a2a67413abb3ed63e407",
+    "source_offset_seconds": 0,
+    "source_length_seconds": 18,
+    "filters": "highpass=f=70,lowpass=f=4200,atempo=2",
+    "loop_crossfade_seconds": 0,
+    "duration_seconds": 9.001,
+    "channels": 1,
+    "sample_rate": 24000,
+    "peak_before_encoding": 0.6044,
+    "rms_before_encoding": 0.18
+  },
+  {
+    "file": "apu-running-loop.ogg",
+    "source": "freesound_community-propulsion-jet-engine-67151.mp3",
+    "source_sha256": "b76848f1bd0eb127752854975a3466c1ec67336198adb66ee250c6d67e9d242e",
+    "source_offset_seconds": 3,
+    "source_length_seconds": 14,
+    "filters": "highpass=f=70,lowpass=f=3600",
+    "loop_crossfade_seconds": 0.75,
+    "duration_seconds": 13.25,
+    "channels": 1,
+    "sample_rate": 24000,
+    "peak_before_encoding": 0.6731,
+    "rms_before_encoding": 0.18
+  },
+  {
+    "file": "apu-shutdown.ogg",
+    "source": "freesound_community-jet-engine-powering-down-101014.mp3",
+    "source_sha256": "9130ea2f8726cc7dd8ff459668f6c4c0da506632ef7434344cd9f9e16c2f76b9",
+    "source_offset_seconds": 0,
+    "source_length_seconds": 9.3,
+    "filters": "highpass=f=70,lowpass=f=3600",
+    "loop_crossfade_seconds": 0,
+    "duration_seconds": 9.3,
+    "channels": 1,
+    "sample_rate": 24000,
+    "peak_before_encoding": 0.7,
+    "rms_before_encoding": 0.1266
+  },
+  {
+    "file": "systems-power-down.ogg",
+    "source": "faespencer-power-down-486988.mp3",
+    "source_sha256": "067bf1917c1b1780af91d2a33bbe9445b6c097ab4bdd2a60977902de55666ad7",
+    "source_offset_seconds": 0,
+    "source_length_seconds": 6.5,
+    "filters": "highpass=f=45,lowpass=f=4500",
+    "loop_crossfade_seconds": 0,
+    "duration_seconds": 6.5,
+    "channels": 1,
+    "sample_rate": 24000,
+    "peak_before_encoding": 0.6174,
+    "rms_before_encoding": 0.18
+  },
+  {
+    "file": "gyro-running-loop.ogg",
+    "source": "freesound_community-wind-turbine-60940.mp3",
+    "source_sha256": "60f4aee926ad17dac5796454393266bc39cfc0835bd2a45feac506704bcd0f6b",
+    "source_offset_seconds": 35,
+    "source_length_seconds": 16,
+    "filters": "highpass=f=95,lowpass=f=1800",
+    "loop_crossfade_seconds": 0.75,
+    "duration_seconds": 15.25,
+    "channels": 1,
+    "sample_rate": 24000,
+    "peak_before_encoding": 0.4885,
+    "rms_before_encoding": 0.12
+  }
+]
