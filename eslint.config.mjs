@@ -4,7 +4,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'assets-src'] },
+  { ignores: ['dist', 'release', 'node_modules', 'assets-src'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -19,5 +19,11 @@ export default tseslint.config(
   {
     files: ['tests/**/*.mjs', 'scripts/**/*.mjs', '*.config.*'],
     languageOptions: { globals: { ...globals.node } },
+  },
+  {
+    // Electron-Hauptprozess (CommonJS)
+    files: ['electron/**/*.cjs'],
+    languageOptions: { sourceType: 'commonjs', globals: { ...globals.node } },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
 );
