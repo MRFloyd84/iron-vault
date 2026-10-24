@@ -225,7 +225,8 @@ export const HEADLIGHT_MOUNTS = [
   { x: 0.128, y: 0.705, z: 0.135 },
 ] as const;
 export const HEADLIGHT_TILT = 0.28; // rad nach unten: Lichtfleck ca. 20 m vor dem Mech
-export const BEACON_MOUNT = { x: 0.1, y: 0.945, z: -0.12 } as const;
+/** Rundumleuchte: auf einem Winkelhalter an der Rückenplatte (Platte liegt bei z ≈ -0,25). */
+export const BEACON_MOUNT = { x: 0.06, y: 0.888, z: -0.276 } as const;
 
 /**
  * Helligkeit der Scheinwerfer 0…1. Alte Lampen: beim Einschalten kurz unruhig,
@@ -381,7 +382,16 @@ export class MechLights {
     mirror.position.y = 0.009;
     this.beaconSpinner.add(mirror);
     this.beaconAnchor.position.set(BEACON_MOUNT.x, BEACON_MOUNT.y, BEACON_MOUNT.z);
-    this.beaconAnchor.add(base, dome, this.beaconSpinner);
+    // Winkelhalter: Plattform unter der Leuchte plus Stützblech an der Rückenplatte.
+    const platform = new THREE.Mesh(new THREE.BoxGeometry(0.036, 0.005, 0.034), housing);
+    platform.position.set(0, -0.0075, 0.012);
+    const gusset = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.034, 0.005), housing);
+    gusset.position.set(0, -0.024, 0.0265);
+    const strut = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.005, 0.034), housing);
+    strut.position.set(0, -0.022, 0.012);
+    strut.rotation.x = -0.75;
+    this.beaconAnchor.add(platform, gusset, strut, base, dome, this.beaconSpinner);
+    this.disposables.push(platform.geometry, gusset.geometry, strut.geometry);
     torso.add(this.beaconAnchor);
     this.disposables.push(
       base.geometry,

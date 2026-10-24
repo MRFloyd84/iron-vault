@@ -1,7 +1,7 @@
-# IRON VAULT – Quellprojekt, Version 48
+# IRON VAULT – Quellprojekt, Version 49
 
-Stand: 24.10.2026. v46: Aufräumen und neue Oberfläche, v47: Röhren-Look der Displays, v48: Außenhülle, Scheinwerfer, Tag/Nacht.
-Was sich geändert hat, steht in `AENDERUNGEN_v46.md`, `AENDERUNGEN_v47.md` und `AENDERUNGEN_v48.md`.
+Stand: 24.10.2026. v46: Aufräumen und neue Oberfläche, v47: Röhren-Look der Displays, v48: Außenhülle, Scheinwerfer, Tag/Nacht, v49: Rundumleuchte am Rücken.
+Was sich geändert hat, steht in `AENDERUNGEN_v46.md` bis `AENDERUNGEN_v49.md`.
 
 Das ist eine Three.js-/React-Browsersimulation. Seit v46 ist sie ein reines
 **Vite-Projekt** ohne Server-Anteil: `npm run build` erzeugt einen statischen Ordner
@@ -13,7 +13,7 @@ Voraussetzung: Node.js 22.13 oder neuer (Node 24 passt) und npm. Für die erste
 Installation braucht es Internet.
 
 ```sh
-cd IRON_VAULT_v48
+cd IRON_VAULT_v49
 npm ci
 npm run dev
 ```

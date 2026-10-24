@@ -77,7 +77,7 @@ Die GLB-Datei bleibt unverändert. Alles passiert beim Laden im Code
 - `lib/mech-details.ts`:
   - `HEADLIGHT_MOUNTS`: Position der Scheinwerfer.
   - `HEADLIGHT_TILT`: Neigung der Scheinwerfer.
-  - `BEACON_MOUNT`: Position der Rundumleuchte.
+  - `BEACON_MOUNT`: Position der Rundumleuchte (seit v49 an der Rückenplatte).
   - `spot.intensity = 5200 * level`: Helligkeit der Scheinwerfer.
   - Im Shader-Block von `applyWear`: Schmutzfarbe und -menge.
 - `lib/day-night.ts`, `dayNightParams`: alle Nachtwerte.
