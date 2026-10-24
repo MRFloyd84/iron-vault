@@ -1,7 +1,7 @@
-# IRON VAULT – Quellprojekt, Version 46
+# IRON VAULT – Quellprojekt, Version 47
 
-Stand: 24.10.2026, aufbauend auf Version 45.
-Was sich gegenüber v45 geändert hat, steht in `AENDERUNGEN_v46.md`.
+Stand: 24.10.2026. v46: Aufräumen und neue Oberfläche, v47: Röhren-Look der Displays.
+Was sich geändert hat, steht in `AENDERUNGEN_v46.md` und `AENDERUNGEN_v47.md`.
 
 Das ist eine Three.js-/React-Browsersimulation. Seit v46 ist sie ein reines
 **Vite-Projekt** ohne Server-Anteil: `npm run build` erzeugt einen statischen Ordner
@@ -13,7 +13,7 @@ Voraussetzung: Node.js 22.13 oder neuer (Node 24 passt) und npm. Für die erste
 Installation braucht es Internet.
 
 ```sh
-cd IRON_VAULT_v46
+cd IRON_VAULT_v47
 npm ci
 npm run dev
 ```
@@ -35,7 +35,7 @@ weil Browser dann keine Texturen und Sounds laden.
 
 | Befehl                 | Zweck                                                    |
 | ---------------------- | -------------------------------------------------------- |
-| `npm test`             | alle 159 Tests (Zustandslogik, Audio, Displays, Geometrie) |
+| `npm test`             | alle 163 Tests (Zustandslogik, Audio, Displays, Geometrie) |
 | `npm run typecheck`    | TypeScript-Prüfung                                       |
 | `npm run lint`         | ESLint                                                   |
 | `npm run format`       | Code einheitlich mit Prettier formatieren                |

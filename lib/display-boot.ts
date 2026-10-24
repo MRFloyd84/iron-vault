@@ -1,6 +1,7 @@
 import { dcPowerAvailable, type MachineState } from './machine';
 import { renderInstrument, type InstrumentAssets, type TelemetrySample } from './instruments';
 import { drawDisplaySurface } from './display-surface';
+import { drawDisplayAging } from './display-aging';
 
 export const DISPLAY_BOOT_SECONDS = 13;
 export type DisplayPhase = 'off' | 'boot' | 'ready';
@@ -175,4 +176,5 @@ export function renderDisplay(
     }
   }
   drawDisplaySurface(c, seconds, reduced, index);
+  drawDisplayAging(c, boot.phase, boot.elapsed, seconds, index, reduced, kind === 'hud');
 }

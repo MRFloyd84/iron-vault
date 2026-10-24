@@ -13,6 +13,7 @@ import {
   nextDisplay,
   setCockpitInterior,
 } from './cockpit-rendering';
+import { displayFlicker } from './display-aging';
 import { DisplayBoot, renderDisplay, coldCockpit, batteryBeacon } from './display-boot';
 import { STRUCTURE_ATLAS, type InstrumentAssets, type TelemetrySample } from './instruments';
 import { actuatorMoving, dcPowerAvailable, overheadOn, type MachineState } from './machine';
@@ -926,11 +927,17 @@ export class CockpitScene {
       if (knob.action === 25) value = s.hudEnabled ? 1 : 0;
       knob.pivot.rotation.z += (1.9 - value * 3.8 - knob.pivot.rotation.z) * damp;
     }
-    for (const sc of this.screens)
-      sc.material.color.setScalar(this.displayBoot.phase === 'off' ? 0 : 1.2 * s.displayBrightness);
+    // Alte Röhren: Helligkeit flackert beim Einschalten und bei gelegentlichen Störungen.
+    const boot = this.displayBoot;
+    for (let i = 0; i < this.screens.length; i++)
+      this.screens[i].material.color.setScalar(
+        1.2 * s.displayBrightness * displayFlicker(boot.phase, boot.elapsed, time, i, this.reduced),
+      );
     if (this.screenSpill)
       this.screenSpill.intensity +=
-        ((this.displayBoot.phase === 'off' ? 0 : instrumentSpill(s)) *
+        ((boot.phase === 'off'
+          ? 0
+          : instrumentSpill(s) * displayFlicker(boot.phase, boot.elapsed, time, 1, this.reduced)) *
           MECH.cabinScale ** this.screenSpill.decay -
           this.screenSpill.intensity) *
         damp;
