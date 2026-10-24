@@ -59,6 +59,11 @@ Audio und Displays verhalten sich wie in v45.
 - Die Hilfe hat einen Schließen-Knopf.
 - Der Ladebildschirm zeigt einen Fortschrittsbalken (bei reduzierter Bewegung statisch).
 
+## Abhängigkeiten aktualisiert
+
+- Vite 8.0.13 → 8.3.5 und sharp 0.34.5 → 0.35.5, wegen bekannter Sicherheitslücken in diesen
+  Entwicklungswerkzeugen. `npm audit` meldet jetzt 0 Probleme.
+
 ## Tests
 
 - v45: 164 Tests. Davon waren 157 grün, 5 übersprungen (fehlendes Canvas-Paket) und 2 rot
