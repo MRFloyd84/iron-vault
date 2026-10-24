@@ -14,6 +14,8 @@ import {
   setCockpitInterior,
 } from './cockpit-rendering';
 import { displayFlicker } from './display-aging';
+import { createNightSky, dayNightParams, DAY_NIGHT_RATE } from './day-night';
+import { beaconLevel, headlightLevel } from './mech-details';
 import { DisplayBoot, renderDisplay, coldCockpit, batteryBeacon } from './display-boot';
 import { STRUCTURE_ATLAS, type InstrumentAssets, type TelemetrySample } from './instruments';
 import { actuatorMoving, dcPowerAvailable, overheadOn, type MachineState } from './machine';
@@ -156,6 +158,21 @@ export class CockpitScene {
   displayFrameMat: THREE.MeshStandardMaterial;
   cleanup: (() => void)[] = [];
   reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // ---- Tag/Nacht und Mech-Beleuchtung ----
+  hemi = new THREE.HemisphereLight(0x91aea8, 0x10130e, 0.2);
+  daySky: THREE.Texture | null = null;
+  nightSky: THREE.Texture | null = null;
+  yardLamp: THREE.MeshStandardMaterial | null = null;
+  floodlights: { light: THREE.SpotLight; base: number }[] = [];
+  nightTarget = 0;
+  nightAmount = 0;
+  baseEnvIntensity = 0.18;
+  baseFogDensity = 0.0025;
+  headlightsOn = false;
+  headlightSince = -10;
+  lastPowered = false;
+  movingFor = 0;
+  stoppedFor = 99;
   constructor(
     host: HTMLElement,
     getState: () => MachineState,
@@ -216,13 +233,19 @@ export class CockpitScene {
     environment.dispose();
     pmrem.dispose();
     this.cleanup.push(() => envTarget.dispose());
-    this.scene.add(new THREE.HemisphereLight(0x91aea8, 0x10130e, 0.2));
+    this.scene.add(this.hemi);
     this.screenSpill = new THREE.PointLight(0x9bdf64, 0, 3.2, 2);
     this.screenSpill.position.set(0, 0.82, 0.55);
     this.scene.add(this.screenSpill);
     this.buildHangar();
     const yard = buildYard(this);
     this.yardMaterials.push(...yard.materials);
+    this.yardLamp = yard.lamp;
+    yard.root.traverse((o) => {
+      if (o instanceof THREE.SpotLight) this.floodlights.push({ light: o, base: o.intensity });
+    });
+    this.nightSky = createNightSky();
+    if (this.nightSky) this.textures.push(this.nightSky);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.loadYardSky(manager);
@@ -393,6 +416,7 @@ export class CockpitScene {
       }
       texture.mapping = THREE.EquirectangularReflectionMapping;
       this.textures.push(texture);
+      this.daySky = texture;
       this.scene.background = texture;
       this.scene.backgroundIntensity = 0.8;
       this.scene.backgroundRotation.y = 0.35;
@@ -828,12 +852,41 @@ export class CockpitScene {
         : this.inHangar
           ? 1.2
           : 0.94;
-    this.scene.environmentIntensity = this.inMech ? 0.55 : 0.18;
-    if (this.scene.fog instanceof THREE.FogExp2)
-      this.scene.fog.density = this.inYard ? 0.0035 : 0.0025;
+    this.baseEnvIntensity = this.inMech ? 0.55 : 0.18;
+    this.baseFogDensity = this.inYard ? 0.0035 : 0.0025;
+    this.applyDayNight();
     this.camera.updateMatrixWorld();
     this.pendingPointer = null;
     this.hover(null);
+  }
+  /** Tag/Nacht umschalten; der Übergang läuft weich im Bildtakt. */
+  setNight(on: boolean) {
+    this.nightTarget = on ? 1 : 0;
+  }
+  setHeadlights(on: boolean) {
+    if (on && !this.headlightsOn) this.headlightSince = this.lastTime / 1000;
+    this.headlightsOn = on;
+  }
+  applyDayNight() {
+    const p = dayNightParams(this.nightAmount);
+    const sky = p.sky === 'day' ? this.daySky : this.nightSky;
+    if (sky) {
+      this.scene.background = sky;
+      this.scene.backgroundRotation.y = p.sky === 'day' ? 0.35 : 0;
+    }
+    this.scene.backgroundIntensity = p.skyIntensity;
+    this.hemi.intensity = p.hemiIntensity;
+    this.hemi.color.copy(p.hemiSky);
+    this.hemi.groundColor.copy(p.hemiGround);
+    if (this.scene.fog instanceof THREE.FogExp2) {
+      this.scene.fog.color.copy(p.fogColor);
+      this.scene.fog.density = this.baseFogDensity * p.fogScale;
+    }
+    for (const m of this.yardMaterials) if (m.envMap) m.envMapIntensity = p.yardEnv;
+    this.scene.environmentIntensity = this.baseEnvIntensity * p.envScale;
+    if (this.yardLamp) this.yardLamp.emissiveIntensity = p.lampGlow;
+    for (const f of this.floodlights) f.light.intensity = f.base * p.floodScale;
+    if (this.exterior) this.exterior.night = p.n;
   }
   orbitPreset(view: 'front' | 'rear' | 'side') {
     this.targetOrbitYaw = view === 'rear' ? Math.PI + 0.55 : view === 'side' ? Math.PI / 2 : 0.65;
@@ -966,6 +1019,32 @@ export class CockpitScene {
       this.jointPose.torso,
     );
     this.exterior?.update(this.cabin, s, walk, this.inMech, outside, this.jointPose);
+    // Tag/Nacht-Übergang
+    if (this.nightAmount !== this.nightTarget) {
+      this.nightAmount +=
+        (this.nightTarget - this.nightAmount) * (1 - Math.exp(-dt * DAY_NIGHT_RATE));
+      if (Math.abs(this.nightTarget - this.nightAmount) < 0.002)
+        this.nightAmount = this.nightTarget;
+      this.applyDayNight();
+    }
+    // Scheinwerfer (brauchen Bordstrom) und Rundumleuchte (dreht beim Gehen)
+    const powered = dcPowerAvailable(s);
+    if (powered && !this.lastPowered) this.headlightSince = time;
+    this.lastPowered = powered;
+    if (Math.abs(walk.speed) > 0.05 || Math.abs(walk.turnRate) > 0.02) {
+      this.movingFor += dt;
+      this.stoppedFor = 0;
+    } else {
+      this.movingFor = 0;
+      this.stoppedFor += dt;
+    }
+    this.exterior?.lights.update(
+      headlightLevel(this.headlightsOn, powered, time - this.headlightSince, this.reduced),
+      powered ? beaconLevel(time, this.movingFor, this.stoppedFor) : 0,
+      this.nightAmount,
+      time,
+      outside,
+    );
     const looking =
       this.drag ||
       Math.abs(this.targetYaw - this.yaw) + Math.abs(this.targetPitch - this.pitch) > 0.002;

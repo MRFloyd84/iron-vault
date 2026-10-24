@@ -273,5 +273,5 @@ export function buildYard(host: CockpitScene) {
   host.label(root, 'IRON VAULT / PROVING GROUND', 0, 3.5, -233.89, 28, 1.4, '#b9c5b8');
   for (const x of [-15, 15]) block(x, 0.5, -234, 0.3, 6.2, 0.3, steel);
   block(0, 3.6, -234, 31, 2, 0.18, steel);
-  return { root, materials };
+  return { root, materials, lamp };
 }

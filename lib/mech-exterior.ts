@@ -5,6 +5,7 @@ import type { CockpitScene } from './cockpit-scene';
 import type { MachineState } from './machine';
 import { groundHeight, WALK } from './walking';
 import { neutralJoints, type JointPose } from './articulation';
+import { applyWear, bakeRestPositions, buildWaistRing, MechLights } from './mech-details';
 
 // Authored cabin coordinates stay intact, uniformly scaled into the torso.
 export const MECH = {
@@ -133,13 +134,8 @@ export function prepareTorsoRig(model: THREE.Object3D) {
     if (!leg) throw new Error('Hip missing');
     pelvis.attach(leg);
   }
-  const bearing = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.166, 0.166, 0.08, 16),
-    new THREE.MeshStandardMaterial({ color: 0x252b28, roughness: 0.65, metalness: 0.7 }),
-  );
-  bearing.name = 'Waist bearing';
-  bearing.position.y = 0.565;
-  pelvis.add(bearing);
+  // Mechanischer Drehkranz mit Zahnkranz, Schrauben und Schwenkantrieben.
+  pelvis.add(buildWaistRing());
   geometry.dispose();
   return pelvis;
 }
@@ -341,6 +337,10 @@ export class MechExterior {
   shadow: THREE.Mesh;
   inspectionKey: THREE.DirectionalLight;
   inspectionFill: THREE.DirectionalLight;
+  /** Scheinwerfer und Rundumleuchte; Lichtquellen liegen direkt in der Szene. */
+  lights: MechLights;
+  /** 0 = Tag, 1 = Nacht; dämpft die Inspektionsbeleuchtung der Außenansicht. */
+  night = 0;
   private disposed = false;
   constructor(host: CockpitScene, manager?: THREE.LoadingManager) {
     this.root.name = 'IRON VAULT / supplied mechanical exterior';
@@ -357,6 +357,8 @@ export class MechExterior {
       this.model.name = 'Tripo military mech / mechanical rig';
       prepareTorsoRig(this.model);
       this.legs = prepareMechanicalRig(this.model);
+      bakeRestPositions(this.model);
+      this.lights.attach(this.model.getObjectByName('Torso')!);
       this.root.add(this.model);
       this.model.traverse((o) => {
         if (o instanceof THREE.Mesh) {
@@ -364,10 +366,18 @@ export class MechExterior {
           o.receiveShadow = true;
           const materials = Array.isArray(o.material) ? o.material : [o.material];
           for (const material of materials)
-            if (material instanceof THREE.MeshStandardMaterial) {
-              material.envMapIntensity = 0.65;
-              material.roughness = 0.85;
-              material.needsUpdate = true;
+            if (material instanceof THREE.MeshStandardMaterial && !material.userData.wear) {
+              // Alt statt verchromt: weniger Spiegelung, Verschleiß-Shader (mech-details.ts).
+              if (
+                !o.geometry.getAttribute('aRest') ||
+                o.parent?.name === 'Waist bearing' ||
+                o.parent?.parent?.name === 'IV headlight'
+              )
+                continue;
+              material.envMapIntensity = 0.4;
+              material.roughness = 1;
+              material.metalness = 0.8;
+              applyWear(material);
               for (const texture of [
                 material.map,
                 material.normalMap,
@@ -402,6 +412,8 @@ export class MechExterior {
     host.materials.push(material);
     this.shadow = host.plane(host.scene, 0, MECH.floor + 0.025, WALK.originZ, 8.5, 6.2, material);
     this.shadow.rotation.x = -Math.PI / 2;
+    this.lights = new MechLights(host.scene);
+    host.cleanup.push(() => this.lights.dispose());
     this.inspectionKey = new THREE.DirectionalLight(0xe3eadf, 0);
     this.inspectionFill = new THREE.DirectionalLight(0x8aa5b1, 0);
     host.scene.add(
@@ -451,8 +463,11 @@ export class MechExterior {
     }
     this.shadow.position.set(walk.x, MECH.floor + groundHeight(walk.x, walk.z) + 0.026, walk.z);
     this.shadow.rotation.z = -walk.yaw;
-    this.inspectionKey.intensity = inspection ? 2.4 : 0;
-    this.inspectionFill.intensity = inspection ? 0.85 : 0;
+    // Nachts nur schwaches, bläuliches Mondlicht statt Inspektionsleuchten.
+    const day = 1 - this.night;
+    this.inspectionKey.intensity = inspection ? 2.4 * (0.12 + 0.88 * day) : 0;
+    this.inspectionFill.intensity = inspection ? 0.85 * (0.1 + 0.9 * day) : 0;
+    this.inspectionKey.color.setHex(0xe3eadf).lerp(new THREE.Color(0x8fa6d6), this.night);
     this.inspectionKey.position.set(walk.x - 7, walk.height + 9, walk.z - 9);
     this.inspectionFill.position.set(walk.x + 8, walk.height + 5, walk.z + 4);
     for (const light of [this.inspectionKey, this.inspectionFill])

@@ -74,6 +74,18 @@ export default function Cockpit() {
             : 'Ton aktivieren';
   const [jointsOpen, setJointsOpen] = useState(false);
   const [audioCheckOpen, setAudioCheckOpen] = useState(false);
+  const [night, setNight] = useState(false);
+  const [headlights, setHeadlights] = useState(false);
+  const toggleNight = () =>
+    setNight((v) => {
+      scene.current?.setNight(!v);
+      return !v;
+    });
+  const toggleHeadlights = () =>
+    setHeadlights((v) => {
+      scene.current?.setHeadlights(!v);
+      return !v;
+    });
   const held = useRef(new Set<string>()),
     helpRef = useRef(false);
   helpRef.current = help;
@@ -265,6 +277,12 @@ export default function Cockpit() {
             setHover,
             (boot) => audio.current?.setDisplayBoot(boot.phase, boot.elapsed, boot.cycle),
           );
+          // Nur im Entwicklungsmodus: Szene für Experimente in der Browserkonsole.
+          if (import.meta.env.DEV)
+            (window as unknown as { ironVault?: unknown }).ironVault = {
+              scene: scene.current,
+              state: stateRef,
+            };
           void scene.current.ready
             .then(() => {
               if (!stopped) setLoaded(true);
@@ -387,6 +405,8 @@ export default function Cockpit() {
       if (e.key.toLowerCase() === 'h') changeView(scene.current?.inHangar ? 'front' : 'hangar');
       if (e.key.toLowerCase() === 'u') changeView(scene.current?.inYard ? 'front' : 'yard');
       if (e.key.toLowerCase() === 'l') operate.current(10);
+      if (e.key.toLowerCase() === 'n' && !e.repeat) toggleNight();
+      if (e.key.toLowerCase() === 'j' && !e.repeat) toggleHeadlights();
       if (e.key.toLowerCase() === 't') operate.current(30);
       if (e.key.toLowerCase() === 'k') operate.current(35);
     };
@@ -582,8 +602,26 @@ export default function Cockpit() {
           <button aria-pressed={cameraView === 'right'} onClick={() => changeView('right')}>
             RECHTS
           </button>
-          <button aria-pressed={cameraView === 'panel'} onClick={() => changeView('panel')}>
+          <button
+            className="group-end"
+            aria-pressed={cameraView === 'panel'}
+            onClick={() => changeView('panel')}
+          >
             INSTRUMENTE
+          </button>
+          <button
+            aria-pressed={headlights}
+            title={
+              dcPowerAvailable(state)
+                ? 'Scheinwerfer ein/aus'
+                : 'Scheinwerfer brauchen Bordstrom (Batterie, Hangarstrom oder Generator)'
+            }
+            onClick={toggleHeadlights}
+          >
+            SCHEINWERFER [J]
+          </button>
+          <button aria-pressed={night} onClick={toggleNight}>
+            {night ? 'NACHT [N]' : 'TAG [N]'}
           </button>
         </div>
       </div>
@@ -799,6 +837,18 @@ export default function Cockpit() {
               Einzelbild; 6 BILDER öffnet die Übersicht, SYSTEME die bisherigen Bordsysteme. Monitor
               anklicken vergrößert die Sicht. Rückansichten sind ungespiegelt; links/rechts
               bezeichnet die Mechseite.
+            </dd>
+            <dt>Scheinwerfer / Taste J</dt>
+            <dd>
+              Zwei Doppelscheinwerfer an der Kanzel leuchten den Weg aus. Sie brauchen Bordstrom
+              (Batterie, Hangarstrom oder Generator) und flackern beim Einschalten kurz wie alte
+              Lampen. Nachts sind die Lichtkegel in der Außenansicht zu sehen. Die gelbe
+              Rundumleuchte auf dem Rücken dreht automatisch, solange sich der Mech bewegt.
+            </dd>
+            <dt>Tag / Nacht / Taste N</dt>
+            <dd>
+              Wechselt weich zwischen Abendlicht und Nacht mit Sternenhimmel. Nachts leuchten die
+              Hofscheinwerfer kräftiger, Umgebung und Nebel werden dunkel.
             </dd>
             <dt>Taste L</dt>
             <dd>
