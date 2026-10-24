@@ -175,6 +175,7 @@ const old = await collect(OldAudio),
 // The user intentionally replaced the fan recording and its startup gate.
 // Compare every retained channel without concealing that deliberate difference.
 const retained = (items) =>
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- fan wird bewusst verworfen
   items.map(({ fan, ...item }) => ({
     ...item,
     sources: item.sources.filter(

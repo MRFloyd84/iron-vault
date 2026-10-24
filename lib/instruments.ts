@@ -11,7 +11,6 @@ import {
   shutdownInstruction,
   thermalRate,
   dcPowerAvailable,
-  mainPowerAvailable,
   type MachineState,
 } from './machine';
 export type TelemetrySample = { pressure: number; temperature: number };
@@ -567,7 +566,7 @@ export function renderInstrument(
         done ? C.green : active ? C.accent : C.muted,
       );
     });
-    let p = passed
+    const p = passed
       ? 1
       : s.testPhase === 'hydraulics'
         ? s.testHold / 3 / 3

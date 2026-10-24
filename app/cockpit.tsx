@@ -109,7 +109,7 @@ export default function Cockpit() {
     void audio.current?.enable().catch(() => {});
     if (next.error) audio.current?.beep(true);
   };
-  const operate = useRef((index: number) => {});
+  const operate = useRef<(index: number) => void>(() => {});
   operate.current = (index) => {
     if (
       scene.current?.inHangar ||
@@ -397,6 +397,8 @@ export default function Cockpit() {
       scene.current?.dispose();
       audio.current?.dispose();
     };
+    // Bewusst nur beim Einhängen: Szene, Audio und Tastatur-Listener leben genau einmal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   async function toggleSound() {
     await audio.current?.toggleSound().catch(() => {});

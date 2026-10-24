@@ -5,7 +5,6 @@ import {
   command,
   tick,
   serviceCommand,
-  overheadCommand,
   startSystemTest,
   startShutdown,
   throttleCommand,
@@ -17,7 +16,7 @@ import {
   unacknowledgedServiceAlerts,
   targetCoolantFlow,
 } from '../lib/service-systems.ts';
-import { checked, qualify, advance } from './mobility-helpers.mjs';
+import { checked, advance } from './mobility-helpers.mjs';
 function gyro() {
   const s = initialState();
   return {

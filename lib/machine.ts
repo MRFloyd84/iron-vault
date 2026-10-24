@@ -480,7 +480,7 @@ export function auxiliary(state: MachineState, action: number): MachineState {
     return fail('Hydraulik gesperrt: HYD PUMP und Hauptversorgung prüfen.');
   const cycle = (values: number[], value: number, back = false) =>
     values[(values.indexOf(value) + (back ? values.length - 1 : 1)) % values.length];
-  let next = { ...state, error: false };
+  const next = { ...state, error: false };
   if (action === 20 || action === 26) {
     next.fanLevel = cycle([0, 1, 2, 3], state.fanLevel, action === 26);
     next.message =
@@ -725,16 +725,6 @@ export function afterrunSupply(s: MachineState) {
     (s.service.groundConnected && !s.service.trips.ground) ||
     (s.overhead.apuGen && s.overhead.apuPhase === 'running' && !s.service.trips.apu)
   );
-}
-function apuShutdownSupplyHint(s: MachineState) {
-  const o = s.overhead;
-  if (!apuStartAvailable(s))
-    return 'Hangarstrom im linken Elektrikdisplay verbinden oder beide geladenen Batterien einschalten.';
-  if (!o.fuelPump) return 'Overhead: FUEL PUMP einschalten.';
-  if (!o.apuMaster) return 'Overhead: APU MASTER einschalten.';
-  if (o.apuPhase === 'preparing') return 'APU-Vorbereitung abwarten (READY).';
-  if (o.apuPhase === 'ready') return 'Overhead: APU START drücken.';
-  return 'APU-Hochlauf abwarten (AVAIL).';
 }
 export function shutdownChecklist(s: MachineState): StartTask[] {
   const o = s.overhead,
@@ -1107,7 +1097,7 @@ export function nextStartInstruction(s: MachineState): string {
 
 export function serviceCommand(state: MachineState, action: number): MachineState {
   const service = { ...state.service, trips: { ...state.service.trips } };
-  let s = { ...state, service, error: false };
+  const s = { ...state, service, error: false };
   const fail = (message: string) => ({ ...state, error: true, message });
   if (action === 70) {
     service.page = 'faults';
