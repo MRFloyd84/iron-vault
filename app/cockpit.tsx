@@ -3,6 +3,7 @@ import ArticulationPanel from './articulation-panel';
 import AudioCheck from './audio-check';
 import {
   jointCommand,
+  articulationBlock,
   jointInput,
   neutralJoints,
   stopArticulation,
@@ -77,6 +78,20 @@ export default function Cockpit() {
   const [night, setNight] = useState(false);
   const [headlights, setHeadlights] = useState(false);
   const [rain, setRain] = useState(false);
+  const [armed, setArmed] = useState(false);
+  const [laser, setLaser] = useState(false);
+  const [weaponInfo, setWeaponInfo] = useState<ReturnType<CockpitScene['weaponInfo']> | null>(null);
+  const reticle = useRef<HTMLDivElement>(null);
+  const toggleArmed = () =>
+    setArmed((v) => {
+      scene.current?.setWeaponsArmed(!v);
+      return !v;
+    });
+  const toggleLaser = () =>
+    setLaser((v) => {
+      scene.current?.setLaser(!v);
+      return !v;
+    });
   const toggleRain = () =>
     setRain((v) => {
       scene.current?.setRain(!v);
@@ -97,6 +112,7 @@ export default function Cockpit() {
   helpRef.current = help;
   const stopInput = () => {
     held.current.clear();
+    if (scene.current) scene.current.trigger = false;
     stateRef.current = stopArticulation(walkInput(stateRef.current, idleInput()));
   };
   const [cameraView, setCameraView] = useState<CameraView>('front');
@@ -286,6 +302,8 @@ export default function Cockpit() {
           // Nur im Entwicklungsmodus: Szene für Experimente in der Browserkonsole.
           scene.current.onThunder = (variant, distance) =>
             audio.current?.thunder(variant, distance);
+          scene.current.onGunshot = (cabin) => audio.current?.gunshot(cabin);
+          scene.current.onImpact = (kind, distance) => audio.current?.impact(kind, distance);
           if (import.meta.env.DEV)
             (window as unknown as { ironVault?: unknown }).ironVault = {
               scene: scene.current,
@@ -416,6 +434,8 @@ export default function Cockpit() {
       if (e.key.toLowerCase() === 'n' && !e.repeat) toggleNight();
       if (e.key.toLowerCase() === 'j' && !e.repeat) toggleHeadlights();
       if (e.key.toLowerCase() === 'x' && !e.repeat) toggleRain();
+      if (e.key.toLowerCase() === 'm' && !e.repeat) toggleArmed();
+      if (e.key.toLowerCase() === 'p' && !e.repeat) toggleLaser();
       if (e.key.toLowerCase() === 't') operate.current(30);
       if (e.key.toLowerCase() === 'k') operate.current(35);
     };
@@ -467,6 +487,36 @@ export default function Cockpit() {
       });
     }
   }
+  // Waffenstatus mit 10 Hz abfragen; Torso führt nach, wenn das Ziel aus dem Schwenkbereich wandert.
+  useEffect(() => {
+    if (!armed && !laser) {
+      setWeaponInfo(null);
+      return;
+    }
+    const timer = window.setInterval(() => {
+      const sc = scene.current;
+      if (!sc) return;
+      const info = sc.weaponInfo();
+      setWeaponInfo(info);
+      const current = stateRef.current;
+      if (info.armed && info.torsoDemand !== null && !articulationBlock(current)) {
+        const next = jointCommand(current, 'torso', info.torsoDemand);
+        // Nachführen ohne Meldungsflut im Kommunikationsdisplay.
+        if (!next.error)
+          stateRef.current = { ...next, message: current.message, error: current.error };
+      }
+    }, 100);
+    return () => window.clearInterval(timer);
+  }, [armed, laser]);
+  // Fadenkreuz folgt der Maus direkt (ohne React-Neuzeichnen pro Mausbewegung).
+  useEffect(() => {
+    const move = (e: PointerEvent) => {
+      if (reticle.current)
+        reticle.current.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+    };
+    window.addEventListener('pointermove', move);
+    return () => window.removeEventListener('pointermove', move);
+  }, []);
   // Regengeräusch: in der Kanzel gedämpft, in Außenansichten hell.
   useEffect(() => {
     audio.current?.setRain(rain ? 1 : 0, !['mech', 'hangar', 'yard'].includes(cameraView));
@@ -632,6 +682,17 @@ export default function Cockpit() {
             onClick={toggleHeadlights}
           >
             SCHEINWERFER [J]
+          </button>
+          <button
+            aria-pressed={armed}
+            className="weapon-toggle"
+            title="Hauptschalter Waffen (MASTER ARM). Feuern: linke Maustaste in der Pilotensicht."
+            onClick={toggleArmed}
+          >
+            WAFFEN [M]
+          </button>
+          <button aria-pressed={laser} onClick={toggleLaser} title="Laser-Entfernungsmesser">
+            LASER [P]
           </button>
           <button aria-pressed={rain} onClick={toggleRain}>
             REGEN [X]
@@ -866,6 +927,28 @@ export default function Cockpit() {
               Wechselt weich zwischen Abendlicht und Nacht mit Sternenhimmel. Nachts leuchten die
               Hofscheinwerfer kräftiger, Umgebung und Nebel werden dunkel.
             </dd>
+            <dt>Waffen / Taste M</dt>
+            <dd>
+              WAFFEN [M] ist der Hauptschalter (MASTER ARM). Gefeuert wird in der Pilotensicht mit
+              der linken Maustaste, das Fadenkreuz folgt der Maus. Die beiden 30-mm-Kanonen in den
+              Unterarmen schießen abwechselnd; die Lafette schwenkt rund ±24° seitlich, liegt das
+              Ziel weiter außen, dreht der Torso automatisch nach (dafür muss die Parkverriegelung
+              gelöst sein). Freigabe nur mit Steuerfreigabe [6] und außerhalb der Halle. Je Kanone
+              150 Schuss; Dauerfeuer überhitzt die Läufe, dann ist kurz Pause. Nachladen: gesichert
+              in der Halle am Serviceplatz mit geschlossener Parkverriegelung. Schalter und Knöpfe
+              lassen sich auch scharf geschaltet weiter anklicken.
+            </dd>
+            <dt>Laser / Taste P</dt>
+            <dd>
+              Laser-Entfernungsmesser: roter Strahl zum Zielpunkt unter dem Fadenkreuz, Entfernung
+              im HUD und am Fadenkreuz. Nachts und im Regen ist der Strahl draußen gut zu sehen.
+            </dd>
+            <dt>Schießstand</dt>
+            <dd>
+              Am Ende des Testgeländes stehen sieben Klappziele aus Stahl (fallen bei Treffer um und
+              richten sich nach sechs Sekunden wieder auf), daneben zwei alte Fahrzeugwracks.
+              Treffer und Schüsse zählt das HUD.
+            </dd>
             <dt>Regen / Taste X</dt>
             <dd>
               Lässt es regnen: Regenschleier, der im Scheinwerferkegel aufleuchtet, nasser Asphalt
@@ -916,6 +999,22 @@ export default function Cockpit() {
             setJointsOpen(false);
           }}
         />
+      )}
+      {armed && !['mech', 'hangar', 'yard'].includes(cameraView) && (
+        <div className="reticle" ref={reticle} aria-hidden="true">
+          <i
+            className={
+              weaponInfo?.block ? 'blocked' : weaponInfo?.onTarget === false ? 'limit' : ''
+            }
+          />
+          <span>
+            {weaponInfo?.block ??
+              (weaponInfo
+                ? (weaponInfo.onTarget ? '' : 'SCHWENKGRENZE · ') +
+                  (weaponInfo.laser ? Math.round(weaponInfo.range) + ' m' : '')
+                : '')}
+          </span>
+        </div>
       )}
       {hover && (
         <div

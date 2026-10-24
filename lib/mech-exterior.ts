@@ -345,6 +345,8 @@ export class MechExterior {
   contact = 1;
   /** Nässe der Panzerung 0…1 (trocknet langsam). */
   wetness = 0;
+  /** Rückstoß der Armkanonen 0…1 (links, rechts), klingt in der Szene ab. */
+  recoil: [number, number] = [0, 0];
   private wearMaterials: THREE.MeshStandardMaterial[] = [];
 
   /** Wo der Fuß `side` beim Aufsetzen den Boden berührt (Weltkoordinaten, Sohlenmitte). */
@@ -491,6 +493,17 @@ export class MechExterior {
     if (this.model && outside) {
       this.root.updateMatrixWorld(true);
       animateMechanicalRig(this.model, this.legs, walk, joints);
+      // Rückstoß: Unterarm schlägt kurz nach oben/hinten aus.
+      for (const [name, k] of [
+        ['L_Forearm', 0],
+        ['R_Forearm', 1],
+      ] as const) {
+        if (this.recoil[k] < 0.01) continue;
+        const arm = this.model.getObjectByName(name);
+        if (!arm) continue;
+        arm.rotation.x -= 0.07 * this.recoil[k];
+        arm.updateMatrixWorld(true);
+      }
     }
     this.shadow.position.set(walk.x, MECH.floor + groundHeight(walk.x, walk.z) + 0.026, walk.z);
     this.shadow.rotation.z = -walk.yaw;

@@ -8,6 +8,7 @@ import { MachineEffects, EffectChannel, preloadMachineEffects } from './machine-
 import type { DisplayPhase } from './display-boot';
 export type AudioStatus = 'idle' | 'active' | 'muted' | 'blocked' | 'error';
 import { RainAudio } from './rain-audio';
+import { WeaponAudio } from './weapon-audio';
 
 export class MachineAudio {
   private rain: RainAudio | null = null;
@@ -18,6 +19,22 @@ export class MachineAudio {
     if (!this.ctx || !this.master || this.disposed) return;
     if (!this.rain && amount > 0) this.rain = new RainAudio(this.ctx, this.master);
     this.rain?.set(amount, cabin);
+  }
+  private weapons: WeaponAudio | null = null;
+  private weaponAudio() {
+    if (!this.weapons && this.ctx && this.master && !this.disposed)
+      this.weapons = new WeaponAudio(this.ctx, this.master);
+    return this.weapons;
+  }
+  /** Schuss der Armkanonen. `cabin` = Pilotensicht (gedämpft). */
+  gunshot(cabin: boolean) {
+    const w = this.weaponAudio();
+    w?.setCabin(cabin);
+    w?.shot();
+  }
+  /** Einschlag in `distance` Metern. */
+  impact(kind: 'steel' | 'wreck' | 'ground', distance: number) {
+    this.weaponAudio()?.impact(kind, distance);
   }
   /** Donnerschlag (nur wenn das Regengeräusch läuft). */
   thunder(variant: number, distance: number) {

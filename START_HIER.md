@@ -1,7 +1,7 @@
-# IRON VAULT – Quellprojekt, Version 51
+# IRON VAULT – Quellprojekt, Version 52
 
-Stand: 24.10.2026. v46: Aufräumen und neue Oberfläche, v47: Röhren-Look der Displays, v48: Außenhülle, Scheinwerfer, Tag/Nacht, v49: Rundumleuchte am Rücken, v50: Schatten, Schrittgewicht, Regen, v51: Regen-/Donneraufnahmen, Gewitter.
-Was sich geändert hat, steht in `AENDERUNGEN_v46.md` bis `AENDERUNGEN_v51.md`.
+Stand: 24.10.2026. v46: Aufräumen und neue Oberfläche, v47: Röhren-Look der Displays, v48: Außenhülle, Scheinwerfer, Tag/Nacht, v49: Rundumleuchte am Rücken, v50: Schatten, Schrittgewicht, Regen, v51: Regen-/Donneraufnahmen, Gewitter, v52: Armkanonen, Laser, Schießstand.
+Was sich geändert hat, steht in `AENDERUNGEN_v46.md` bis `AENDERUNGEN_v52.md`.
 
 Das ist eine Three.js-/React-Browsersimulation. Seit v46 ist sie ein reines
 **Vite-Projekt** ohne Server-Anteil: `npm run build` erzeugt einen statischen Ordner
@@ -13,7 +13,7 @@ Voraussetzung: Node.js 22.13 oder neuer (Node 24 passt) und npm. Für die erste
 Installation braucht es Internet.
 
 ```sh
-cd IRON_VAULT_v51
+cd IRON_VAULT_v52
 npm ci
 npm run dev
 ```
@@ -35,7 +35,7 @@ weil Browser dann keine Texturen und Sounds laden.
 
 | Befehl                 | Zweck                                                    |
 | ---------------------- | -------------------------------------------------------- |
-| `npm test`             | alle 173 Tests (Zustandslogik, Audio, Displays, Geometrie) |
+| `npm test`             | alle 178 Tests (Zustandslogik, Audio, Displays, Geometrie) |
 | `npm run typecheck`    | TypeScript-Prüfung                                       |
 | `npm run lint`         | ESLint                                                   |
 | `npm run format`       | Code einheitlich mit Prettier formatieren                |

@@ -690,3 +690,65 @@ button:disabled {
     margin: 7px 0;
   }
 }
+
+/* ---------- Fadenkreuz (Waffen scharf, Pilotensicht) ---------- */
+.reticle {
+  position: fixed;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  z-index: 3;
+  will-change: transform;
+}
+.reticle i {
+  position: absolute;
+  left: -22px;
+  top: -22px;
+  width: 44px;
+  height: 44px;
+  border: 2px solid #9df07a;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #000a;
+}
+.reticle i::before,
+.reticle i::after {
+  content: '';
+  position: absolute;
+  background: #9df07a;
+}
+/* Kreuzlinien mit Lücke in der Mitte */
+.reticle i::before {
+  left: 19px;
+  top: -12px;
+  width: 2px;
+  height: 64px;
+  clip-path: polygon(0 0, 100% 0, 100% 30%, 0 30%, 0 70%, 100% 70%, 100% 100%, 0 100%);
+}
+.reticle i::after {
+  top: 19px;
+  left: -12px;
+  height: 2px;
+  width: 64px;
+  clip-path: polygon(0 0, 30% 0, 30% 100%, 0 100%, 0 0, 70% 0, 100% 0, 100% 100%, 70% 100%, 70% 0);
+}
+.reticle i.limit {
+  border-color: #f2b45a;
+}
+.reticle i.blocked {
+  border-color: #e37051;
+  border-style: dashed;
+}
+.reticle span {
+  position: absolute;
+  left: 30px;
+  top: 18px;
+  white-space: nowrap;
+  font: 12px var(--mono);
+  color: #c9f5b0;
+  text-shadow: var(--hud-shadow);
+}
+.view-presets .weapon-toggle[aria-pressed='true'] {
+  background: #4a2a1c;
+  border-color: #e3925a;
+  color: #ffd2b0;
+}

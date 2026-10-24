@@ -18,6 +18,19 @@ import { createNightSky, dayNightParams, DAY_NIGHT_RATE } from './day-night';
 import { beaconLevel, headlightLevel } from './mech-details';
 import { detectFootfalls, footfallStrength, StepJolt } from './footfall';
 import { DustPuffs, Footprints } from './ground-effects';
+import { FiringRange } from './firing-range';
+import { WeaponSystem } from './weapon-system';
+import { drawWeaponHud } from './weapon-hud';
+import {
+  clampAim,
+  initialWeapons,
+  stepWeapons,
+  torsoFollow,
+  WEAPON,
+  weaponBlock,
+  type WeaponState,
+} from './weapons';
+import { hash } from './display-aging';
 import {
   applyWetness,
   GlassRain,
@@ -196,6 +209,21 @@ export class CockpitScene {
   rainTarget = 0;
   rainAmount = 0;
   wet = { value: 0 };
+  // ---- Waffensystem ----
+  weapons: WeaponState = initialWeapons();
+  weaponSystem: WeaponSystem | null = null;
+  trigger = false;
+  aimNdc = new THREE.Vector2(0, 0);
+  aimPoint = new THREE.Vector3(0, 0, -300);
+  aimRange = 0;
+  aimOnTarget = true;
+  /** Gewünschter Torsowinkel (Grad), damit das Ziel im Schwenkbereich bleibt; null = passt. */
+  torsoDemand: number | null = null;
+  weaponMessage: string | null = null;
+  onGunshot: ((cabin: boolean) => void) | null = null;
+  onImpact: ((kind: 'steel' | 'wreck' | 'ground', distance: number) => void) | null = null;
+  private aimRay = new THREE.Raycaster();
+  private laserFrom = new THREE.Vector3();
   storm = new Storm();
   private flashing = false;
   /** Wird beim Donnerschlag aufgerufen (Audio hängt sich hier an). */
@@ -366,6 +394,11 @@ export class CockpitScene {
     this.dust = new DustPuffs(this.scene);
     this.footprints = new Footprints(this.scene);
     this.rain = new RainField(this.scene);
+    this.weaponSystem = new WeaponSystem(this.scene, new FiringRange(this));
+    this.cleanup.push(() => this.weaponSystem?.dispose());
+    void this.exterior.ready.then(() => {
+      if (this.exterior?.model) this.weaponSystem?.attach(this.exterior.model);
+    });
     this.ready = Promise.all([this.ready, this.exterior.ready]).then(() => {});
     this.pickMeshes = [...worldBatches.picking, ...cabinBatches.picking];
     this.cleanup.push(() =>
@@ -409,6 +442,11 @@ export class CockpitScene {
           this.targetPitch = THREE.MathUtils.clamp(this.targetPitch, -0.85, 0.6);
         }
       } else this.pendingPointer = e;
+      const rect = c.getBoundingClientRect();
+      this.aimNdc.set(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1,
+      );
       this.lastX = e.clientX;
       this.lastY = e.clientY;
     };
@@ -424,7 +462,12 @@ export class CockpitScene {
       }
       if (e.button === 0 && !this.inMech) {
         const hit = this.pick(e);
-        if (hit) {
+        const cockpit = !this.inHangar && !this.inYard;
+        // Scharf geschaltet: Klick ins Freie (oder auf einen Monitor) feuert, Schalter bleiben bedienbar.
+        if (this.weapons.armed && cockpit && (!hit || hit.userData.focus)) {
+          this.trigger = true;
+          c.setPointerCapture(e.pointerId);
+        } else if (hit) {
           if (hit.userData.focus) {
             const p = hit.getWorldPosition(new THREE.Vector3());
             this.focus(p);
@@ -435,6 +478,7 @@ export class CockpitScene {
     };
     const up = () => {
       this.drag = false;
+      this.trigger = false;
       c.style.cursor = 'default';
     };
     const wheel = (e: WheelEvent) => {
@@ -938,6 +982,137 @@ export class CockpitScene {
     if (on && !this.headlightsOn) this.headlightSince = this.lastTime / 1000;
     this.headlightsOn = on;
   }
+  setWeaponsArmed(on: boolean) {
+    this.weapons = { ...this.weapons, armed: on };
+    if (!on) this.trigger = false;
+  }
+  setLaser(on: boolean) {
+    this.weapons = { ...this.weapons, laser: on };
+  }
+  /** Zielpunkt: Strahl durch den Mauszeiger (Kanzel) bzw. geradeaus (Außenansichten). */
+  private updateAim(outside: boolean) {
+    const range = this.weaponSystem?.range;
+    if (!range) return;
+    let origin: THREE.Vector3, dir: THREE.Vector3;
+    if (!outside) {
+      this.camera.updateMatrixWorld();
+      this.aimRay.setFromCamera(this.aimNdc, this.camera);
+      origin = this.aimRay.ray.origin;
+      dir = this.aimRay.ray.direction;
+    } else {
+      origin = this.cabin.localToWorld(new THREE.Vector3(0, 1.6, 3.85));
+      dir = new THREE.Vector3(0, -0.06, -1).applyQuaternion(this.cabin.quaternion).normalize();
+    }
+    const far = origin.clone().addScaledVector(dir, 800);
+    const hit = range.hitTest(origin, far);
+    this.aimPoint.copy(hit ? hit.point : far);
+    this.laserFrom.copy(this.cabin.localToWorld(new THREE.Vector3(0, 0.15, -2.4)));
+    this.aimRange = this.laserFrom.distanceTo(this.aimPoint);
+  }
+  /** Schussrichtung von Kanone `gun` zum Zielpunkt, begrenzt auf den Schwenkbereich. */
+  private gunDirection(gun: number, seed: number) {
+    const muzzle = this.weaponSystem?.muzzleWorld(gun, new THREE.Vector3());
+    if (!muzzle) return null;
+    const inv = this.cabin.quaternion.clone().invert();
+    const d = this.aimPoint.clone().sub(muzzle).applyQuaternion(inv);
+    const aim = clampAim(Math.atan2(-d.x, -d.z), Math.atan2(d.y, Math.hypot(d.x, d.z)));
+    const yaw = aim.yaw + (hash(seed, 1) - 0.5) * 2 * WEAPON.spread,
+      pitch = aim.pitch + (hash(seed, 2) - 0.5) * 2 * WEAPON.spread;
+    return {
+      dir: new THREE.Vector3(
+        -Math.sin(yaw) * Math.cos(pitch),
+        Math.sin(pitch),
+        -Math.cos(yaw) * Math.cos(pitch),
+      )
+        .applyQuaternion(this.cabin.quaternion)
+        .normalize(),
+      onTarget: aim.onTarget,
+      yaw: Math.atan2(-d.x, -d.z),
+    };
+  }
+  updateWeapons(
+    s: MachineState,
+    walk: CockpitScene['walkPose'],
+    dt: number,
+    time: number,
+    outside: boolean,
+  ) {
+    const ws = this.weaponSystem;
+    if (!ws) return;
+    const sheltered = insideShelter(walk.x, walk.z);
+    const parked =
+      sheltered &&
+      s.mobility.restraints !== 'released' &&
+      Math.hypot(walk.x, walk.z - WALK.originZ) < 3;
+    const powered = dcPowerAvailable(s);
+    if (this.weapons.armed || this.weapons.laser) this.updateAim(outside);
+    const step = stepWeapons(
+      this.weapons,
+      s,
+      dt,
+      time,
+      this.trigger && !outside,
+      sheltered,
+      parked,
+    );
+    this.weapons = step.w;
+    this.weaponMessage = this.weapons.armed ? weaponBlock(s, this.weapons, sheltered) : null;
+    for (const gun of step.shots) {
+      const seed = this.weapons.shots * 7 + gun;
+      const aim = this.gunDirection(gun, seed);
+      if (!aim) continue;
+      ws.fire(gun, aim.dir, time, seed, new THREE.Vector3());
+      this.jolt.impulse(0.16, gun === 0 ? 1 : -1);
+      if (this.exterior) this.exterior.recoil[gun] = 1;
+      this.onGunshot?.(!outside);
+    }
+    if (this.exterior) for (const g of [0, 1]) this.exterior.recoil[g] *= Math.exp(-dt * 14);
+    // Zielhilfe: ist das Ziel außerhalb des Schwenkbereichs, soll der Torso nachführen.
+    const probe = this.weapons.armed ? this.gunDirection(0, 0) : null;
+    this.aimOnTarget = probe?.onTarget ?? true;
+    this.torsoDemand =
+      probe && !outside ? torsoFollow((this.jointPose.torso * 180) / Math.PI, probe.yaw) : null;
+    const laserOn = this.weapons.laser && powered;
+    const events = ws.update(
+      dt,
+      time,
+      this.renderer.domElement.height * 0.9,
+      outside,
+      laserOn ? this.laserFrom : null,
+      laserOn ? this.aimPoint : null,
+      this.reduced,
+    );
+    this.camera.getWorldPosition(this.camWorld);
+    for (const e of events) {
+      if (e.kind === 'steel' && e.plate !== undefined) {
+        ws.range.knock(e.plate, time);
+        this.weapons = { ...this.weapons, hits: this.weapons.hits + 1 };
+      } else if (e.kind === 'wreck')
+        this.weapons = { ...this.weapons, hits: this.weapons.hits + 1 };
+      this.onImpact?.(e.kind, e.point.distanceTo(this.camWorld));
+      if (e.kind === 'ground')
+        this.dust?.spawn(e.point.x, e.point.y, e.point.z, 0.35, time, Math.floor(time * 131));
+    }
+    ws.range.update(time);
+  }
+  /** Für die Oberfläche: Zustand des Waffensystems (wird mit ~10 Hz abgefragt). */
+  weaponInfo() {
+    const w = this.weapons;
+    return {
+      armed: w.armed,
+      laser: w.laser,
+      ammo: [Math.floor(w.ammo[0]), Math.floor(w.ammo[1])] as [number, number],
+      heat: w.heat,
+      overheated: w.overheated,
+      shots: w.shots,
+      hits: w.hits,
+      reloading: w.reloading,
+      range: this.aimRange,
+      onTarget: this.aimOnTarget,
+      block: this.weaponMessage,
+      torsoDemand: this.torsoDemand,
+    };
+  }
   /** Aufsetzen erkennen: Kanzelstoß, Staub, Fußabdruck. */
   updateWeight(walk: CockpitScene['walkPose'], dt: number, time: number) {
     const sides = detectFootfalls(this.lastPhase, walk.phase);
@@ -1113,6 +1288,8 @@ export class CockpitScene {
       this.telemetry,
       this.instrumentAssets,
     );
+    if (sc.kind === 'hud' && this.displayBoot.phase === 'ready' && s.stage >= 5)
+      drawWeaponHud(sc.ctx, this.weaponInfo());
     sc.texture.needsUpdate = true;
   }
 
@@ -1227,6 +1404,7 @@ export class CockpitScene {
     );
     this.updateWeight(walk, dt, time);
     this.updateWeather(walk, dt, time, outside, headlight);
+    this.updateWeapons(s, walk, dt, time, outside);
     const looking =
       this.drag ||
       Math.abs(this.targetYaw - this.yaw) + Math.abs(this.targetPitch - this.pitch) > 0.002;
@@ -1371,7 +1549,11 @@ export class CockpitScene {
       this.lastHover = ms;
       const hit = this.pick(e);
       this.hover(hit ? { text: hit.userData.label, x: e.clientX, y: e.clientY } : null);
-      this.renderer.domElement.style.cursor = hit ? 'pointer' : 'default';
+      this.renderer.domElement.style.cursor = hit
+        ? 'pointer'
+        : this.weapons.armed && !this.inHangar && !this.inYard && !this.inMech
+          ? 'crosshair'
+          : 'default';
     }
   };
   dispose() {

@@ -91,6 +91,11 @@ export function walkSetting(s: MachineState, action: number): MachineState {
 // Conservative ground footprints, in metres; matched to the hall and yard geometry.
 // Ramp tops are traversable. Solid sidewalls reject side entry via height continuity.
 type Obstacle = { x: number; z: number; w: number; d: number; angle?: number; label: string };
+/** Fahrzeugwracks am Schießstand (Mittelpunkt, Drehung); Grafik in firing-range.ts. */
+export const WRECKS = [
+  { x: -31, z: -192, angle: 0.35 },
+  { x: 30, z: -168, angle: -0.6 },
+] as const;
 export const WALK_OBSTACLES: Obstacle[] = [
   ...[-1, 1].flatMap((side) => [
     { x: side * 7, z: -22, w: 4.2, d: 16, label: 'Wartungsplattform' },
@@ -123,6 +128,15 @@ export const WALK_OBSTACLES: Obstacle[] = [
   { x: -35, z: -110, w: 3, d: 41, label: 'Rohrleitung' },
   ...[-6, -2, 2, 6].map((x) => ({ x, z: -228, w: 3.1, d: 0.84, label: 'Streckenende' })),
   ...[-85, -135, -185].map((z) => ({ x: 11, z, w: 0.3, d: 0.3, label: 'Entfernungsmarkierung' })),
+  // Gehhindernis: gleiche Drehrichtung wie die Grafik (dort rotation.y = angle).
+  ...WRECKS.map((w) => ({
+    x: w.x,
+    z: w.z,
+    w: 3.4,
+    d: 7.4,
+    angle: w.angle,
+    label: 'Fahrzeugwrack',
+  })),
 ];
 function circleBox(x: number, z: number, o: Obstacle, r: number) {
   const dx = x - o.x,

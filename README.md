@@ -1,6 +1,6 @@
 # IRON VAULT · Pilotenkanzel
 
-> **Version 51:** Start, Befehle und Ordner stehen in `START_HIER.md`, die Änderungen gegenüber v45 in `AENDERUNGEN_v46.md` bis `AENDERUNGEN_v51.md`. Die folgenden Abschnitte beschreiben die Funktionen und ihre Entwicklung bis v45. Hinweise darin auf Vinext, Cloudflare oder Sites-Hosting sind seit v46 überholt.
+> **Version 52:** Start, Befehle und Ordner stehen in `START_HIER.md`, die Änderungen gegenüber v45 in `AENDERUNGEN_v46.md` bis `AENDERUNGEN_v52.md`. Die folgenden Abschnitte beschreiben die Funktionen und ihre Entwicklung bis v45. Hinweise darin auf Vinext, Cloudflare oder Sites-Hosting sind seit v46 überholt.
 
 Eigenständiger 3D-Cockpit-Prototyp für Laptop-Browser. Das Cockpit wird mit Three.js aufgebaut; alle Instrumente werden als dynamische Texturen auf echte 3D-Displays gerendert. Das vom Nutzer bereitgestellte Tripo-Außenmodell wird lokal mit der Anwendung ausgeliefert; keine Laufzeit-CDNs erforderlich.
 
@@ -21,7 +21,7 @@ Eigenständiger 3D-Cockpit-Prototyp für Laptop-Browser. Das Cockpit wird mit Th
 - Geschwindigkeitsbegrenzung: Torso 18°/s, Arme 24°/s bei 210 bar, darunter proportional langsamer. Gelenklast beeinflusst den Hilfshydraulikverbrauch und den vorhandenen Maschinenklang; keine zusätzliche Sounddatei. Strom-/Freigabeverlust hält die aktuelle Pose und verwirft Ziele. Fokusverlust, Hilfefenster und Kamerawechsel lösen die Eingabe und halten laufende Gelenkziele an.
 - Grundstellung behält den bisherigen Kollisionsradius von 4,65 m. Gedrehter Torso reserviert 5,2 m; angefahrene Armstellungen reservieren vorab einen konservativen Radius von 7,2 m, einschließlich Drehung und Schrittbewegung. Vor engen Durchfahrten Grundstellung anfahren. Das bleibt kinematische Bewegung mit konservativen Hindernisgrenzen, keine physikalische Selbstkollisions- oder Kraftsimulation.
 - Beide Bewegungsdarstellungen nutzen dieselbe 100-ms-Zeitachse. Gelenkwerte werden nur für das geöffnete Bedienfeld mit 8 Hz an React weitergegeben. Numerische Tests prüfen die tatsächliche Modellgeometrie, gleichbleibende Hüft-/Fußlage bei Torsodrehung auch unter Neigung, Grenzwinkel, Sperren, unabhängige Arme, Druckverbrauch und interpolierte Bewegung. Keine Browser-/GPU-Endprüfung.
-- **Noch kein Greifen:** Die vorhandenen Waffenarme haben weder Hände noch Finger. Greifen erfordert eine gesonderte Greifergeometrie, erreichbare Übungsobjekte und Halte-/Loslasslogik; diese Änderung erfindet keine unsichtbare Hand an einer Kanone.
+- **Noch kein Greifen:** Die Waffenarme (seit v52 mit funktionierenden Armkanonen) haben weder Hände noch Finger. Greifen erfordert eine gesonderte Greifergeometrie, erreichbare Übungsobjekte und Halte-/Loslasslogik; diese Änderung erfindet keine unsichtbare Hand an einer Kanone.
 
 ### Gleichmäßige Darstellung / Entlastung der Außenansicht
 
