@@ -91,6 +91,8 @@ export function walkSetting(s: MachineState, action: number): MachineState {
 // Conservative ground footprints, in metres; matched to the hall and yard geometry.
 // Ramp tops are traversable. Solid sidewalls reject side entry via height continuity.
 type Obstacle = { x: number; z: number; w: number; d: number; angle?: number; label: string };
+/** IV-02, abgestelltes Schwesterschiff vor der Werkstatt (Grafik in sister-mech.ts). */
+export const SISTER = { x: 37, z: -83, angle: -Math.PI / 2 } as const;
 /** Fahrzeugwracks am Schießstand (Mittelpunkt, Drehung); Grafik in firing-range.ts. */
 export const WRECKS = [
   { x: -31, z: -192, angle: 0.35 },
@@ -137,6 +139,15 @@ export const WALK_OBSTACLES: Obstacle[] = [
     angle: w.angle,
     label: 'Fahrzeugwrack',
   })),
+  // IV-02 mit abgelegtem Arm, Schild und Absperrung (lokal 17,5 × 9 m, Mitte leicht versetzt)
+  {
+    x: SISTER.x - 1.8,
+    z: SISTER.z - 0.25,
+    w: 17.5,
+    d: 9,
+    angle: SISTER.angle,
+    label: 'IV-02 (abgestellt)',
+  },
 ];
 function circleBox(x: number, z: number, o: Obstacle, r: number) {
   const dx = x - o.x,

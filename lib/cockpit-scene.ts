@@ -33,6 +33,7 @@ import {
 import { hash } from './display-aging';
 import { cabinWear, faultyTube, wearCabin } from './cabin-wear';
 import { CabinClutter } from './scene/cabin-clutter';
+import { SisterMech } from './sister-mech';
 import {
   applyWetness,
   GlassRain,
@@ -404,6 +405,8 @@ export class CockpitScene {
     this.footprints = new Footprints(this.scene);
     this.rain = new RainField(this.scene);
     this.weaponSystem = new WeaponSystem(this.scene, new FiringRange(this));
+    // IV-02: abgestelltes, ausgeschlachtetes Schwesterschiff vor der Werkstatt
+    new SisterMech(this, this.wet);
     this.cleanup.push(() => this.weaponSystem?.dispose());
     void this.exterior.ready.then(() => {
       if (this.exterior?.model) this.weaponSystem?.attach(this.exterior.model);
