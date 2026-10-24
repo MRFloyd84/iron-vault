@@ -10,7 +10,7 @@ Audio und Displays verhalten sich wie in v45.
   clientseitig. Der Server-Unterbau (Vinext, Cloudflare-Worker, Wrangler, D1/Drizzle,
   ChatGPT-Anmeldung, Hosting-Plugin) war ungenutzt und wurde entfernt. Neuer Einstieg:
   `index.html` → `app/main.tsx`.
-- **Abhängigkeiten:** von 693 auf rund 250 installierte Pakete (fast alle nur Entwicklungswerkzeuge). Zur Laufzeit gibt es nur
+- **Abhängigkeiten:** von 693 auf 196 installierte Pakete (fast alle nur Entwicklungswerkzeuge). Zur Laufzeit gibt es nur
   noch vier Abhängigkeiten: react, react-dom, three und lucide-react. Entfernt wurden ~60
   ungenutzte shadcn-UI-Komponenten, Tailwind, Recharts, Zod, Formularbibliotheken usw.
   Das Styling war ohnehin reines CSS.
