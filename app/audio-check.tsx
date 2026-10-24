@@ -1,4 +1,3 @@
-'use client';
 import {useState} from 'react';
 import type {MachineAudio} from '../lib/machine-audio';
 import {inspectAudio} from '../lib/audio-diagnostics';

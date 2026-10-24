@@ -1,4 +1,3 @@
-'use client';
 import {useEffect,useRef,useState} from 'react';
 import ArticulationPanel from './articulation-panel';
 import AudioCheck from './audio-check';

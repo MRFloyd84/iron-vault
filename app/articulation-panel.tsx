@@ -1,4 +1,3 @@
-'use client';
 import {useEffect,useState} from 'react';
 import {articulationBlock,JOINT_LIMITS,RAD,type Joint} from '../lib/articulation';
 import type {MachineState} from '../lib/machine';

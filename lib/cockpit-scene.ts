@@ -70,11 +70,11 @@ export class CockpitScene{
   this.displayFrameMat=this.mat({color:0x314a43,metalness:.42,roughness:.52});
   // Neutral reflection environment makes bare metal readable without a green wash.
   const environment=new RoomEnvironment();const pmrem=new THREE.PMREMGenerator(this.renderer);
-  const envTarget=pmrem.fromScene(environment,.055);this.scene.environment=envTarget.texture;this.scene.environmentIntensity=.18;
+  const envTarget=pmrem.fromScene(environment,.04);this.scene.environment=envTarget.texture;this.scene.environmentIntensity=.18;
   environment.dispose();pmrem.dispose();this.cleanup.push(()=>envTarget.dispose());
   this.scene.add(new THREE.HemisphereLight(0x91aea8,0x10130e,.20));
   this.screenSpill=new THREE.PointLight(0x9bdf64,0,3.2,2);this.screenSpill.position.set(0,.82,.55);this.scene.add(this.screenSpill);
-  this.buildHangar();const yard=buildYard(this);this.yardMaterials.push(...yard.materials);this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.loadYardSky(manager);
+  this.buildHangar();const yard=buildYard(this);this.yardMaterials.push(...yard.materials);this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFShadowMap;this.loadYardSky(manager);
   const worldBatches=batchStaticCockpit(this.scene,new Set(this.gateLeaves));
   const worldObjects=new Set(this.scene.children);worldObjects.delete(this.screenSpill);
   this.buildShell();this.buildConsole();this.buildSide(-1);this.buildSide(1);this.buildTopMonitor(-1);this.buildTopMonitor(1);this.buildSeat();this.buildMechanicalDetails();this.buildSideMonitor(-1);this.buildSideMonitor(1);
@@ -178,7 +178,7 @@ export class CockpitScene{
   this.textures.push(t);this.textureCache.set(key,t);return t;
  }
  pbr(kind:string,color:number,roughness:number,normal:number,repeat:number){
-  const map=this.materialTexture(kind,'color.webp',repeat,true),normalMap=this.materialTexture(kind,'normal.png',repeat),orm=this.materialTexture(kind,'orm.png',repeat);
+  const map=this.materialTexture(kind,'color.webp',repeat,true),normalMap=this.materialTexture(kind,'normal.webp',repeat),orm=this.materialTexture(kind,'orm.webp',repeat);
   return this.mat({color,map,normalMap,normalScale:new THREE.Vector2(normal,normal),roughnessMap:orm,metalnessMap:orm,aoMap:orm,aoMapIntensity:.65,metalness:1,roughness});
  }
  plane(parent:THREE.Object3D,x:number,y:number,z:number,w:number,h:number,material:THREE.Material){

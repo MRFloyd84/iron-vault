@@ -40,3 +40,5 @@ with zipfile.ZipFile(sys.argv[1]) as archive, tempfile.TemporaryDirectory() as t
     Image.fromarray(orm).save(destination / 'orm.png', optimize=True)
     assert np.isfinite(normal).all() and roughness.max() > roughness.min()
     print('Prepared shutter: 2K color, 1K linear normal/ORM; roughness range', int(roughness.min()), int(roughness.max()))
+
+print('Hinweis: danach  node scripts/compress-material-maps.mjs  ausführen (PNG -> WebP).')

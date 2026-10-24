@@ -1,5 +1,5 @@
 """Prepare the three user recordings; usage: python scripts/prepare-service-audio.py UPLOAD_DIR.
-Original MP3s are retained unchanged alongside the derived browser assets.
+Original MP3s are kept unchanged in assets-src/audio; derived browser assets go to public/audio.
 """
 from pathlib import Path
 import sys,subprocess,tempfile,shutil
@@ -10,9 +10,10 @@ SOURCE={
  'service-warning-original.mp3':'industrial_control_p_#4-1788349208831.mp3',
 }
 root=Path(sys.argv[1]);out=Path(__file__).resolve().parents[1]/'public/audio';rate=48000
-for name,source in SOURCE.items():shutil.copyfile(root/source,out/name)
+src=Path(__file__).resolve().parents[1]/'assets-src/audio'
+for name,source in SOURCE.items():shutil.copyfile(root/source,src/name)
 def read(name):
- raw=subprocess.check_output(['ffmpeg','-v','error','-i',str(out/name),'-f','f32le','-ar',str(rate),'-ac','1','-'])
+ raw=subprocess.check_output(['ffmpeg','-v','error','-i',str(src/name),'-f','f32le','-ar',str(rate),'-ac','1','-'])
  return np.frombuffer(raw,dtype='<f4').copy()
 def loop(a,fade):
  n=round(rate*fade);t=np.linspace(0,1,n,endpoint=False)

@@ -6,6 +6,7 @@ import sys
 import numpy as np
 
 OUT = Path(__file__).resolve().parents[1] / 'public/audio'
+SRC = Path(__file__).resolve().parents[1] / 'assets-src/audio'
 RATE = 48000
 SOURCES = {
     'hangar-door-original.mp3': 'freesound_community-big-garage-door-opening-43959.mp3',
@@ -13,11 +14,11 @@ SOURCES = {
 }
 if len(sys.argv) > 1:
     for name, source in SOURCES.items():
-        shutil.copyfile(Path(sys.argv[1]) / source, OUT / name)
+        shutil.copyfile(Path(sys.argv[1]) / source, SRC / name)
 
 def read(name):
     return np.frombuffer(subprocess.check_output([
-        'ffmpeg', '-v', 'error', '-i', str(OUT / name),
+        'ffmpeg', '-v', 'error', '-i', str(SRC / name),
         '-f', 'f32le', '-ar', str(RATE), '-ac', '1', '-']), dtype='<f4').copy()
 
 def save(name, samples, peak):

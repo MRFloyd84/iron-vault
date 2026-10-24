@@ -1,5 +1,5 @@
 """Prepare the user's new recordings. Optional argument: upload directory.
-Without it, rebuild from the retained original MP3s in public/audio.
+Without it, rebuild from the retained original MP3s in assets-src/audio.
 """
 from pathlib import Path
 import shutil
@@ -8,6 +8,7 @@ import sys
 import numpy as np
 
 OUT = Path(__file__).resolve().parents[1] / 'public/audio'
+SRC = Path(__file__).resolve().parents[1] / 'assets-src/audio'
 RATE = 48000
 SOURCES = {
     'neuro-calibration-original.mp3': 'industrial_control_p_#3-1788351868344.mp3',
@@ -16,10 +17,10 @@ SOURCES = {
 }
 if len(sys.argv) > 1:
     for name, source in SOURCES.items():
-        shutil.copyfile(Path(sys.argv[1]) / source, OUT / name)
+        shutil.copyfile(Path(sys.argv[1]) / source, SRC / name)
 
 def read(name):
-    raw = subprocess.check_output(['ffmpeg', '-v', 'error', '-i', str(OUT / name),
+    raw = subprocess.check_output(['ffmpeg', '-v', 'error', '-i', str(SRC / name),
                                    '-f', 'f32le', '-ar', str(RATE), '-ac', '1', '-'])
     return np.frombuffer(raw, dtype='<f4').copy()
 

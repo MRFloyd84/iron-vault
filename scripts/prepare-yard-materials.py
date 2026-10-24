@@ -66,3 +66,5 @@ with (dest / 'industrial-sunset-2k.hdr').open('wb') as f:
                 f.write(bytes([128]))
                 f.write(row[start:start + 128, channel].tobytes())
 print('HDR sky: 2048 x 1024, radiance range', float(sky.min()), float(sky.max()))
+
+print('Hinweis: danach  node scripts/compress-material-maps.mjs  ausführen (PNG -> WebP).')
