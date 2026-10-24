@@ -7,7 +7,18 @@ import { pressureReleased, actuatorMoving, dcPowerAvailable, type MachineState }
 import { MachineEffects, EffectChannel, preloadMachineEffects } from './machine-effects';
 import type { DisplayPhase } from './display-boot';
 export type AudioStatus = 'idle' | 'active' | 'muted' | 'blocked' | 'error';
+import { RainAudio } from './rain-audio';
+
 export class MachineAudio {
+  private rain: RainAudio | null = null;
+  private rainState = { amount: 0, cabin: true };
+  /** Regengeräusch (synthetisch). Wird erst beim ersten Regen angelegt. */
+  setRain(amount: number, cabin: boolean) {
+    this.rainState = { amount, cabin };
+    if (!this.ctx || !this.master || this.disposed) return;
+    if (!this.rain && amount > 0) this.rain = new RainAudio(this.ctx, this.master);
+    this.rain?.set(amount, cabin);
+  }
   private onStatus: (status: AudioStatus) => void;
   ctx: AudioContext | null = null;
   master: GainNode | null = null;
@@ -237,6 +248,7 @@ export class MachineAudio {
             })
             .catch(() => {});
       }
+      if (this.rainState.amount > 0) this.setRain(this.rainState.amount, this.rainState.cabin);
       if (this.ctx.state !== 'running' && this.ctx.state !== 'closed') await this.ctx.resume();
       this.setDisplayBoot(this.bootState.phase, this.bootState.elapsed, this.bootState.cycle);
       this.reportStatus();
@@ -305,6 +317,7 @@ export class MachineAudio {
     this.airRequest++;
     this.bootSound?.dispose();
     this.steps?.dispose();
+    this.rain?.dispose();
     this.effects?.dispose();
     this.serviceAudio?.dispose();
     this.fanSource?.stop();

@@ -16,6 +16,16 @@ import {
 import { displayFlicker } from './display-aging';
 import { createNightSky, dayNightParams, DAY_NIGHT_RATE } from './day-night';
 import { beaconLevel, headlightLevel } from './mech-details';
+import { detectFootfalls, footfallStrength, StepJolt } from './footfall';
+import { DustPuffs, Footprints } from './ground-effects';
+import {
+  applyWetness,
+  GlassRain,
+  insideShelter,
+  RAIN_RATE,
+  RainField,
+  weatherParams,
+} from './weather';
 import { DisplayBoot, renderDisplay, coldCockpit, batteryBeacon } from './display-boot';
 import { STRUCTURE_ATLAS, type InstrumentAssets, type TelemetrySample } from './instruments';
 import { actuatorMoving, dcPowerAvailable, overheadOn, type MachineState } from './machine';
@@ -173,6 +183,19 @@ export class CockpitScene {
   lastPowered = false;
   movingFor = 0;
   stoppedFor = 99;
+  // ---- Schatten, Schrittgewicht, Regen ----
+  sun = new THREE.DirectionalLight(0xffd9b0, 0);
+  jolt = new StepJolt();
+  lastPhase = NaN;
+  dust: DustPuffs | null = null;
+  footprints: Footprints | null = null;
+  rain: RainField | null = null;
+  glassRain = new GlassRain();
+  glass: THREE.Mesh | null = null;
+  rainTarget = 0;
+  rainAmount = 0;
+  wet = { value: 0 };
+  private camWorld = new THREE.Vector3();
   constructor(
     host: HTMLElement,
     getState: () => MachineState,
@@ -246,6 +269,13 @@ export class CockpitScene {
     });
     this.nightSky = createNightSky();
     if (this.nightSky) this.textures.push(this.nightSky);
+    for (const m of this.yardMaterials) applyWetness(m, this.wet);
+    this.cleanup.push(() => {
+      this.dust?.dispose();
+      this.footprints?.dispose();
+      this.rain?.dispose();
+      this.glassRain.dispose();
+    });
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.loadYardSky(manager);
@@ -291,10 +321,46 @@ export class CockpitScene {
     this.interior.matrixAutoUpdate = false;
     for (const child of [...this.cabin.children]) this.interior.add(child);
     this.cabin.add(this.interior, this.camera);
+    // Regentropfen auf der Frontscheibe (nur Pilotensicht, liegt im Innenraum).
+    if (this.glassRain.texture) {
+      const glassMat = new THREE.MeshBasicMaterial({
+        map: this.glassRain.texture,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      });
+      this.materials.push(glassMat);
+      this.glass = new THREE.Mesh(new THREE.PlaneGeometry(4.8, 2.6), glassMat);
+      this.glass.name = 'Rain on canopy';
+      this.glass.position.set(0, 2.3, -1.6);
+      this.glass.rotation.x = -0.377;
+      this.glass.renderOrder = 7;
+      this.glass.visible = false;
+      this.interior.add(this.glass);
+      this.cleanup.push(() => this.glass?.geometry.dispose());
+    }
     this.camera.near = 0.08 * MECH.cabinScale;
     this.camera.updateProjectionMatrix();
     this.exterior = new MechExterior(this, manager);
     this.cabin.add(this.exterior.root);
+    // Dynamische Weltobjekte erst nach dem Zusammenfassen der statischen Szene anlegen:
+    // dort werden Matrizen eingefroren und neue Szenenkinder in die Kapsel verschoben.
+    // Sonne bzw. Mond: wirft den echten Schatten des Mechs; folgt ihm mit engem Schattenkasten.
+    this.sun.castShadow = true;
+    this.sun.shadow.mapSize.set(2048, 2048);
+    const sc = this.sun.shadow.camera;
+    sc.left = sc.bottom = -12;
+    sc.right = sc.top = 12;
+    sc.near = 1;
+    sc.far = 90;
+    this.sun.shadow.bias = -0.0004;
+    this.sun.shadow.normalBias = 0.04;
+    this.scene.add(this.sun, this.sun.target);
+    this.cleanup.push(() => this.sun.shadow.dispose());
+    this.dust = new DustPuffs(this.scene);
+    this.footprints = new Footprints(this.scene);
+    this.rain = new RainField(this.scene);
     this.ready = Promise.all([this.ready, this.exterior.ready]).then(() => {});
     this.pickMeshes = [...worldBatches.picking, ...cabinBatches.picking];
     this.cleanup.push(() =>
@@ -867,26 +933,118 @@ export class CockpitScene {
     if (on && !this.headlightsOn) this.headlightSince = this.lastTime / 1000;
     this.headlightsOn = on;
   }
+  /** Aufsetzen erkennen: Kanzelstoß, Staub, Fußabdruck. */
+  updateWeight(walk: CockpitScene['walkPose'], dt: number, time: number) {
+    const sides = detectFootfalls(this.lastPhase, walk.phase);
+    this.lastPhase = walk.phase;
+    const moving = Math.abs(walk.speed) > 0.05 || Math.abs(walk.turnRate) > 0.02;
+    if (moving)
+      for (const side of sides) {
+        const strength = footfallStrength(walk.speed, walk.turnRate);
+        this.jolt.impulse(strength, side);
+        const foot = this.exterior?.footprint(walk, side);
+        if (!foot) continue;
+        this.dust?.spawn(foot.x, foot.y, foot.z, strength, time, Math.floor(walk.phase * 2));
+        this.footprints?.place(foot.x, foot.y, foot.z, foot.yaw, time);
+      }
+    this.jolt.step(dt);
+  }
+  /** Regen, Nässe, Sonnen-/Mondschatten und Tropfen auf der Scheibe. */
+  updateWeather(
+    walk: CockpitScene['walkPose'],
+    dt: number,
+    time: number,
+    outside: boolean,
+    headlight: number,
+  ) {
+    if (this.rainAmount !== this.rainTarget) {
+      this.rainAmount += (this.rainTarget - this.rainAmount) * (1 - Math.exp(-dt * RAIN_RATE));
+      if (Math.abs(this.rainTarget - this.rainAmount) < 0.002) this.rainAmount = this.rainTarget;
+      this.applyDayNight();
+    }
+    const n = this.nightAmount,
+      w = weatherParams(this.rainAmount);
+    const sheltered = insideShelter(walk.x, walk.z);
+    // Sonne (tief, warm) bei Tag, Mond (hoch, kalt) bei Nacht; unter dem Hallendach aus.
+    const open = THREE.MathUtils.smoothstep(-walk.z, 30, 37.5);
+    this.sun.intensity = THREE.MathUtils.lerp(2.8, 0.3, n) * w.sun * open;
+    this.sun.color.setHex(0xffd9b0).lerp(new THREE.Color(0x9fb4e0), n);
+    const dir = new THREE.Vector3(-0.62, 0.42, -0.66)
+      .lerp(new THREE.Vector3(0.35, 0.82, -0.45), n)
+      .normalize();
+    this.sun.target.position.set(walk.x, walk.height + 1, walk.z);
+    this.sun.position.copy(this.sun.target.position).addScaledVector(dir, 45);
+    // Schattenkarte nur neu zeichnen, wenn die Sonne wirkt – aber mindestens einmal anlegen,
+    // sonst bleibt der Schatten-Sampler ohne Textur (WebGL-Fehler).
+    this.sun.shadow.autoUpdate = this.sun.intensity > 0.01 || !this.sun.shadow.map;
+    if (this.exterior) {
+      this.exterior.contact = 1 - 0.55 * Math.min(1, this.sun.intensity / 1.5);
+      // Panzerung wird im Regen nass und trocknet unter Dach langsam ab.
+      const target = sheltered ? 0 : this.rainAmount;
+      this.exterior.wetness +=
+        (target - this.exterior.wetness) *
+        (1 - Math.exp(-dt / (target > this.exterior.wetness ? 6 : 60)));
+    }
+    this.dust?.update(
+      time,
+      1 - 0.8 * n,
+      sheltered ? 0 : this.rainAmount,
+      this.renderer.domElement.height * 0.9,
+    );
+    this.footprints?.update(time, this.rainAmount);
+    this.camera.getWorldPosition(this.camWorld);
+    this.rain?.update(
+      time,
+      this.camWorld,
+      this.rainAmount,
+      THREE.MathUtils.lerp(0.55, 0.05, n),
+      outside ? 0.4 : 3.2,
+      this.exterior?.lights.spots ?? [],
+      headlight,
+      0.25 + 0.75 * n,
+    );
+    if (this.glass) {
+      const cabin = !outside;
+      this.glass.visible =
+        cabin &&
+        (this.rainAmount > 0.01 || (this.glass.material as THREE.MeshBasicMaterial).opacity > 0.01);
+      const mat = this.glass.material as THREE.MeshBasicMaterial;
+      mat.opacity = Math.min(1, this.rainAmount * 1.4) * (sheltered ? 0.3 : 1);
+      if (cabin)
+        this.glassRain.update(
+          time,
+          sheltered ? 0 : this.rainAmount,
+          0.35 + 0.65 * (1 - n) + headlight * 0.3,
+        );
+    }
+  }
+  setRain(on: boolean) {
+    this.rainTarget = on ? 1 : 0;
+  }
   applyDayNight() {
     const p = dayNightParams(this.nightAmount);
+    const w = weatherParams(this.rainAmount);
     const sky = p.sky === 'day' ? this.daySky : this.nightSky;
     if (sky) {
       this.scene.background = sky;
       this.scene.backgroundRotation.y = p.sky === 'day' ? 0.35 : 0;
     }
-    this.scene.backgroundIntensity = p.skyIntensity;
-    this.hemi.intensity = p.hemiIntensity;
+    this.scene.backgroundIntensity = p.skyIntensity * w.sky;
+    this.hemi.intensity = p.hemiIntensity * w.hemi;
     this.hemi.color.copy(p.hemiSky);
     this.hemi.groundColor.copy(p.hemiGround);
     if (this.scene.fog instanceof THREE.FogExp2) {
-      this.scene.fog.color.copy(p.fogColor);
-      this.scene.fog.density = this.baseFogDensity * p.fogScale;
+      this.scene.fog.color
+        .copy(p.fogColor)
+        .lerp(new THREE.Color(0x4a5054).multiplyScalar(1 - 0.8 * p.n), w.fogGrey);
+      this.scene.fog.density = this.baseFogDensity * p.fogScale * w.fogDensity;
     }
     for (const m of this.yardMaterials) if (m.envMap) m.envMapIntensity = p.yardEnv;
     this.scene.environmentIntensity = this.baseEnvIntensity * p.envScale;
     if (this.yardLamp) this.yardLamp.emissiveIntensity = p.lampGlow;
     for (const f of this.floodlights) f.light.intensity = f.base * p.floodScale;
     if (this.exterior) this.exterior.night = p.n;
+    this.wet.value = w.wet;
   }
   orbitPreset(view: 'front' | 'rear' | 'side') {
     this.targetOrbitYaw = view === 'rear' ? Math.PI + 0.55 : view === 'side' ? Math.PI / 2 : 0.65;
@@ -1038,13 +1196,21 @@ export class CockpitScene {
       this.movingFor = 0;
       this.stoppedFor += dt;
     }
+    const headlight = headlightLevel(
+      this.headlightsOn,
+      powered,
+      time - this.headlightSince,
+      this.reduced,
+    );
     this.exterior?.lights.update(
-      headlightLevel(this.headlightsOn, powered, time - this.headlightSince, this.reduced),
+      headlight,
       powered ? beaconLevel(time, this.movingFor, this.stoppedFor) : 0,
       this.nightAmount,
       time,
       outside,
     );
+    this.updateWeight(walk, dt, time);
+    this.updateWeather(walk, dt, time, outside, headlight);
     const looking =
       this.drag ||
       Math.abs(this.targetYaw - this.yaw) + Math.abs(this.targetPitch - this.pitch) > 0.002;
@@ -1067,6 +1233,11 @@ export class CockpitScene {
         3.85,
       );
       this.camera.rotation.z += Math.sin(phase) * 0.012 * visual;
+      // Aufsetzstoß: folgt der Einstellung SCHRITTBEWEGUNG (AUS = kein Stoß).
+      const jolt = this.reduced ? 0 : Math.min(1, s.walk.sway / 0.4);
+      this.camera.position.y += this.jolt.y * 3 * jolt;
+      this.camera.rotation.x += this.jolt.pitch * 2 * jolt;
+      this.camera.rotation.z += this.jolt.roll * jolt;
     }
     for (const sw of this.switches) {
       const overhead = sw.index >= 40,
@@ -1130,6 +1301,9 @@ export class CockpitScene {
       const amount =
         g.kind === 0 ? Math.min(1, electricalReadings(s).voltage / 28) : s.actualPressure / 350;
       g.needle.rotation.z += (2.4 - amount * 4.3 - g.needle.rotation.z) * damp;
+      // Nadeln zittern beim Aufsetzen nach.
+      if (!this.reduced)
+        g.needle.rotation.z += Math.sin(time * 63 + g.kind * 2.1) * 0.05 * this.jolt.shake;
     }
     if (this.throttle)
       this.throttle.position.y += (-0.12 + s.throttle * 0.25 - this.throttle.position.y) * damp;

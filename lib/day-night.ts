@@ -11,7 +11,7 @@ export const DAY_NIGHT_RATE = 1.6;
 
 /**
  * Alle Szenenwerte für einen Nachtanteil n (0 = Tag wie bisher, 1 = volle Nacht).
- * Die Tag-Werte entsprechen exakt dem bisherigen Aussehen.
+ * Tag-Werte wie v48, nur die Himmelsreflexion am Boden ist seit v50 schwächer (die Sonne trägt mehr Licht).
  */
 export function dayNightParams(n: number) {
   n = THREE.MathUtils.clamp(n, 0, 1);
@@ -27,7 +27,8 @@ export function dayNightParams(n: number) {
     hemiGround: mixColor(0x10130e, 0x07080a, n),
     fogColor: mixColor(0x39444a, 0x0a0f17, n),
     fogScale: lerp(1, 1.5, n),
-    yardEnv: lerp(0.85, 0.07, n),
+    // Seit v50 trägt die tiefe Abendsonne mehr Licht; Himmelsreflexion etwas zurück.
+    yardEnv: lerp(0.55, 0.07, n),
     envScale: lerp(1, 0.18, n),
     lampGlow: lerp(3, 7, n),
     floodScale: lerp(1, 1.25, n),

@@ -341,6 +341,35 @@ export class MechExterior {
   lights: MechLights;
   /** 0 = Tag, 1 = Nacht; dämpft die Inspektionsbeleuchtung der Außenansicht. */
   night = 0;
+  /** Deckkraft des weichen Kontaktschattens (bei echtem Sonnenschatten schwächer). */
+  contact = 1;
+  /** Nässe der Panzerung 0…1 (trocknet langsam). */
+  wetness = 0;
+  private wearMaterials: THREE.MeshStandardMaterial[] = [];
+
+  /** Wo der Fuß `side` beim Aufsetzen den Boden berührt (Weltkoordinaten, Sohlenmitte). */
+  footprint(walk: WalkPose, side: number) {
+    const leg = this.legs.find((l) => l.side === side);
+    if (!leg) return null;
+    const cycle = legCycle(Math.round(walk.phase * 2) / 2, side, walk.speed, walk.turnRate);
+    const localX = -leg.restFoot.x * MECH.modelScale,
+      localZ = -leg.restFoot.z * MECH.modelScale + cycle.offset;
+    let x = walk.x + Math.cos(walk.yaw) * localX + Math.sin(walk.yaw) * localZ;
+    let z = walk.z - Math.sin(walk.yaw) * localX + Math.cos(walk.yaw) * localZ;
+    // Sohlenmitte: Mittel der Stützpunkte, mit der Fußausrichtung gedreht.
+    let cx = 0,
+      cz = 0;
+    for (const p of leg.sole) {
+      cx += p.x;
+      cz += p.z;
+    }
+    cx /= leg.sole.length;
+    cz /= leg.sole.length;
+    const a = walk.yaw + Math.PI;
+    x += Math.cos(a) * cx + Math.sin(a) * cz;
+    z += -Math.sin(a) * cx + Math.cos(a) * cz;
+    return { x, y: MECH.floor + groundHeight(x, z), z, yaw: walk.yaw };
+  }
   private disposed = false;
   constructor(host: CockpitScene, manager?: THREE.LoadingManager) {
     this.root.name = 'IRON VAULT / supplied mechanical exterior';
@@ -362,7 +391,8 @@ export class MechExterior {
       this.root.add(this.model);
       this.model.traverse((o) => {
         if (o instanceof THREE.Mesh) {
-          o.castShadow = false;
+          // Echte Schatten (Sonne/Mond); Lichtkegel werfen keinen Schatten.
+          o.castShadow = !(o.material instanceof THREE.ShaderMaterial);
           o.receiveShadow = true;
           const materials = Array.isArray(o.material) ? o.material : [o.material];
           for (const material of materials)
@@ -378,6 +408,7 @@ export class MechExterior {
               material.roughness = 1;
               material.metalness = 0.8;
               applyWear(material);
+              this.wearMaterials.push(material);
               for (const texture of [
                 material.map,
                 material.normalMap,
@@ -463,6 +494,8 @@ export class MechExterior {
     }
     this.shadow.position.set(walk.x, MECH.floor + groundHeight(walk.x, walk.z) + 0.026, walk.z);
     this.shadow.rotation.z = -walk.yaw;
+    (this.shadow.material as THREE.MeshBasicMaterial).opacity = this.contact;
+    for (const m of this.wearMaterials) m.userData.wet.value = this.wetness;
     // Nachts nur schwaches, bläuliches Mondlicht statt Inspektionsleuchten.
     const day = 1 - this.night;
     this.inspectionKey.intensity = inspection ? 2.4 * (0.12 + 0.88 * day) : 0;

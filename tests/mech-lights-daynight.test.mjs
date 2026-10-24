@@ -10,7 +10,7 @@ import {
   HEADLIGHT_TILT,
 } from '../lib/mech-details.ts';
 
-test('day values reproduce the previous look exactly; night is darker with brighter yard lamps', () => {
+test('day values match v48 except the softer sky reflection (sun carries light since v50); night is darker with brighter yard lamps', () => {
   const day = dayNightParams(0),
     night = dayNightParams(1);
   assert.equal(day.sky, 'day');
@@ -18,7 +18,7 @@ test('day values reproduce the previous look exactly; night is darker with brigh
   assert.equal(day.hemiIntensity, 0.2);
   assert.equal(day.hemiSky.getHex(), 0x91aea8);
   assert.equal(day.fogColor.getHex(), 0x39444a);
-  assert.equal(day.yardEnv, 0.85);
+  assert.equal(day.yardEnv, 0.55);
   assert.equal(day.envScale, 1);
   assert.equal(day.lampGlow, 3);
   assert.equal(day.floodScale, 1);

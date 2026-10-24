@@ -76,6 +76,12 @@ export default function Cockpit() {
   const [audioCheckOpen, setAudioCheckOpen] = useState(false);
   const [night, setNight] = useState(false);
   const [headlights, setHeadlights] = useState(false);
+  const [rain, setRain] = useState(false);
+  const toggleRain = () =>
+    setRain((v) => {
+      scene.current?.setRain(!v);
+      return !v;
+    });
   const toggleNight = () =>
     setNight((v) => {
       scene.current?.setNight(!v);
@@ -407,6 +413,7 @@ export default function Cockpit() {
       if (e.key.toLowerCase() === 'l') operate.current(10);
       if (e.key.toLowerCase() === 'n' && !e.repeat) toggleNight();
       if (e.key.toLowerCase() === 'j' && !e.repeat) toggleHeadlights();
+      if (e.key.toLowerCase() === 'x' && !e.repeat) toggleRain();
       if (e.key.toLowerCase() === 't') operate.current(30);
       if (e.key.toLowerCase() === 'k') operate.current(35);
     };
@@ -458,6 +465,10 @@ export default function Cockpit() {
       });
     }
   }
+  // Regengeräusch: in der Kanzel gedämpft, in Außenansichten hell.
+  useEffect(() => {
+    audio.current?.setRain(rain ? 1 : 0, !['mech', 'hangar', 'yard'].includes(cameraView));
+  }, [rain, cameraView, audioStatus]);
   return (
     <main className="cockpit-app">
       <div
@@ -619,6 +630,9 @@ export default function Cockpit() {
             onClick={toggleHeadlights}
           >
             SCHEINWERFER [J]
+          </button>
+          <button aria-pressed={rain} onClick={toggleRain}>
+            REGEN [X]
           </button>
           <button aria-pressed={night} onClick={toggleNight}>
             {night ? 'NACHT [N]' : 'TAG [N]'}
@@ -849,6 +863,19 @@ export default function Cockpit() {
             <dd>
               Wechselt weich zwischen Abendlicht und Nacht mit Sternenhimmel. Nachts leuchten die
               Hofscheinwerfer kräftiger, Umgebung und Nebel werden dunkel.
+            </dd>
+            <dt>Regen / Taste X</dt>
+            <dd>
+              Lässt es regnen: Regenschleier, der im Scheinwerferkegel aufleuchtet, nasser Asphalt
+              mit Pfützen, nasse Panzerung (trocknet in der Halle langsam), Tropfen auf der
+              Frontscheibe und Regenrauschen – in der Kanzel dumpf trommelnd, draußen hell. Unter
+              dem Hallendach bleibt es trocken. Licht und Schatten werden trüber, der Nebel dichter.
+            </dd>
+            <dt>Gewicht beim Gehen</dt>
+            <dd>
+              Jeder Schritt stößt die Kanzel kurz an und lässt die Instrumentennadeln nachzittern.
+              Die Füße wirbeln Staub auf (bei Regen Spritzer) und hinterlassen Abdrücke, die nach
+              zwei Minuten verblassen. SCHRITTBEWEGUNG AUS schaltet den Kanzelstoß ab.
             </dd>
             <dt>Taste L</dt>
             <dd>

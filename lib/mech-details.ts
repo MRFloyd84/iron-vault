@@ -164,10 +164,12 @@ export function bakeRestPositions(model: THREE.Object3D) {
  * `amount` 0…1 steuert die Stärke (Uniform, zur Laufzeit änderbar).
  */
 export function applyWear(material: THREE.MeshStandardMaterial, amount = 1) {
-  const uniforms = { uWear: { value: amount } };
+  const uniforms = { uWear: { value: amount }, uWet: { value: 0 } };
   material.userData.wear = uniforms.uWear;
+  material.userData.wet = uniforms.uWet;
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uWear = uniforms.uWear;
+    shader.uniforms.uWet = uniforms.uWet;
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nattribute vec3 aRest;\nvarying vec3 vRest;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRest = aRest;');
@@ -176,6 +178,7 @@ export function applyWear(material: THREE.MeshStandardMaterial, amount = 1) {
         '#include <common>',
         `#include <common>
 uniform float uWear;
+uniform float uWet;
 varying vec3 vRest;
 float ivHash(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
 float ivNoise(vec3 x){
@@ -200,12 +203,15 @@ float ivMud = 0.0; float ivGrime = 0.0;`,
   diffuseColor.rgb = mix(diffuseColor.rgb, vec3(lum) * vec3(1.02, 1.0, 0.94), 0.22 * uWear);
   diffuseColor.rgb *= 1.0 - 0.28 * ivGrime;
   diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.12, 0.10, 0.075) * (0.75 + 0.5 * fine), ivMud * 0.7);
+  // Nass: dunkler, Schlieren treten stärker hervor.
+  diffuseColor.rgb *= 1.0 - uWet * (0.16 + 0.12 * ivGrime);
 }`,
       )
       .replace(
         '#include <roughnessmap_fragment>',
         `#include <roughnessmap_fragment>
-roughnessFactor = clamp(max(roughnessFactor, 0.48) + 0.22 * ivGrime + 0.45 * ivMud, 0.0, 1.0);`,
+roughnessFactor = clamp(max(roughnessFactor, 0.48) + 0.22 * ivGrime + 0.45 * ivMud, 0.0, 1.0);
+roughnessFactor = mix(roughnessFactor, roughnessFactor * 0.42, uWet);`,
       )
       .replace(
         '#include <metalnessmap_fragment>',
