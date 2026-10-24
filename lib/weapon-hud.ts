@@ -10,7 +10,7 @@ export function drawWeaponHud(
   c.save();
   c.setTransform(c.canvas.width / 960, 0, 0, c.canvas.height / 720, 0, 0);
   c.globalCompositeOperation = 'source-over';
-  const green = '#9df07a',
+  const green = '#a6ff6b',
     amber = '#f2b45a';
   c.font = '600 26px monospace';
   c.fillStyle = info.armed ? (info.block ? amber : green) : green;

@@ -752,3 +752,16 @@ button:disabled {
   border-color: #e3925a;
   color: #ffd2b0;
 }
+
+/* Dunkle Ecken in der Kanzel: alte Beleuchtung reicht nicht bis in die Ränder. */
+.cabin-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(
+    ellipse 75% 70% at 50% 46%,
+    transparent 52%,
+    rgba(4, 4, 3, 0.62) 100%
+  );
+}

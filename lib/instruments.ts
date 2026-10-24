@@ -17,15 +17,15 @@ export type TelemetrySample = { pressure: number; temperature: number };
 export type InstrumentAssets = { structureAtlas?: CanvasImageSource };
 export const STRUCTURE_ATLAS = '/instruments/mech-structure-atlas.png';
 const C = {
-  text: '#c9ecb3',
-  muted: '#83a773',
-  accent: '#a3e969',
-  green: '#b4ee83',
+  text: '#c6ffa0',
+  muted: '#81ca50',
+  accent: '#98ff53',
+  green: '#aaff72',
   amber: '#efbd68',
   red: '#f17c61',
-  line: '#29472a',
-  panel: '#101f13',
-  faint: '#182e1b',
+  line: '#315917',
+  panel: '#142708',
+  faint: '#1e3a0c',
 };
 export function renderInstrument(
   ctx: CanvasRenderingContext2D,
@@ -171,8 +171,8 @@ export function renderInstrument(
     return;
   }
   const bg = c.createLinearGradient(0, 0, 960, 720);
-  bg.addColorStop(0, '#09150c');
-  bg.addColorStop(1, '#020704');
+  bg.addColorStop(0, '#0d1b03');
+  bg.addColorStop(1, '#040900');
   c.fillStyle = bg;
   c.fillRect(0, 0, W, H);
   const shutting = s.shutdownPhase !== 'idle';
@@ -193,7 +193,7 @@ export function renderInstrument(
     power: 'VERSORGUNG',
     preflight: shutting ? 'HERUNTERFAHREN' : 'EINSATZPRÜFUNG',
   };
-  rect(0, 0, W, 81, '#142519', 0);
+  rect(0, 0, W, 81, '#192f0a', 0);
   text(names[kind] ?? 'SYSTEM', 35, 51, 30, C.text, 700);
   mono('IV–04', 797, 49, 24, C.muted);
   line(35, 82, 925, 82, C.accent, 2);
@@ -295,7 +295,7 @@ export function renderInstrument(
     if (s.stage >= 5 && !s.service.sensorFault) {
       for (let i = 0; i < 24; i++) {
         const a = angle - i * 0.012;
-        c.strokeStyle = 'rgba(163,233,105,' + 0.5 * (1 - i / 24) + ')';
+        c.strokeStyle = 'rgba(152,255,83,' + 0.5 * (1 - i / 24) + ')';
         c.lineWidth = 2;
         c.beginPath();
         c.moveTo(x, y);
@@ -409,7 +409,7 @@ export function renderInstrument(
     tasks.slice(offset, offset + 6).forEach((task, i) => {
       const y = 237 + i * 48,
         active = offset + i === next;
-      rect(36, y - 27, 40, 35, task.done ? '#243f30' : C.faint, 5);
+      rect(36, y - 27, 40, 35, task.done ? '#2c4f14' : C.faint, 5);
       mono(String(offset + i + 1).padStart(2, '0'), 42, y, 22, task.done ? C.green : C.muted);
       text(task.label, 99, y, shutting ? 26 : 29, task.done ? C.text : active ? C.accent : C.muted);
       text(
@@ -577,7 +577,7 @@ export function renderInstrument(
             : 0;
     progress(37, 386, 886, p, passed ? C.green : C.accent);
     wrap(s.testMessage, 40, 443, 880, 34, s.testPhase === 'aborted' ? C.amber : C.text, 3);
-    rect(36, 585, 432, 57, passed ? '#1e382b' : C.faint);
+    rect(36, 585, 432, 57, passed ? '#25470f' : C.faint);
     text(
       running ? 'ABBRECHEN [T]' : passed ? 'ERNEUT PRÜFEN [T]' : 'SYSTEMTEST [T]',
       56,
@@ -600,7 +600,7 @@ function finishScreen(c: CanvasRenderingContext2D) {
   shade.addColorStop(1, 'rgba(0,0,0,.26)');
   c.fillStyle = shade;
   c.fillRect(0, 0, 960, 720);
-  c.strokeStyle = '#2c4c29';
+  c.strokeStyle = '#336015';
   c.lineWidth = 2;
   c.strokeRect(12, 12, 936, 696);
 }
@@ -609,7 +609,7 @@ function renderElectrical(c: CanvasRenderingContext2D, s: MachineState) {
   c.save();
   c.setTransform(c.canvas.width / 1440, 0, 0, c.canvas.height / 140, 0, 0);
   c.clearRect(0, 0, 1440, 140);
-  c.fillStyle = '#050e07';
+  c.fillStyle = '#081201';
   c.fillRect(0, 0, 1440, 140);
   c.textAlign = 'left';
   c.textBaseline = 'alphabetic';
@@ -639,7 +639,7 @@ function renderElectrical(c: CanvasRenderingContext2D, s: MachineState) {
     c.font = '600 22px Arial';
     c.fillText(label, x, 36);
     c.fillStyle = !powered
-      ? '#5b7354'
+      ? '#5b8d3a'
       : value === 'OFF'
         ? C.muted
         : i === 2 && o.apuPhase === 'starting'

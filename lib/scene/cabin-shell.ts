@@ -28,9 +28,10 @@ export function buildShell(cs: CockpitScene) {
     toneMapped: false,
   });
   cs.cabinFixtures.push(diffuser);
+  // Alte Leuchtstoffröhren: vergilbtes, trübes Grün statt Neon.
   cs.braceLens = cs.mat({
-    color: 0x12351a,
-    emissive: 0x77ed69,
+    color: 0x1d2a17,
+    emissive: 0xa9d07e,
     emissiveIntensity: 0,
     roughness: 0.48,
     metalness: 0,
@@ -141,7 +142,7 @@ export function buildCeilingLamp(cs: CockpitScene) {
   cs.box(fixture, 0, 0, 0.065, 0.54, 0.34, 0.1, cs.darkMat, 0.065);
   cs.ceilingLens = cs.mat({
     color: 0x580b0c,
-    emissive: 0xff1925,
+    emissive: 0xe8473c,
     emissiveIntensity: 0,
     roughness: 0.38,
     metalness: 0,
@@ -163,7 +164,7 @@ export function buildCeilingLamp(cs: CockpitScene) {
     );
   // A diffused, nearly downward beam softens the nearby overhead hotspot.
   // Gentler distance falloff preserves useful light on the farther console/walls.
-  cs.ceilingLight = new THREE.SpotLight(0xff2330, 0, 8, 1.38, 0.9, 1.4);
+  cs.ceilingLight = new THREE.SpotLight(0xe04a3d, 0, 8, 1.38, 0.9, 1.4);
   cs.ceilingLight.position.set(0, CABIN.roofY - 0.31, 1.3);
   cs.ceilingLight.target.position.set(0, 0.8, 0.65);
   cs.scene.add(cs.ceilingLight, cs.ceilingLight.target);
@@ -182,10 +183,26 @@ export function buildBraceLighting(cs: CockpitScene, side: number) {
   ]) {
     cs.box(rail, 0, y, 0.01, 0.13, height + 0.12, 0.11, cs.edgeMat, 0.025);
     cs.box(rail, 0, y, 0.077, 0.093, height + 0.04, 0.045, cs.darkMat, 0.018);
-    cs.box(rail, 0, y, 0.105, 0.052, height, 0.018, cs.braceLens!, 0.009);
+    // Backbord unten: Röhre mit Wackelkontakt (eigenes Material, flackert separat).
+    const faulty = side < 0 && y < 1;
+    if (faulty && !cs.braceLensFaulty) cs.braceLensFaulty = cs.braceLens!.clone();
+    cs.box(
+      rail,
+      0,
+      y,
+      0.105,
+      0.052,
+      height,
+      0.018,
+      faulty ? cs.braceLensFaulty! : cs.braceLens!,
+      0.009,
+    );
+    // Steuerbord oben: Röhrenende ausgebrannt (dunkler, angerußter Abschnitt).
+    if (side > 0 && y > 1)
+      cs.box(rail, 0, y + height * 0.32, 0.108, 0.054, height * 0.36, 0.02, cs.darkMat, 0.009);
     for (const end of [-1, 1]) cs.bolt(rail, 0, y + end * (height / 2 + 0.04), 0.07);
   }
-  const light = new THREE.PointLight(0x77ed69, 0, 2.6, 1);
+  const light = new THREE.PointLight(0x9cbf78, 0, 2.6, 1);
   light.position.set(side * 2.02, 1.8, 1.48);
   cs.scene.add(light);
   cs.braceLights.push(light);

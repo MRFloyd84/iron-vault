@@ -57,7 +57,7 @@ const SLOT_SECONDS = 6;
 export function glitchAt(seconds: number, index: number): Glitch | null {
   const slot = Math.floor(seconds / SLOT_SECONDS);
   const age = displayAge(index);
-  if (hash(index, slot, 7) > 0.035 + 0.11 * age) return null;
+  if (hash(index, slot, 7) > 0.08 + 0.22 * age) return null;
   const duration = 0.22 + hash(index, slot, 8) * 0.5;
   const start = slot * SLOT_SECONDS + hash(index, slot, 9) * (SLOT_SECONDS - duration);
   const progress = (seconds - start) / duration;
@@ -106,8 +106,16 @@ export function displayFlicker(
     return base * warm * dip * hum;
   }
   if (reduced) return base;
-  // Netzbrummen: kaum sichtbares Atmen der Helligkeit.
-  let f = base * (1 + 0.012 * Math.sin(seconds * 47 + index * 1.7));
+  // Netzbrummen und Dauerflimmern: alte Röhren halten die Helligkeit nie ganz ruhig.
+  const flimmer =
+    Math.sin(seconds * 9.3 + index * 2.1) * 0.5 +
+    Math.sin(seconds * 23.7 + index) * 0.3 +
+    (hash(index, Math.floor(seconds * 20), 12) - 0.5) * 0.6;
+  let f =
+    base *
+    (1 + 0.012 * Math.sin(seconds * 47 + index * 1.7) - (0.025 + 0.035 * age) * Math.abs(flimmer));
+  // Einzelne kurze Einbrüche (Wackelkontakt im Hochspannungsteil)
+  if (hash(index, Math.floor(seconds * 20), 13) < 0.012 + 0.02 * age) f *= 0.55;
   const g = glitchAt(seconds, index);
   if (g) {
     const frame = Math.floor(seconds * 18);
@@ -200,14 +208,14 @@ function noise(c: Ctx, amount: number, seed: number) {
     const r = hash(seed, i, 21);
     const bright = r > 0.45;
     c.fillStyle = bright
-      ? `rgba(200,255,190,${0.08 + 0.22 * hash(seed, i, 22)})`
+      ? `rgba(216,255,190,${0.08 + 0.22 * hash(seed, i, 22)})`
       : `rgba(0,0,0,${0.25 + 0.4 * hash(seed, i, 22)})`;
     const lh = 1 + Math.round(hash(seed, i, 23) * 3);
     const x = hash(seed, i, 24) * w * 0.5;
     c.fillRect(x, hash(seed, i, 25) * h, w * (0.4 + 0.6 * hash(seed, i, 26)), lh);
   }
   const specks = Math.round(amount * 260);
-  c.fillStyle = 'rgba(210,255,200,0.35)';
+  c.fillStyle = 'rgba(222,255,200,0.35)';
   for (let i = 0; i < specks; i++)
     c.fillRect(hash(seed, i, 27) * w, hash(seed, i, 28) * h, 2, 1 + hash(seed, i, 29) * 2);
 }
@@ -228,6 +236,97 @@ function vignette(c: Ctx, index: number) {
   g.addColorStop(1, `rgba(0,0,0,${0.22 + 0.2 * displayAge(index)})`);
   c.fillStyle = g;
   c.fillRect(0, 0, w, h);
+}
+
+// ---------- Verschmutzte Scheibe ----------
+
+const dirtCache = new Map<string, OffscreenCanvas>();
+/**
+ * Statische Verschmutzung je Display: Staub, Fingerabdrücke, Wischspuren, Kratzer und
+ * Schmutzränder in den Ecken. Einmal gemalt und gecacht (nur im Browser).
+ */
+function dirtLayer(w: number, h: number, index: number) {
+  if (typeof OffscreenCanvas === 'undefined') return null;
+  const key = w + 'x' + h + ':' + index;
+  const cached = dirtCache.get(key);
+  if (cached) return cached;
+  const canvas = new OffscreenCanvas(w, h);
+  const x = canvas.getContext('2d');
+  if (!x) return null;
+  const k = w / 960,
+    age = displayAge(index);
+  // Staubkörner
+  for (let i = 0; i < 260 + 300 * age; i++) {
+    x.fillStyle = `rgba(210,225,200,${0.05 + 0.1 * hash(index, i, 101)})`;
+    const r = (0.6 + 1.6 * hash(index, i, 102)) * k;
+    x.fillRect(hash(index, i, 103) * w, hash(index, i, 104) * h, r, r);
+  }
+  // Wischspuren eines Lappens: weite, flache Bögen
+  x.lineCap = 'round';
+  for (let i = 0; i < 5; i++) {
+    x.strokeStyle = `rgba(200,220,190,${0.025 + 0.025 * age})`;
+    x.lineWidth = (30 + 50 * hash(index, i, 111)) * k;
+    x.beginPath();
+    const cx = hash(index, i, 112) * w,
+      cy = hash(index, i, 113) * h;
+    x.arc(cx, cy + h * 0.6, h * (0.5 + 0.4 * hash(index, i, 114)), -2.2, -0.9);
+    x.stroke();
+  }
+  // Fingerabdrücke: Ovale aus feinen Rillen, meist am Rand, wo man hinlangt
+  for (let i = 0; i < 2 + Math.round(3 * age); i++) {
+    const edge = hash(index, i, 121) < 0.5;
+    const fx = edge ? (hash(index, i, 122) < 0.5 ? 0.08 : 0.92) * w : hash(index, i, 122) * w;
+    const fy = (0.2 + 0.7 * hash(index, i, 123)) * h;
+    x.save();
+    x.translate(fx, fy);
+    x.rotate((hash(index, i, 124) - 0.5) * 1.2);
+    x.strokeStyle = `rgba(215,230,205,${0.05 + 0.04 * age})`;
+    x.lineWidth = 1.2 * k;
+    for (let r = 4; r < 26; r += 3.2) {
+      x.beginPath();
+      x.ellipse(0, 0, r * 0.75 * k, r * k, 0, 0, Math.PI * 2);
+      x.stroke();
+    }
+    x.restore();
+  }
+  // Kratzer
+  for (let i = 0; i < 3 + Math.round(6 * age); i++) {
+    x.strokeStyle = `rgba(225,235,215,${0.07 + 0.08 * hash(index, i, 131)})`;
+    x.lineWidth = (0.8 + hash(index, i, 132)) * k;
+    x.beginPath();
+    const sx = hash(index, i, 133) * w,
+      sy = hash(index, i, 134) * h,
+      len = (40 + 200 * hash(index, i, 135)) * k,
+      a = (hash(index, i, 136) - 0.5) * 1.4;
+    x.moveTo(sx, sy);
+    x.quadraticCurveTo(
+      sx + Math.cos(a) * len * 0.5,
+      sy + Math.sin(a) * len * 0.5 + 6 * k,
+      sx + Math.cos(a) * len,
+      sy + Math.sin(a) * len,
+    );
+    x.stroke();
+  }
+  // Schmutzrand in den Ecken (dort wischt keiner)
+  for (const [cx, cy] of [
+    [0, 0],
+    [w, 0],
+    [0, h],
+    [w, h],
+  ]) {
+    const g = x.createRadialGradient(cx, cy, 0, cx, cy, Math.min(w, h) * 0.32);
+    g.addColorStop(0, `rgba(30,26,18,${0.35 + 0.25 * age})`);
+    g.addColorStop(1, 'rgba(30,26,18,0)');
+    x.fillStyle = g;
+    x.fillRect(0, 0, w, h);
+  }
+  dirtCache.set(key, canvas);
+  return canvas;
+}
+
+function drawGlassDirt(c: Ctx, index: number) {
+  const layer = dirtLayer(c.canvas.width, c.canvas.height, index);
+  if (layer) c.drawImage(layer, 0, 0);
 }
 
 /**
@@ -266,7 +365,7 @@ export function drawDisplayAging(
         const top = (h - bh) / 2;
         blank(c, 0, 0, w, top, transparent);
         blank(c, 0, top + bh, w, h - top - bh, transparent);
-        c.fillStyle = `rgba(205,255,190,${0.75 * (1 - k)})`;
+        c.fillStyle = `rgba(216,255,190,${0.75 * (1 - k)})`;
         c.fillRect(0, top, w, bh);
       } else {
         const u = bootInstability(t, index);
@@ -294,6 +393,31 @@ export function drawDisplayAging(
         }
       }
     } else {
+      // Dauerflimmern im Betrieb: wanderndes Interferenzband, zitternde Einzelzeilen.
+      if (!transparent) {
+        const bh = h * 0.12;
+        const by = ((seconds * 0.07 + index * 0.21) % 1) * (h + bh * 2) - bh;
+        const band = c.createLinearGradient(0, by, 0, by + bh);
+        band.addColorStop(0, 'rgba(150,255,90,0)');
+        band.addColorStop(0.5, `rgba(150,255,90,${0.035 + 0.03 * displayAge(index)})`);
+        band.addColorStop(1, 'rgba(150,255,90,0)');
+        c.globalCompositeOperation = 'lighter';
+        c.fillStyle = band;
+        c.fillRect(0, by, w, bh);
+        c.globalCompositeOperation = 'source-over';
+      }
+      if (hash(index, frame, 31) < 0.3 + 0.3 * displayAge(index))
+        shiftBands(
+          c,
+          [
+            {
+              y: hash(index, frame, 32) * h,
+              h: Math.max(2, h * 0.012),
+              dx: (hash(index, frame, 33) - 0.5) * 6 * (w / 960),
+            },
+          ],
+          transparent,
+        );
       const g = glitchAt(seconds, index);
       if (g) {
         const s = g.strength;
@@ -302,7 +426,7 @@ export function drawDisplayAging(
           const bh = h * (0.04 + 0.12 * hash(g.seed, 2));
           const dx = (hash(g.seed, frame, 3) - 0.5) * 2 * (20 + 60 * s) * (w / 960);
           shiftBands(c, [{ y, h: bh, dx }], transparent);
-          c.fillStyle = 'rgba(200,255,190,0.25)';
+          c.fillStyle = 'rgba(216,255,190,0.25)';
           c.fillRect(0, y, w, 1);
         } else if (g.type === 'shake') {
           const bands = [];
@@ -319,5 +443,7 @@ export function drawDisplayAging(
       }
     }
   }
+  // Verschmutzte Scheibe: statisch, daher auch bei reduzierter Bewegung.
+  if (phase === 'ready' && !transparent) drawGlassDirt(c, index);
   c.restore();
 }

@@ -4,16 +4,16 @@ import type { MachineState } from './machine';
 import { MOBILITY_CONTROLS, releaseBlock, restraintLabel } from './mobility';
 
 export function renderMobilityPanel(c: CanvasRenderingContext2D, s: MachineState) {
-  const ink = '#c9ecb3',
-    green = '#a3e969',
-    muted = '#83a773',
+  const ink = '#c6ffa0',
+    green = '#98ff53',
+    muted = '#81ca50',
     amber = '#efbd68';
   const text = (v: string, x: number, y: number, size = 26, color = ink) => {
     c.fillStyle = color;
     c.font = '500 ' + size + 'px Arial';
     c.fillText(v, x, y);
   };
-  const box = (x: number, y: number, w: number, h: number, color = '#101f13') => {
+  const box = (x: number, y: number, w: number, h: number, color = '#142708') => {
     c.fillStyle = color;
     c.fillRect(x, y, w, h);
   };
@@ -32,8 +32,8 @@ export function renderMobilityPanel(c: CanvasRenderingContext2D, s: MachineState
   };
   const m = s.mobility,
     testing = ['hydraulics', 'actuators', 'sensors'].includes(s.testPhase);
-  box(0, 0, 960, 720, '#050e07');
-  box(0, 0, 960, 81, '#142519');
+  box(0, 0, 960, 720, '#081201');
+  box(0, 0, 960, 81, '#192f0a');
   text('MOBILITÄT / FREIGABE', 35, 51, 30);
   text('IV–04', 797, 49, 24, muted);
   if (m.page === 'release') {
@@ -80,12 +80,12 @@ export function renderMobilityPanel(c: CanvasRenderingContext2D, s: MachineState
   } else if (m.page === 'hangar') {
     text('HANGARTOR 07', 36, 195, 32);
     text(gateLabel(s), 568, 195, 30, green);
-    box(170, 224, 620, 150, '#060b08');
+    box(170, 224, 620, 150, '#070e03');
     const gap = s.hangar.position * 300;
-    box(170 - gap, 230, 305, 138, '#294027');
-    box(485 + gap, 230, 305, 138, '#294027');
-    box(0, 214, 150, 177, '#050e07');
-    box(810, 214, 150, 177, '#050e07');
+    box(170 - gap, 230, 305, 138, '#2e5017');
+    box(485 + gap, 230, 305, 138, '#2e5017');
+    box(0, 214, 150, 177, '#081201');
+    box(810, 214, 150, 177, '#081201');
     text(Math.round(s.hangar.position * 100) + ' % OFFEN', 365, 410, 30, green);
     text('Toröffnung: Freigabe, Parkverriegelung gelöst, 0 %.', 36, 450, 24, muted);
     text('TESTGELÄNDE [U]: Außenkamera · W/S im Cockpit', 36, 491, 24, muted);
@@ -192,7 +192,7 @@ export function renderMobilityPanel(c: CanvasRenderingContext2D, s: MachineState
     const active =
       b.action ===
       (m.page === 'release' ? 80 : m.page === 'test' ? 81 : m.page === 'walk' ? 93 : 85);
-    box(b.x, b.y, b.w, b.h, active ? '#294027' : '#16281a');
+    box(b.x, b.y, b.w, b.h, active ? '#2e5017' : '#1b330b');
     const label = labels[b.action];
     c.font = '600 24px Arial';
     c.fillStyle = active ? green : ink;

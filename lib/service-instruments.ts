@@ -17,12 +17,12 @@ export function renderServicePanel(
   s: MachineState,
   history: { pressure: number; temperature: number }[],
 ) {
-  const ink = '#c9ecb3',
-    green = '#a3e969',
-    muted = '#83a773',
+  const ink = '#c6ffa0',
+    green = '#98ff53',
+    muted = '#81ca50',
     amber = '#efbd68',
     red = '#f17c61',
-    panel = '#101f13';
+    panel = '#142708';
   const text = (value: string, x: number, y: number, size = 26, color = ink) => {
     c.fillStyle = color;
     c.font = '500 ' + size + 'px Arial';
@@ -37,7 +37,7 @@ export function renderServicePanel(
     c.fillStyle = color;
     c.fillRect(x, y, w, h);
   };
-  const line = (x: number, y: number, xx: number, yy: number, color = '#29472a') => {
+  const line = (x: number, y: number, xx: number, yy: number, color = '#315917') => {
     c.strokeStyle = color;
     c.lineWidth = 2;
     c.beginPath();
@@ -48,8 +48,8 @@ export function renderServicePanel(
   const service = s.service,
     r = electricalReadings(s),
     pump = selectedPump(s);
-  rect(0, 0, 960, 720, '#050e07');
-  rect(0, 0, 960, 81, '#142519');
+  rect(0, 0, 960, 720, '#081201');
+  rect(0, 0, 960, 81, '#192f0a');
   text('VERSORGUNG / SYSTEME', 35, 51, 30);
   text('IV–04', 797, 49, 24, muted);
   line(35, 82, 925, 82, green);
@@ -87,7 +87,7 @@ export function renderServicePanel(
       (b.action === 64 && service.pump === 'A') ||
       (b.action === 65 && service.pump === 'B');
     const fault = b.action === 64 && service.pumpAFault;
-    rect(b.x, b.y, b.w, b.h, fault ? '#42261e' : active ? '#294027' : '#16281a');
+    rect(b.x, b.y, b.w, b.h, fault ? '#42261e' : active ? '#2e5017' : '#1b330b');
     if (active) rect(b.x, b.y + b.h - 3, b.w, 3, green);
     const label = controlLabels[b.action];
     c.font = '600 ' + (b.action >= 66 ? 23 : 25) + 'px Arial';

@@ -31,6 +31,8 @@ import {
   type WeaponState,
 } from './weapons';
 import { hash } from './display-aging';
+import { cabinWear, faultyTube, wearCabin } from './cabin-wear';
+import { CabinClutter } from './scene/cabin-clutter';
 import {
   applyWetness,
   GlassRain,
@@ -134,6 +136,7 @@ export class CockpitScene {
   ceilingLens: THREE.MeshStandardMaterial | null = null;
   braceLights: THREE.PointLight[] = [];
   braceLens: THREE.MeshStandardMaterial | null = null;
+  braceLensFaulty: THREE.MeshStandardMaterial | null = null;
   surround: SurroundCameras | null = null;
   exterior: MechExterior | null = null;
   inMech = false;
@@ -229,6 +232,7 @@ export class CockpitScene {
   /** Wird beim Donnerschlag aufgerufen (Audio hängt sich hier an). */
   onThunder: ((variant: number, distance: number) => void) | null = null;
   private camWorld = new THREE.Vector3();
+  clutter: CabinClutter | null = null;
   constructor(
     host: HTMLElement,
     getState: () => MachineState,
@@ -290,7 +294,7 @@ export class CockpitScene {
     pmrem.dispose();
     this.cleanup.push(() => envTarget.dispose());
     this.scene.add(this.hemi);
-    this.screenSpill = new THREE.PointLight(0x9bdf64, 0, 3.2, 2);
+    this.screenSpill = new THREE.PointLight(0x8cff3c, 0, 3.2, 2);
     this.screenSpill.position.set(0, 0.82, 0.55);
     this.scene.add(this.screenSpill);
     this.buildHangar();
@@ -337,6 +341,8 @@ export class CockpitScene {
     ]);
     if (this.throttle) moving.add(this.throttle);
     const cabinBatches = batchStaticCockpit(this.cabin, moving, true);
+    // Verschleiß für alle Kanzelmaterialien (Kantenabrieb, Schmutz, Verblassen).
+    wearCabin(this.cabin);
     this.cabin.matrixAutoUpdate = true;
     // Scale camera and all authored interior geometry together. At the pilot seat
     // screen size/FOV stay unchanged; the physical capsule now fits the torso.
@@ -354,6 +360,9 @@ export class CockpitScene {
     this.interior.matrixAutoUpdate = false;
     for (const child of [...this.cabin.children]) this.interior.add(child);
     this.cabin.add(this.interior, this.camera);
+    // Gebrauchsspuren: Zettel, Band, Plakette, Ersatzrahmen, Kabelbündel, Foto, Anhänger.
+    this.clutter = new CabinClutter(this, this.interior);
+    this.cleanup.push(() => this.clutter?.dispose());
     // Regentropfen auf der Frontscheibe (nur Pilotensicht, liegt im Innenraum).
     if (this.glassRain.texture) {
       const glassMat = new THREE.MeshBasicMaterial({
@@ -1128,6 +1137,11 @@ export class CockpitScene {
         this.footprints?.place(foot.x, foot.y, foot.z, foot.yaw, time);
       }
     this.jolt.step(dt);
+    this.clutter?.update(
+      dt,
+      this.jolt.vRoll * 0.6 + this.jolt.vPitch * 0.3 + walk.turnRate * 0.05,
+      this.reduced,
+    );
   }
   /** Regen, Nässe, Sonnen-/Mondschatten und Tropfen auf der Scheibe. */
   updateWeather(
@@ -1491,6 +1505,9 @@ export class CockpitScene {
     if (this.braceLens)
       this.braceLens.emissiveIntensity +=
         (braces.emission - this.braceLens.emissiveIntensity) * damp;
+    if (this.braceLensFaulty && this.braceLens)
+      this.braceLensFaulty.emissiveIntensity =
+        this.braceLens.emissiveIntensity * faultyTube(time, this.reduced);
     for (const g of this.gauges) {
       const amount =
         g.kind === 0 ? Math.min(1, electricalReadings(s).voltage / 28) : s.actualPressure / 350;
@@ -1542,6 +1559,7 @@ export class CockpitScene {
       this.drawScreen(display, s, time);
       display.lastDraw = ms;
     }
+    cabinWear.uCabinInv.value.copy(this.cabin.matrixWorld).invert();
     this.renderer.render(this.scene, this.camera);
     if (this.pendingPointer && !this.drag && ms - this.lastHover >= 50) {
       const e = this.pendingPointer;

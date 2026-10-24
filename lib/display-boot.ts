@@ -75,11 +75,11 @@ function paintBoot(c: CanvasRenderingContext2D, kind: string, elapsed: number, r
   c.shadowBlur = 0;
   c.globalAlpha = 1;
   c.globalCompositeOperation = 'source-over';
-  c.fillStyle = '#020604';
+  c.fillStyle = '#030800';
   c.fillRect(0, 0, compact ? 1440 : 960, compact ? 140 : 720);
   c.textAlign = 'left';
   c.textBaseline = 'alphabetic';
-  const text = (s: string, x: number, y: number, size: number, color = '#b5f591') => {
+  const text = (s: string, x: number, y: number, size: number, color = '#b7ff87') => {
     c.fillStyle = color;
     c.font = '600 ' + size + 'px monospace';
     c.fillText(s, x, y);
@@ -87,15 +87,15 @@ function paintBoot(c: CanvasRenderingContext2D, kind: string, elapsed: number, r
   if (compact) {
     text('IV-04 / POWER-ON', 24, 40, 28);
     text(Math.round(progress * 100) + ' %', 1240, 40, 28);
-    text(BOOT_LINES[Math.min(8, Math.floor(progress * 9))], 24, 88, 25, '#82b78a');
-    c.fillStyle = '#173421';
+    text(BOOT_LINES[Math.min(8, Math.floor(progress * 9))], 24, 88, 25, '#91d762');
+    c.fillStyle = '#204308';
     c.fillRect(24, 112, 1392, 10);
-    c.fillStyle = '#9de88e';
+    c.fillStyle = '#adff77';
     c.fillRect(24, 112, 1392 * progress, 10);
   } else {
     text('IRON VAULT', 42, 85, 48);
-    text('IV-04 / ANZEIGESYSTEM', 44, 127, 24, '#82b78a');
-    c.fillStyle = '#294b32';
+    text('IV-04 / ANZEIGESYSTEM', 44, 127, 24, '#91d762');
+    c.fillStyle = '#335f15';
     c.fillRect(42, 151, 876, 2);
     text(TITLES[kind] ?? kind.toUpperCase(), 44, 193, 27);
     const lines = Math.min(BOOT_LINES.length, Math.max(1, Math.floor((elapsed - 0.5) / 1.15) + 1));
@@ -105,12 +105,12 @@ function paintBoot(c: CanvasRenderingContext2D, kind: string, elapsed: number, r
         48,
         255 + i * 33,
         22,
-        i < lines - 1 ? '#82b78a' : '#c2ffac',
+        i < lines - 1 ? '#91d762' : '#cdffac',
       );
     if (!reduced && elapsed % 1 < 0.6) text('_', 48, 255 + lines * 33, 24);
-    c.fillStyle = '#173421';
+    c.fillStyle = '#204308';
     c.fillRect(44, 600, 872, 14);
-    c.fillStyle = '#a7ee8c';
+    c.fillStyle = '#b0ff7b';
     c.fillRect(44, 600, 872 * progress, 14);
     text(
       'BOOT ' +
@@ -122,7 +122,7 @@ function paintBoot(c: CanvasRenderingContext2D, kind: string, elapsed: number, r
       655,
       30,
     );
-    text(elapsed < 11 ? 'SYSTEM STARTET …' : 'ANZEIGE WIRD ÜBERGEBEN …', 44, 696, 21, '#82b78a');
+    text(elapsed < 11 ? 'SYSTEM STARTET …' : 'ANZEIGE WIRD ÜBERGEBEN …', 44, 696, 21, '#91d762');
   }
   c.restore();
 }
@@ -166,9 +166,9 @@ export function renderDisplay(
     );
     if (kind === 'cameras') {
       c.save();
-      c.fillStyle = '#142519';
+      c.fillStyle = '#192f0a';
       c.fillRect(556, 4, 404, 74);
-      c.fillStyle = '#a3e969';
+      c.fillStyle = '#98ff53';
       c.font = '600 24px Arial';
       c.fillText('6 BILDER', 574, 49);
       c.fillText('SYSTEME', 786, 49);

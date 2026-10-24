@@ -528,6 +528,9 @@ export default function Cockpit() {
         ref={container}
         aria-label="Interaktive 3D-Pilotenkanzel. Startschritte mit den physischen Schaltern oder den Tasten 1 bis 6 bedienen."
       />
+      {!['mech', 'hangar', 'yard'].includes(cameraView) && (
+        <div className="cabin-vignette" aria-hidden="true" />
+      )}
       {!loaded && !failure && (
         <div className="loading">
           <strong>IRON VAULT</strong>

@@ -30,7 +30,8 @@ export function ceilingLighting(s: MachineState) {
 
 export function braceLighting(s: MachineState) {
   const powered = s.stage > 0 || s.overhead.battery1 || s.overhead.battery2;
-  return { intensity: powered ? 7 : 0, emission: powered ? 2 : 0 };
+  // Alte, nachgedunkelte Röhren: schwächer als neu.
+  return { intensity: powered ? 4.8 : 0, emission: powered ? 1.25 : 0 };
 }
 
 // Construction-time batching only. Moving controls and their children retain

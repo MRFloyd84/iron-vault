@@ -69,7 +69,7 @@ export class SurroundCameras {
     this.world = world;
     this.cabin = cabin;
     this.ortho.position.z = 2;
-    this.composite.background = new THREE.Color('#050e07');
+    this.composite.background = new THREE.Color('#081201');
     this.canvas = document.createElement('canvas');
     this.canvas.width = 960;
     this.canvas.height = 720;
@@ -140,18 +140,18 @@ void main(){gl_FragColor=vec4(ACESFilmicToneMapping(texture2D(image,vUv).rgb),1.
   labels(now: number) {
     const c = this.context;
     c.clearRect(0, 0, 960, 720);
-    c.fillStyle = '#142519';
+    c.fillStyle = '#192f0a';
     c.fillRect(0, 0, 960, 85);
-    const text = (s: string, x: number, y: number, size = 24, color = '#c9ecb3') => {
+    const text = (s: string, x: number, y: number, size = 24, color = '#c6ffa0') => {
       c.fillStyle = color;
       c.font = '600 ' + size + 'px Arial';
       c.fillText(s, x, y);
     };
     text('UMGEBUNG / KAMERAS', 24, 49, 29);
-    text('6 BILDER', 574, 49, 24, this.selected < 0 ? '#a3e969' : '#83a773');
-    text('SYSTEME', 786, 49, 24, '#83a773');
+    text('6 BILDER', 574, 49, 24, this.selected < 0 ? '#98ff53' : '#81ca50');
+    text('SYSTEME', 786, 49, 24, '#81ca50');
     if (!this.powered) {
-      c.fillStyle = '#050e07';
+      c.fillStyle = '#081201';
       c.fillRect(0, 86, 960, 570);
       text('KAMERAS AUS', 250, 300, 44, '#efbd68');
       text('Hauptstrom und AVIONICS einschalten', 188, 354, 28);
@@ -159,14 +159,14 @@ void main(){gl_FragColor=vec4(ACESFilmicToneMapping(texture2D(image,vUv).rgb),1.
       for (let i = 0; i < 6; i++) {
         if (this.selected >= 0 && i !== this.selected) continue;
         const r = this.selected < 0 ? cameraTile(i) : { x: 24, y: 112, w: 912, h: 530 };
-        c.fillStyle = '#102316';
+        c.fillStyle = '#162d06';
         c.fillRect(r.x, r.y - 25, r.w, 25);
         text(i + 1 + '  ' + SURROUND_VIEWS[i].label, r.x + 8, r.y - 6, 18);
-        c.strokeStyle = '#6d9655';
+        c.strokeStyle = '#67bd2e';
         c.lineWidth = 2;
         c.strokeRect(r.x, r.y, r.w, r.h);
         if (!Number.isFinite(this.last[i]) || now - this.last[i] > 1200) {
-          c.fillStyle = '#050e07';
+          c.fillStyle = '#081201';
           c.fillRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
           text(
             'BILD WIRD AKTUALISIERT',
@@ -185,7 +185,7 @@ void main(){gl_FragColor=vec4(ACESFilmicToneMapping(texture2D(image,vUv).rgb),1.
       678,
       23,
     );
-    text('RÜCKANSICHTEN UNGESPIEGELT · LINKS/RECHTS = MECHSEITE', 24, 706, 20, '#83a773');
+    text('RÜCKANSICHTEN UNGESPIEGELT · LINKS/RECHTS = MECHSEITE', 24, 706, 20, '#81ca50');
     drawDisplaySurface(c, now / 1000, this.reducedMotion, 6, true);
     this.overlay.needsUpdate = true;
   }
