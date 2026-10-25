@@ -62,7 +62,9 @@ weil Browser dann keine Texturen und Sounds laden.
   `cockpit-scene.ts` die Three.js-Szene. Ihre großen Bauabschnitte liegen in `lib/scene/`.
 - `public/` – ausgelieferte Modelle, Texturen und Sounds.
 - `assets-src/audio/` – unbearbeitete Original-Aufnahmen. Sie werden nicht ausgeliefert,
-  sondern nur von den `scripts/prepare-*-audio.py`-Skripten gelesen.
+  sondern nur von den `scripts/prepare-*-audio.py`-Skripten gelesen. Die Pixabay-Originale
+  sind aus Lizenzgründen nicht im GitHub-Repo, nur die eigenen ElevenLabs-Aufnahmen
+  (siehe `ASSETS.md`).
 - `scripts/` – Werkzeuge zur Asset-Aufbereitung (Mech-Modell, Strukturatlas, Audio,
   Materialien). Nach neuen Materialien `node scripts/compress-material-maps.mjs` ausführen.
 - `tests/` – Node-Test-Runner-Tests.

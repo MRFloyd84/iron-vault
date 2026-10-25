@@ -43,3 +43,10 @@ next-env.d.ts
 
 *.tsbuildinfo
 /release/
+
+# Unveränderte Pixabay-Originale: dürfen laut Pixabay-Lizenz nicht einzeln weitergegeben
+# werden. Nur lokal aufbewahren (siehe ASSETS.md).
+/assets-src/audio/*-original.mp3
+!/assets-src/audio/rain-original.mp3
+!/assets-src/audio/thunder-original.mp3
+/assets-src/audio/industrial-fan-loop.ogg
