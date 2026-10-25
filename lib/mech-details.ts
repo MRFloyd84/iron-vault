@@ -231,8 +231,11 @@ export const HEADLIGHT_MOUNTS = [
   { x: 0.128, y: 0.705, z: 0.135 },
 ] as const;
 export const HEADLIGHT_TILT = 0.28; // rad nach unten: Lichtfleck ca. 20 m vor dem Mech
-/** Rundumleuchte: auf einem Winkelhalter an der Rückenplatte (Platte liegt bei z ≈ -0,25). */
-export const BEACON_MOUNT = { x: 0.06, y: 0.888, z: -0.276 } as const;
+/**
+ * Rundumleuchte: oben auf der ebenen Rückenpartie des Rumpfs (Modellkoordinaten). Die genaue
+ * Höhe und Neigung ermittelt beim Anbringen ein Strahl von oben auf die echte Oberfläche.
+ */
+export const BEACON_MOUNT = { x: 0.06, y: 0.946, z: -0.15 } as const;
 
 /**
  * Helligkeit der Scheinwerfer 0…1. Alte Lampen: beim Einschalten kurz unruhig,
@@ -387,17 +390,38 @@ export class MechLights {
     );
     mirror.position.y = 0.009;
     this.beaconSpinner.add(mirror);
-    this.beaconAnchor.position.set(BEACON_MOUNT.x, BEACON_MOUNT.y, BEACON_MOUNT.z);
-    // Winkelhalter: Plattform unter der Leuchte plus Stützblech an der Rückenplatte.
-    const platform = new THREE.Mesh(new THREE.BoxGeometry(0.036, 0.005, 0.034), housing);
-    platform.position.set(0, -0.0075, 0.012);
-    const gusset = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.034, 0.005), housing);
-    gusset.position.set(0, -0.024, 0.0265);
-    const strut = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.005, 0.034), housing);
-    strut.position.set(0, -0.022, 0.012);
-    strut.rotation.x = -0.75;
-    this.beaconAnchor.add(platform, gusset, strut, base, dome, this.beaconSpinner);
-    this.disposables.push(platform.geometry, gusset.geometry, strut.geometry);
+    // Auf die Oberfläche setzen: Strahl von oben, Fuß flach auf die getroffene Fläche.
+    torso.updateWorldMatrix(true, false);
+    const hit = new THREE.Raycaster(
+      torso.localToWorld(new THREE.Vector3(BEACON_MOUNT.x, BEACON_MOUNT.y + 0.4, BEACON_MOUNT.z)),
+      new THREE.Vector3(0, -1, 0).transformDirection(torso.matrixWorld),
+      0,
+      1,
+    ).intersectObject(torso, false)[0];
+    if (hit?.face) {
+      this.beaconAnchor.position.copy(torso.worldToLocal(hit.point.clone()));
+      this.beaconAnchor.quaternion.setFromUnitVectors(
+        new THREE.Vector3(0, 1, 0),
+        hit.face.normal.clone().normalize(),
+      );
+    } else this.beaconAnchor.position.set(BEACON_MOUNT.x, BEACON_MOUNT.y, BEACON_MOUNT.z);
+    // Runder, angeschraubter Fuß mit kurzem Hals – sitzt bündig auf dem Blech.
+    const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.021, 0.004, 20), housing);
+    foot.position.y = 0.002;
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.013, 0.008, 16), housing);
+    neck.position.y = 0.008;
+    const lift = new THREE.Group();
+    lift.position.y = 0.017;
+    lift.add(base, dome, this.beaconSpinner);
+    const boltGeo = new THREE.CylinderGeometry(0.0022, 0.0022, 0.002, 8);
+    const bolts = [0, 1, 2, 3].map((i) => {
+      const bolt = new THREE.Mesh(boltGeo, housing);
+      const a = Math.PI / 4 + (i * Math.PI) / 2;
+      bolt.position.set(Math.cos(a) * 0.016, 0.0045, Math.sin(a) * 0.016);
+      return bolt;
+    });
+    this.beaconAnchor.add(foot, neck, lift, ...bolts);
+    this.disposables.push(foot.geometry, neck.geometry, boltGeo);
     torso.add(this.beaconAnchor);
     this.disposables.push(
       base.geometry,
