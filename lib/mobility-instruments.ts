@@ -2,6 +2,7 @@ import { walkBlock } from './walking';
 import { gateLabel } from './hangar';
 import type { MachineState } from './machine';
 import { MOBILITY_CONTROLS, releaseBlock, restraintLabel } from './mobility';
+import { tr } from './i18n';
 
 export function renderMobilityPanel(c: CanvasRenderingContext2D, s: MachineState) {
   const ink = '#c6ffa0',
@@ -11,13 +12,14 @@ export function renderMobilityPanel(c: CanvasRenderingContext2D, s: MachineState
   const text = (v: string, x: number, y: number, size = 26, color = ink) => {
     c.fillStyle = color;
     c.font = '500 ' + size + 'px Arial';
-    c.fillText(v, x, y);
+    c.fillText(tr(v), x, y);
   };
   const box = (x: number, y: number, w: number, h: number, color = '#142708') => {
     c.fillStyle = color;
     c.fillRect(x, y, w, h);
   };
   const wrap = (v: string, y: number) => {
+    v = tr(v);
     c.font = '500 24px Arial';
     let line = '';
     for (const word of v.split(' ')) {
@@ -193,7 +195,7 @@ export function renderMobilityPanel(c: CanvasRenderingContext2D, s: MachineState
       b.action ===
       (m.page === 'release' ? 80 : m.page === 'test' ? 81 : m.page === 'walk' ? 93 : 85);
     box(b.x, b.y, b.w, b.h, active ? '#2e5017' : '#1b330b');
-    const label = labels[b.action];
+    const label = tr(labels[b.action]);
     c.font = '600 24px Arial';
     c.fillStyle = active ? green : ink;
     c.fillText(label, b.x + (b.w - c.measureText(label).width) / 2, b.y + 32);

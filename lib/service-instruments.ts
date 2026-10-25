@@ -11,6 +11,7 @@ import {
   SERVICE_CONTROLS,
   leakRate,
 } from './service-systems';
+import { tr } from './i18n';
 
 export function renderServicePanel(
   c: CanvasRenderingContext2D,
@@ -26,12 +27,12 @@ export function renderServicePanel(
   const text = (value: string, x: number, y: number, size = 26, color = ink) => {
     c.fillStyle = color;
     c.font = '500 ' + size + 'px Arial';
-    c.fillText(value, x, y);
+    c.fillText(tr(value), x, y);
   };
   const mono = (value: string, x: number, y: number, size = 38, color = ink) => {
     c.fillStyle = color;
     c.font = '500 ' + size + 'px monospace';
-    c.fillText(value, x, y);
+    c.fillText(tr(value), x, y);
   };
   const rect = (x: number, y: number, w: number, h: number, color = panel) => {
     c.fillStyle = color;
@@ -89,7 +90,7 @@ export function renderServicePanel(
     const fault = b.action === 64 && service.pumpAFault;
     rect(b.x, b.y, b.w, b.h, fault ? '#42261e' : active ? '#2e5017' : '#1b330b');
     if (active) rect(b.x, b.y + b.h - 3, b.w, 3, green);
-    const label = controlLabels[b.action];
+    const label = tr(controlLabels[b.action]);
     c.font = '600 ' + (b.action >= 66 ? 23 : 25) + 'px Arial';
     c.fillStyle = fault ? red : active ? green : ink;
     c.fillText(label, b.x + (b.w - c.measureText(label).width) / 2, b.y + 32);

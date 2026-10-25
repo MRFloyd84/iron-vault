@@ -51,6 +51,7 @@ import { serviceWarning, electricalReadings } from './service-systems';
 import { SurroundCameras } from './surround-cameras';
 import { WalkPresentation } from './walk-presentation';
 import { WALK } from './walking';
+import { onLangChange, tr } from './i18n';
 import { buildYard, YARD } from './yard-scene';
 import { buildHangar as buildHangarImpl } from './scene/hangar-build';
 import {
@@ -185,6 +186,8 @@ export class CockpitScene {
   labelMat: THREE.MeshStandardMaterial;
   displayFrameMat: THREE.MeshStandardMaterial;
   cleanup: (() => void)[] = [];
+  /** Feste Beschriftungen (Texturen), die bei einem Sprachwechsel neu gezeichnet werden. */
+  relabel: (() => void)[] = [];
   reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   // ---- Tag/Nacht und Mech-Beleuchtung ----
   hemi = new THREE.HemisphereLight(0x91aea8, 0x10130e, 0.2);
@@ -262,6 +265,15 @@ export class CockpitScene {
     });
     this.cleanup.push(() => {
       this.instrumentAssets = {};
+    });
+    // Sprachwechsel: Displays sofort neu zeichnen, feste Beschriftungen neu erzeugen.
+    const offLang = onLangChange(() => {
+      for (const screen of this.screens) screen.lastDraw = -Infinity;
+      for (const draw of this.relabel) draw();
+    });
+    this.cleanup.push(() => {
+      offLang();
+      this.relabel.length = 0;
     });
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -721,22 +733,29 @@ export class CockpitScene {
     canvas.width = 1024;
     canvas.height = Math.max(32, Math.round((1024 * h) / w));
     const ctx = canvas.getContext('2d')!;
-    if (bg) {
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-    let size = Math.floor(canvas.height * 0.73);
-    ctx.font = '600 ' + size + 'px monospace';
-    const measured = ctx.measureText(text).width;
-    if (measured > 980) {
-      size = Math.floor((size * 980) / measured);
-      ctx.font = '600 ' + size + 'px monospace';
-    }
-    ctx.fillStyle = color;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, 512, canvas.height / 2);
     const texture = new THREE.CanvasTexture(canvas);
+    const draw = () => {
+      const shown = tr(text);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (bg) {
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      let size = Math.floor(canvas.height * 0.73);
+      ctx.font = '600 ' + size + 'px monospace';
+      const measured = ctx.measureText(shown).width;
+      if (measured > 980) {
+        size = Math.floor((size * 980) / measured);
+        ctx.font = '600 ' + size + 'px monospace';
+      }
+      ctx.fillStyle = color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(shown, 512, canvas.height / 2);
+      texture.needsUpdate = true;
+    };
+    draw();
+    this.relabel.push(draw);
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy());
     this.textures.push(texture);

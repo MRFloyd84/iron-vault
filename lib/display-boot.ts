@@ -2,6 +2,7 @@ import { dcPowerAvailable, type MachineState } from './machine';
 import { renderInstrument, type InstrumentAssets, type TelemetrySample } from './instruments';
 import { drawDisplaySurface } from './display-surface';
 import { drawDisplayAging } from './display-aging';
+import { tr } from './i18n';
 
 export const DISPLAY_BOOT_SECONDS = 13;
 export type DisplayPhase = 'off' | 'boot' | 'ready';
@@ -82,7 +83,7 @@ function paintBoot(c: CanvasRenderingContext2D, kind: string, elapsed: number, r
   const text = (s: string, x: number, y: number, size: number, color = '#b7ff87') => {
     c.fillStyle = color;
     c.font = '600 ' + size + 'px monospace';
-    c.fillText(s, x, y);
+    c.fillText(tr(s), x, y);
   };
   if (compact) {
     text('IV-04 / POWER-ON', 24, 40, 28);
@@ -170,8 +171,8 @@ export function renderDisplay(
       c.fillRect(556, 4, 404, 74);
       c.fillStyle = '#98ff53';
       c.font = '600 24px Arial';
-      c.fillText('6 BILDER', 574, 49);
-      c.fillText('SYSTEME', 786, 49);
+      c.fillText(tr('6 BILDER'), 574, 49);
+      c.fillText(tr('SYSTEME'), 786, 49);
       c.restore();
     }
   }

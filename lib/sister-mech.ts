@@ -8,6 +8,7 @@ import type { CockpitScene } from './cockpit-scene';
 import { applyWetness } from './weather';
 import { YARD } from './yard-scene';
 import { SISTER } from './walking';
+import { translatedCanvasTexture } from './i18n-canvas';
 
 export const SISTER_ASSET = '/models/iv-02-sister.glb';
 /** Höhe in Metern (gleiche Klasse wie IV-04, ca. 9,3 m). */
@@ -74,30 +75,33 @@ metalnessFactor = mix(0.35, 0.85, sChip) * (1.0 - 0.6 * sRust);`,
 }
 
 function signTexture() {
-  const c = document.createElement('canvas');
-  c.width = 512;
-  c.height = 256;
-  const x = c.getContext('2d')!;
-  x.fillStyle = '#c9b48a';
-  x.fillRect(0, 0, 512, 256);
-  x.fillStyle = '#a3261d';
-  x.fillRect(0, 0, 512, 56);
-  x.fillStyle = '#f1e6cf';
-  x.font = 'bold 40px monospace';
-  x.fillText('AUSSER DIENST', 92, 42);
-  x.fillStyle = '#2a2520';
-  x.font = 'bold 54px monospace';
-  x.fillText('IV-02', 182, 128);
-  x.font = '26px monospace';
-  x.fillText('TEILESPENDER FÜR IV-04', 82, 176);
-  x.fillText('KEIN ZUTRITT · KEIN STROM', 70, 214);
-  for (let i = 0; i < 90; i++) {
-    x.fillStyle = `rgba(90,60,30,${0.05 + (i % 5) * 0.03})`;
-    x.fillRect((i * 97) % 512, (i * 41) % 256, 3 + (i % 7), 2 + (i % 4));
-  }
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
+  // Zentrierter Text, damit auch längere Übersetzungen auf das Schild passen.
+  return translatedCanvasTexture(512, 256, (x) => {
+    x.fillStyle = '#c9b48a';
+    x.fillRect(0, 0, 512, 256);
+    x.fillStyle = '#a3261d';
+    x.fillRect(0, 0, 512, 56);
+    x.textAlign = 'center';
+    const line = (text: string, y: number, font: string, color: string) => {
+      x.font = font;
+      x.fillStyle = color;
+      const w = x.measureText(text).width;
+      x.save();
+      x.translate(256, y);
+      if (w > 480) x.scale(480 / w, 1);
+      x.fillText(text, 0, 0);
+      x.restore();
+    };
+    line('AUSSER DIENST', 42, 'bold 40px monospace', '#f1e6cf');
+    line('IV-02', 128, 'bold 54px monospace', '#2a2520');
+    line('TEILESPENDER FÜR IV-04', 176, '26px monospace', '#2a2520');
+    line('KEIN ZUTRITT · KEIN STROM', 214, '26px monospace', '#2a2520');
+    x.textAlign = 'left';
+    for (let i = 0; i < 90; i++) {
+      x.fillStyle = `rgba(90,60,30,${0.05 + (i % 5) * 0.03})`;
+      x.fillRect((i * 97) % 512, (i * 41) % 256, 3 + (i % 7), 2 + (i % 4));
+    }
+  });
 }
 
 export class SisterMech {

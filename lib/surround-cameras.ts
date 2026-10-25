@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { MachineState } from './machine';
 import { mainPowerAvailable } from './machine';
 import { drawDisplaySurface } from './display-surface';
+import { tr } from './i18n';
 
 export const SURROUND_VIEWS = [
   { label: 'VORNE LINKS', yaw: Math.PI / 3, x: -1.5, z: -2.4 },
@@ -145,7 +146,7 @@ void main(){gl_FragColor=vec4(ACESFilmicToneMapping(texture2D(image,vUv).rgb),1.
     const text = (s: string, x: number, y: number, size = 24, color = '#c6ffa0') => {
       c.fillStyle = color;
       c.font = '600 ' + size + 'px Arial';
-      c.fillText(s, x, y);
+      c.fillText(tr(s), x, y);
     };
     text('UMGEBUNG / KAMERAS', 24, 49, 29);
     text('6 BILDER', 574, 49, 24, this.selected < 0 ? '#98ff53' : '#81ca50');

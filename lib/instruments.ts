@@ -13,6 +13,7 @@ import {
   dcPowerAvailable,
   type MachineState,
 } from './machine';
+import { tr } from './i18n';
 export type TelemetrySample = { pressure: number; temperature: number };
 export type InstrumentAssets = { structureAtlas?: CanvasImageSource };
 export const STRUCTURE_ATLAS = '/instruments/mech-structure-atlas.png';
@@ -54,7 +55,7 @@ export function renderInstrument(
     c.shadowBlur = color === C.accent || color === C.green ? 4 : 0;
     c.fillStyle = color;
     c.font = weight + ' ' + size + 'px "Arial",sans-serif';
-    c.fillText(str, x, y);
+    c.fillText(tr(str), x, y);
     c.shadowBlur = 0;
   };
   const mono = (str: string, x: number, y: number, size = 25, color = C.text) => {
@@ -62,7 +63,7 @@ export function renderInstrument(
     c.shadowBlur = size >= 38 ? 5 : 0;
     c.fillStyle = color;
     c.font = '500 ' + size + 'px monospace';
-    c.fillText(str, x, y);
+    c.fillText(tr(str), x, y);
     c.shadowBlur = 0;
   };
   const line = (x: number, y: number, xx: number, yy: number, color = C.line, width = 2) => {
@@ -87,6 +88,7 @@ export function renderInstrument(
     c.stroke();
   };
   const badge = (str: string, x: number, y: number, color = C.accent) => {
+    str = tr(str);
     c.font = '600 22px Arial';
     const w = c.measureText(str).width + 30;
     rect(x, y - 26, w, 36, C.faint, 6);
@@ -105,6 +107,7 @@ export function renderInstrument(
     color = C.text,
     maxLines = 3,
   ) => {
+    str = tr(str);
     c.font = '500 ' + size + 'px Arial';
     let row = '',
       n = 0;
@@ -637,7 +640,7 @@ function renderElectrical(c: CanvasRenderingContext2D, s: MachineState) {
     const x = 26 + i * 354;
     c.fillStyle = C.muted;
     c.font = '600 22px Arial';
-    c.fillText(label, x, 36);
+    c.fillText(tr(label), x, 36);
     c.fillStyle = !powered
       ? '#5b8d3a'
       : value === 'OFF'
@@ -646,7 +649,7 @@ function renderElectrical(c: CanvasRenderingContext2D, s: MachineState) {
           ? C.amber
           : C.accent;
     c.font = '600 30px monospace';
-    c.fillText(value, x, 94);
+    c.fillText(tr(value), x, 94);
     if (i < 3) {
       c.fillStyle = C.line;
       c.fillRect(x + 324, 24, 1, 91);

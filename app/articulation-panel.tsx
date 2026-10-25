@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { tr } from '../lib/i18n';
+import { useLang } from './language-menu';
 import { articulationBlock, JOINT_LIMITS, RAD, type Joint } from '../lib/articulation';
 import type { MachineState } from '../lib/machine';
 
@@ -11,6 +13,7 @@ export default function ArticulationPanel({
   command: (joint: Joint | 'neutral', degrees?: number) => void;
   close: () => void;
 }) {
+  useLang();
   const [s, set] = useState(read),
     [side, setSide] = useState<'left' | 'right'>('left');
   useEffect(() => {
@@ -24,28 +27,28 @@ export default function ArticulationPanel({
       [side === 'left' ? 'leftElbow' : 'rightElbow', 'ELLENBOGEN · BEUGEN'],
     ];
   return (
-    <aside className="articulation-panel" aria-label="Torso und Arme steuern">
+    <aside className="articulation-panel" aria-label={tr('Torso und Arme steuern')}>
       <div className="articulation-heading">
-        <strong>ARTIKULATION / IV–04</strong>
-        <button onClick={close} aria-label="Gelenksteuerung schließen">
+        <strong>{tr('ARTIKULATION / IV–04')}</strong>
+        <button onClick={close} aria-label={tr('Gelenksteuerung schließen')}>
           ×
         </button>
       </div>
       <p className={block ? 'joint-locked' : 'joint-ready'}>
-        {block || 'FREIGEGEBEN · HYDRAULIK AKTIV'}
+        {tr(block || 'FREIGEGEBEN · HYDRAULIK AKTIV')}
       </p>
       <div className="arm-select">
         <button aria-pressed={side === 'left'} onClick={() => setSide('left')}>
-          LINKER ARM
+          {tr('LINKER ARM')}
         </button>
         <button aria-pressed={side === 'right'} onClick={() => setSide('right')}>
-          RECHTER ARM
+          {tr('RECHTER ARM')}
         </button>
       </div>
       {rows.map(([joint, label]) => (
         <label className="joint-control" key={joint}>
           <span>
-            {label}
+            {tr(label)}
             <output>{Math.round(s.articulation.pose[joint] / RAD)}°</output>
           </span>
           <input
@@ -60,7 +63,10 @@ export default function ArticulationPanel({
               set(read());
             }}
           />
-          <small>SOLL {Math.round(s.articulation.target[joint] / RAD)}° · IST oben</small>
+          <small>
+            {tr('SOLL')} {Math.round(s.articulation.target[joint] / RAD)}
+            {tr('° · IST oben')}
+          </small>
         </label>
       ))}
       <button
@@ -71,20 +77,22 @@ export default function ArticulationPanel({
           set(read());
         }}
       >
-        GRUNDSTELLUNG ANFAHREN [R]
+        {tr('GRUNDSTELLUNG ANFAHREN [R]')}
       </button>
       <p>
-        Q / E: Torso drehen · B: Bedienfeld
+        {tr('Q / E: Torso drehen · B: Bedienfeld')}
         <br />
-        Arme im freien Testgelände bewegen. Vor engen Durchfahrten einfahren.
+
+        {tr('Arme im freien Testgelände bewegen. Vor engen Durchfahrten einfahren.')}
       </p>
       <p className="joint-note">
-        Die Arme tragen Waffenmodule, noch keine Greifer. Dieses Bedienfeld steuert Schulter und
-        Ellenbogen.
+        {tr(
+          'Die Arme tragen Waffenmodule, noch keine Greifer. Dieses Bedienfeld steuert Schulter und Ellenbogen.',
+        )}
       </p>
       {s.error && (
         <p className="joint-locked" role="status">
-          {s.message}
+          {tr(s.message)}
         </p>
       )}
     </aside>

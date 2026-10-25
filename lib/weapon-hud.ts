@@ -1,6 +1,7 @@
 // Waffenblock auf dem Head-up-Display (transparente HUD-Ebene an der Frontscheibe).
 import type { CockpitScene } from './cockpit-scene';
 import { WEAPON } from './weapons';
+import { tr } from './i18n';
 
 export function drawWeaponHud(
   c: CanvasRenderingContext2D,
@@ -17,7 +18,11 @@ export function drawWeaponHud(
   // Linke untere Ecke: Waffenstatus
   const x = 40,
     y = 470;
-  c.fillText(info.armed ? (info.block ? info.block : 'WAFFEN SCHARF') : 'WAFFEN GESICHERT', x, y);
+  c.fillText(
+    tr(info.armed ? (info.block ? info.block : 'WAFFEN SCHARF') : 'WAFFEN GESICHERT'),
+    x,
+    y,
+  );
   c.fillStyle = green;
   ['L', 'R'].forEach((side, i) => {
     const yy = y + 42 + i * 40;
@@ -32,14 +37,14 @@ export function drawWeaponHud(
   });
   if (info.reloading) {
     c.fillStyle = amber;
-    c.fillText('NACHLADEN …', x, y + 128);
+    c.fillText(tr('NACHLADEN …'), x, y + 128);
   }
   // Rechte untere Ecke: Laserentfernung und Trefferbilanz
   c.textAlign = 'right';
   c.fillStyle = green;
   if (info.laser)
     c.fillText('RNG ' + Math.round(info.range).toString().padStart(4, '0') + ' m', 920, y);
-  if (info.shots) c.fillText('TREFFER ' + info.hits + '/' + info.shots, 920, y + 42);
+  if (info.shots) c.fillText(tr('TREFFER ' + info.hits + '/' + info.shots), 920, y + 42);
   c.fillText('MAG ' + WEAPON.magazine * 2, 920, y + 84);
   c.restore();
 }

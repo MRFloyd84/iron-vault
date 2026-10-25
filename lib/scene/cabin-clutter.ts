@@ -3,16 +3,13 @@
 // Anhänger, der beim Gehen schwingt. Alles in Kanzelkoordinaten (vor der Skalierung).
 import * as THREE from 'three';
 import type { CockpitScene } from '../cockpit-scene';
+import { translatedCanvasTexture } from '../i18n-canvas';
 
 const HAND = '"Segoe Print", "Bradley Hand", "Comic Sans MS", "Chalkboard SE", cursive';
 
 function canvasTexture(w: number, h: number, draw: (x: CanvasRenderingContext2D) => void) {
-  const c = document.createElement('canvas');
-  c.width = w;
-  c.height = h;
-  draw(c.getContext('2d')!);
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
+  // Text wird übersetzt und bei einem Sprachwechsel neu gezeichnet.
+  const t = translatedCanvasTexture(w, h, draw);
   t.anisotropy = 4;
   return t;
 }

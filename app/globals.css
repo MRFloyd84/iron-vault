@@ -765,3 +765,67 @@ button:disabled {
     rgba(4, 4, 3, 0.62) 100%
   );
 }
+
+/* Sprachwahl (oben rechts) */
+.language-menu {
+  position: relative;
+  pointer-events: auto;
+}
+/* Offenes Menü liegt über den Ansichtsknöpfen des HUD. */
+.topbar:has(.language-list) {
+  z-index: 8;
+}
+.language-button {
+  display: flex;
+  align-items: center;
+  width: auto;
+  gap: 5px;
+  padding: 0 9px;
+  font: 600 11px/1 var(--mono, monospace);
+  letter-spacing: 0.08em;
+}
+.language-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  min-width: 150px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: rgba(10, 16, 12, 0.96);
+  border: 1px solid rgba(159, 224, 58, 0.35);
+  border-radius: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.language-list button {
+  display: flex;
+  width: 100%;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.language-list button b {
+  min-width: 22px;
+  font: 700 11px/1 var(--mono, monospace);
+  letter-spacing: 0.08em;
+  opacity: 0.75;
+}
+.language-list button:hover,
+.language-list button:focus-visible {
+  background: rgba(159, 224, 58, 0.12);
+}
+.language-list button[aria-selected='true'] {
+  color: #b5f06a;
+}
+.language-list button[aria-selected='true']::after {
+  content: '✓';
+  margin-left: auto;
+}
