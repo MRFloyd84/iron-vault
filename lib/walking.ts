@@ -90,9 +90,23 @@ export function walkSetting(s: MachineState, action: number): MachineState {
 }
 // Conservative ground footprints, in metres; matched to the hall and yard geometry.
 // Ramp tops are traversable. Solid sidewalls reject side entry via height continuity.
-type Obstacle = { x: number; z: number; w: number; d: number; angle?: number; label: string };
+type Obstacle = {
+  x: number;
+  z: number;
+  w: number;
+  d: number;
+  angle?: number;
+  label: string;
+  /** Nur ein Hindernis, solange IV-02 tatsächlich geladen ist (siehe sisterPark). */
+  sister?: boolean;
+};
 /** IV-02, abgestelltes Schwesterschiff vor der Werkstatt (Grafik in sister-mech.ts). */
 export const SISTER = { x: 37, z: -83, angle: -Math.PI / 2 } as const;
+/**
+ * Das Modell von IV-02 ist aus Lizenzgründen nicht im öffentlichen Repository (ASSETS.md).
+ * Fehlt die Datei, bleibt der Platz leer und begehbar; sister-mech.ts setzt `present`.
+ */
+export const sisterPark = { present: false };
 /** Fahrzeugwracks am Schießstand (Mittelpunkt, Drehung); Grafik in firing-range.ts. */
 export const WRECKS = [
   { x: -31, z: -192, angle: 0.35 },
@@ -147,6 +161,7 @@ export const WALK_OBSTACLES: Obstacle[] = [
     d: 9,
     angle: SISTER.angle,
     label: 'IV-02 (abgestellt)',
+    sister: true,
   },
 ];
 function circleBox(x: number, z: number, o: Obstacle, r: number) {
@@ -169,7 +184,8 @@ export function collisionAt(x: number, z: number, gate: number, r = WALK.radius)
     if (Math.abs(x) + r > gate * 7.2) return 'Hangartor';
   }
   if (z < -225 || Math.abs(x) > 49) return 'Geländegrenze';
-  for (const o of WALK_OBSTACLES) if (circleBox(x, z, o, r)) return o.label;
+  for (const o of WALK_OBSTACLES)
+    if ((!o.sister || sisterPark.present) && circleBox(x, z, o, r)) return o.label;
   return null;
 }
 export function groundHeight(x: number, z: number) {

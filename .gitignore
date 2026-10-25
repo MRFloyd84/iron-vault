@@ -50,3 +50,6 @@ next-env.d.ts
 !/assets-src/audio/rain-original.mp3
 !/assets-src/audio/thunder-original.mp3
 /assets-src/audio/industrial-fan-loop.ogg
+
+# IV-02 („Juggernaut“ von Megalord, CGTrader-Standardlizenz): nicht öffentlich weitergeben.
+/public/models/iv-02-sister.glb

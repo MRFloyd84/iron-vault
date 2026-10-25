@@ -1,0 +1,22 @@
+# Löscht ein GitHub-Release samt Tag (z. B. alte Releases mit nicht weitergebbaren Dateien).
+# Start nur per Hand unter Actions → Delete release → „Run workflow“.
+name: Delete release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag des Releases, z. B. v0.58.0
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Release und Tag löschen
+        run: gh release delete "${{ inputs.tag }}" --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

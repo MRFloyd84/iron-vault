@@ -25,8 +25,8 @@ browser or as a Linux desktop app.
 - **Weather and light:** day/night, headlights and a rotating beacon, rain with wet
   armour, puddles and drops on the windscreen, thunderstorms.
 - **An old machine:** flickering CRT displays in toxic green, worn paint, notes and tape in
-  the cabin – and the stripped sister mech **IV-02**, parked outside the workshop as a
-  parts donor.
+  the cabin – and, if you add the model yourself, the stripped sister mech **IV-02**,
+  parked outside the workshop as a parts donor (see [ASSETS.md](ASSETS.md)).
 - **German and English**, switchable at any time.
 
 | | |
@@ -114,8 +114,9 @@ in [`docs/ENTWICKLUNG_BIS_v45.md`](docs/ENTWICKLUNG_BIS_v45.md).
 ## Assets and credits
 
 - **IV-04** is a simplified, re-rigged version of a mech model created with Tripo.
-- **IV-02** was derived from a separately supplied FBX model (reduced from 10 million to
-  273,000 triangles, painted by shader).
+- **IV-02** is based on “Juggernaut” by Megalord (CGTrader, free model). The model is not
+  included for licence reasons; `scripts/prepare-sister-mech.mjs` converts your own
+  download (10 million → 273,000 triangles, painted by shader).
 - **Materials:** user-supplied texture sets, listed in `public/materials/sources.json`.
 - **Sounds:** third-party recordings (names, cuts and processing in
   `public/audio/*-sources.json`), hydraulic sounds generated with ElevenLabs, everything

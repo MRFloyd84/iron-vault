@@ -95,17 +95,28 @@ test('hit tests: box entry face and normal, ground under ramps, wrecks block wal
   for (const w of WRECKS) assert.equal(collisionAt(w.x, w.z, 0), 'Fahrzeugwrack');
 });
 
-test('parked sister IV-02 blocks walking, the road past it stays free', async () => {
-  const { SISTER } = await import('../lib/walking.ts');
+test('parked sister IV-02 blocks walking only when its model is present', async () => {
+  const { SISTER, sisterPark } = await import('../lib/walking.ts');
+  // Ohne Modell (öffentliches Repository) bleibt der Stellplatz frei.
+  sisterPark.present = false;
+  assert.equal(collisionAt(SISTER.x, SISTER.z, 0), null);
+  sisterPark.present = true;
   assert.equal(collisionAt(SISTER.x, SISTER.z, 0), 'IV-02 (abgestellt)');
   assert.equal(collisionAt(0, SISTER.z, 0), null, 'test road stays clear');
-  const glb = (await import('node:fs')).readFileSync(
-    new URL('../public/models/iv-02-sister.glb', import.meta.url),
-  );
-  const json = JSON.parse(glb.subarray(20, 20 + glb.readUInt32LE(12)).toString());
-  assert.ok(json.extras.triangles < 300000, 'browser-friendly triangle count');
-  assert.deepEqual(
-    json.nodes.map((n) => n.name),
-    ['body', 'detached_arm'],
-  );
+  sisterPark.present = false;
 });
+
+const sisterFile = new URL('../public/models/iv-02-sister.glb', import.meta.url);
+test(
+  'local IV-02 model is browser friendly (only if the licensed file exists)',
+  { skip: !(await import('node:fs')).existsSync(sisterFile) && 'IV-02-Modell nicht vorhanden' },
+  async () => {
+    const glb = (await import('node:fs')).readFileSync(sisterFile);
+    const json = JSON.parse(glb.subarray(20, 20 + glb.readUInt32LE(12)).toString());
+    assert.ok(json.extras.triangles < 300000, 'browser-friendly triangle count');
+    assert.deepEqual(
+      json.nodes.map((n) => n.name),
+      ['body', 'detached_arm'],
+    );
+  },
+);

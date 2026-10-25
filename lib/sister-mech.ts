@@ -7,9 +7,10 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { CockpitScene } from './cockpit-scene';
 import { applyWetness } from './weather';
 import { YARD } from './yard-scene';
-import { SISTER } from './walking';
+import { SISTER, sisterPark } from './walking';
 import { translatedCanvasTexture } from './i18n-canvas';
 
+/** Nicht im öffentlichen Repository; lokal mit scripts/prepare-sister-mech.mjs erzeugen. */
 export const SISTER_ASSET = '/models/iv-02-sister.glb';
 /** Höhe in Metern (gleiche Klasse wie IV-04, ca. 9,3 m). */
 export const SISTER_HEIGHT = 9.1;
@@ -112,6 +113,9 @@ export class SisterMech {
     this.root.name = 'IV-02 sister mech (parked, stripped)';
     this.root.position.set(SISTER.x, YARD.floor, SISTER.z);
     this.root.rotation.y = SISTER.angle;
+    // Erst sichtbar (und ein Hindernis), wenn das Modell geladen ist. Ohne die lizenzierte
+    // Datei bleibt der Platz vor der Werkstatt einfach leer.
+    this.root.visible = false;
     host.scene.add(this.root);
     const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
     paint(material);
@@ -149,8 +153,13 @@ export class SisterMech {
           }),
         );
         this.root.updateMatrixWorld(true);
+        this.root.visible = true;
+        sisterPark.present = true;
+        host.cleanup.push(() => (sisterPark.present = false));
       })
-      .catch((e) => console.warn('[IV-02] Modell nicht geladen:', e));
+      .catch(() =>
+        console.info('[IV-02] Modell nicht vorhanden – Stellplatz bleibt leer (siehe ASSETS.md).'),
+      );
     // Holzbohlen unter dem Arm, Warnschild, Absperrung
     const wood = host.mat({ color: 0x5b4330, roughness: 0.95 });
     for (const dz of [-1.6, 0, 1.6])

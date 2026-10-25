@@ -25,8 +25,9 @@ Armkanonen. Läuft im Browser oder als Linux-Desktop-App.
 - **Wetter und Licht:** Tag/Nacht, Scheinwerfer und Rundumleuchte, Regen mit nasser
   Panzerung, Pfützen und Tropfen auf der Scheibe, Gewitter.
 - **Eine alte Maschine:** flimmernde Röhrendisplays in Giftgrün, abgenutzter Lack, Zettel
-  und Klebeband in der Kanzel – und das ausgeschlachtete Schwesterschiff **IV-02**, das als
-  Teilespender vor der Werkstatt steht.
+  und Klebeband in der Kanzel – und, wenn du das Modell selbst ergänzt, das
+  ausgeschlachtete Schwesterschiff **IV-02** als Teilespender vor der Werkstatt (siehe
+  [ASSETS.md](ASSETS.md)).
 - **Deutsch und Englisch**, jederzeit umschaltbar.
 
 | | |
@@ -108,8 +109,9 @@ Shader. Geräusche sind Aufnahmen und Web-Audio-Synthese.
 
 - **IV-04** ist eine vereinfachte, neu geriggte Fassung eines mit Tripo erzeugten
   Mech-Modells.
-- **IV-02** stammt aus einem separat bereitgestellten FBX-Modell (von 10 Millionen auf
-  273.000 Dreiecke reduziert, per Shader lackiert).
+- **IV-02** beruht auf „Juggernaut“ von Megalord (CGTrader, kostenloses Modell). Das
+  Modell ist aus Lizenzgründen nicht enthalten; `scripts/prepare-sister-mech.mjs` wandelt
+  den eigenen Download um (10 Millionen → 273.000 Dreiecke, per Shader lackiert).
 - **Materialien:** bereitgestellte Textursätze, aufgeführt in
   `public/materials/sources.json`.
 - **Geräusche:** Aufnahmen Dritter (Namen, Schnitte und Bearbeitung in

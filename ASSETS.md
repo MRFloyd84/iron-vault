@@ -12,7 +12,7 @@ selbst prüfen.
 | Assets | Files | Source / Quelle |
 | --- | --- | --- |
 | Mech IV-04 | `public/models/iron-vault-rigged.glb`, `public/instruments/mech-structure-atlas.png` | Mech model generated with Tripo, simplified and re-rigged for this project |
-| Mech IV-02 | `public/models/iv-02-sister.glb` | Derived from a separately supplied FBX model (`scripts/prepare-sister-mech.mjs`) |
+| Mech IV-02 | `public/models/iv-02-sister.glb` – **not included** | “Juggernaut” by [Megalord](https://www.cgtrader.com/designers/megalord), CGTrader free model #907117, standard CGTrader licence (see below) |
 | Textures | `public/materials/` | Supplied texture sets, listed in `public/materials/sources.json` |
 | Sound recordings | `public/audio/*.ogg`, `*.mp3` | Third-party recordings (Pixabay Content License); names, cuts and processing in `public/audio/*-sources.json` |
 | Rain and thunder | `public/audio/rain-loop.ogg`, `thunder-*.ogg`, `assets-src/audio/rain-original.mp3`, `thunder-original.mp3` | Generated with ElevenLabs Sound Effects (paid plan) |
@@ -33,3 +33,27 @@ erlaubt nicht, ihre Dateien unverändert einzeln weiterzugeben. Enthalten sind n
 geschnittenen, geloopten und abgemischten Fassungen, die das Spiel nutzt. Wer die
 Aufbereitungsskripte neu ausführen will, lädt die in `public/audio/*-sources.json`
 genannten Aufnahmen selbst bei Pixabay und legt sie in `assets-src/audio/`.
+
+## IV-02 (“Juggernaut” by Megalord)
+
+**English:** The parked sister mech IV-02 is built from the free model “Juggernaut” by
+Megalord on CGTrader (model #907117). CGTrader's standard licence allows using it in a
+game, but not distributing the model data openly. The converted model is therefore not
+part of this repository or of the public releases; the parking spot outside the workshop
+stays empty there. To get IV-02 in your own build, download the model yourself from
+CGTrader and convert it:
+
+```sh
+node --max-old-space-size=8000 scripts/prepare-sister-mech.mjs PATH/122.fbx
+```
+
+This writes `public/models/iv-02-sister.glb` (ignored by git); the game picks it up
+automatically. Thanks to Megalord – https://ko-fi.com/megalord
+
+**Deutsch:** Das abgestellte Schwesterschiff IV-02 entsteht aus dem kostenlosen Modell
+„Juggernaut“ von Megalord auf CGTrader (Modell #907117). Die Standardlizenz von CGTrader
+erlaubt die Nutzung im Spiel, aber keine offene Weitergabe der Modelldaten. Das
+umgewandelte Modell ist deshalb weder im Repository noch in den öffentlichen Releases;
+dort bleibt der Stellplatz vor der Werkstatt leer. Wer IV-02 im eigenen Build haben will,
+lädt das Modell selbst bei CGTrader und wandelt es mit dem Befehl oben um. Die Datei
+`public/models/iv-02-sister.glb` wird von git ignoriert; das Spiel lädt sie automatisch.
