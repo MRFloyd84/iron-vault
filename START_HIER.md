@@ -71,6 +71,6 @@ weil Browser dann keine Texturen und Sounds laden.
 ## Hinweise
 
 Die Lizenz- und Herkunftshinweise im Projekt (`public/materials/sources.json`,
-`public/audio/system-effects-sources.json`, `public/audio/hydraulic-sources.json`, README) gelten unverändert.
+`public/audio/system-effects-sources.json`, `public/audio/hydraulic-sources.json`, `docs/ENTWICKLUNG_BIS_v45.md`) gelten unverändert. Die README gibt es auf Englisch (`README.md`) und Deutsch (`README.de.md`).
 `scripts/audit-audio-baseline.mjs` braucht die Git-Historie des alten Hostingprojekts und
 funktioniert mit diesem Archiv nicht. Für die App selbst ist das ohne Bedeutung.
