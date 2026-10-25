@@ -14,9 +14,10 @@ import {
   type MachineState,
 } from './machine';
 import { tr } from './i18n';
+import { assetUrl } from './asset-url';
 export type TelemetrySample = { pressure: number; temperature: number };
 export type InstrumentAssets = { structureAtlas?: CanvasImageSource };
-export const STRUCTURE_ATLAS = '/instruments/mech-structure-atlas.png';
+export const STRUCTURE_ATLAS = assetUrl('instruments/mech-structure-atlas.png');
 const C = {
   text: '#c6ffa0',
   muted: '#81ca50',

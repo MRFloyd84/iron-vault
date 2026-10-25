@@ -7,6 +7,9 @@ pilot capsule, bring the machine up from a cold start switch by switch, walk it 
 hangar onto the test ground and fire its arm cannons at the firing range. Runs in the
 browser or as a Linux desktop app.
 
+**▶ [Play in your browser](https://mrfloyd84.github.io/iron-vault/)** – no installation
+(desktop browser with WebGL, sound on). · **[Download for Linux](https://github.com/MRFloyd84/iron-vault/releases/latest)**
+
 ![Cockpit of IV-04](docs/img/cockpit.jpg)
 
 ## Features

@@ -9,9 +9,10 @@ import { applyWetness } from './weather';
 import { YARD } from './yard-scene';
 import { SISTER, sisterPark } from './walking';
 import { translatedCanvasTexture } from './i18n-canvas';
+import { assetUrl } from './asset-url';
 
 /** Nicht im öffentlichen Repository; lokal mit scripts/prepare-sister-mech.mjs erzeugen. */
-export const SISTER_ASSET = '/models/iv-02-sister.glb';
+export const SISTER_ASSET = assetUrl('models/iv-02-sister.glb');
 /** Höhe in Metern (gleiche Klasse wie IV-04, ca. 9,3 m). */
 export const SISTER_HEIGHT = 9.1;
 

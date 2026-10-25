@@ -7,6 +7,7 @@ import { groundHeight, WALK } from './walking';
 import { neutralJoints, type JointPose } from './articulation';
 import { applyWear, bakeRestPositions, buildWaistRing, MechLights } from './mech-details';
 import { Hydraulics } from './mech-hydraulics';
+import { assetUrl } from './asset-url';
 
 // Authored cabin coordinates stay intact, uniformly scaled into the torso.
 export const MECH = {
@@ -19,7 +20,7 @@ export const MECH = {
   orbitMax: 27,
   orbitTargetY: 2.1,
 } as const;
-export const MECH_ASSET = '/models/iron-vault-rigged.glb';
+export const MECH_ASSET = assetUrl('models/iron-vault-rigged.glb');
 type WalkPose = CockpitScene['walkPose'];
 type Leg = {
   side: number;

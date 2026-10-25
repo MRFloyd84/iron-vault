@@ -73,6 +73,7 @@ import {
   buildMechanicalDetails as buildMechanicalDetailsImpl,
   addGauge as addGaugeImpl,
 } from './scene/cabin-controls';
+import { assetUrl } from './asset-url';
 export type Hover = { text: string; x: number; y: number } | null;
 export type Screen = {
   canvas: HTMLCanvasElement;
@@ -548,28 +549,31 @@ export class CockpitScene {
     this.animate(0);
   }
   loadYardSky(manager: THREE.LoadingManager) {
-    new HDRLoader(manager).load('/materials/yard-sky/industrial-sunset-2k.hdr', (texture) => {
-      if (this.disposed) {
-        texture.dispose();
-        return;
-      }
-      texture.mapping = THREE.EquirectangularReflectionMapping;
-      this.textures.push(texture);
-      this.daySky = texture;
-      this.scene.background = texture;
-      this.scene.backgroundIntensity = 0.8;
-      this.scene.backgroundRotation.y = 0.35;
-      const pmrem = new THREE.PMREMGenerator(this.renderer),
-        target = pmrem.fromEquirectangular(texture);
-      pmrem.dispose();
-      for (const material of this.yardMaterials) {
-        material.envMap = target.texture;
-        material.envMapIntensity = 0.85;
-        material.envMapRotation.y = 0.35;
-        material.needsUpdate = true;
-      }
-      this.cleanup.push(() => target.dispose());
-    });
+    new HDRLoader(manager).load(
+      assetUrl('materials/yard-sky/industrial-sunset-2k.hdr'),
+      (texture) => {
+        if (this.disposed) {
+          texture.dispose();
+          return;
+        }
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        this.textures.push(texture);
+        this.daySky = texture;
+        this.scene.background = texture;
+        this.scene.backgroundIntensity = 0.8;
+        this.scene.backgroundRotation.y = 0.35;
+        const pmrem = new THREE.PMREMGenerator(this.renderer),
+          target = pmrem.fromEquirectangular(texture);
+        pmrem.dispose();
+        for (const material of this.yardMaterials) {
+          material.envMap = target.texture;
+          material.envMapIntensity = 0.85;
+          material.envMapRotation.y = 0.35;
+          material.needsUpdate = true;
+        }
+        this.cleanup.push(() => target.dispose());
+      },
+    );
   }
   mat(p: THREE.MeshStandardMaterialParameters) {
     const m = new THREE.MeshStandardMaterial(p);
@@ -777,7 +781,7 @@ export class CockpitScene {
     const key = kind + '/' + file;
     const cached = this.textureCache.get(key);
     if (cached) return cached;
-    const t = this.loader.load('/materials/' + key, () => {
+    const t = this.loader.load(assetUrl('materials/' + key), () => {
       if (this.disposed) t.dispose();
     });
     t.colorSpace = color ? THREE.SRGBColorSpace : THREE.NoColorSpace;

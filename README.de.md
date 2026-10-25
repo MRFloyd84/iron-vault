@@ -7,6 +7,9 @@ sitzt in der Pilotenkapsel, fährst die Maschine Schalter für Schalter aus dem 
 hoch, läufst aus dem Hangar ins Testgelände und schießt am Schießstand mit den
 Armkanonen. Läuft im Browser oder als Linux-Desktop-App.
 
+**▶ [Im Browser spielen](https://mrfloyd84.github.io/iron-vault/)** – ohne Installation
+(Desktop-Browser mit WebGL, Ton an). · **[Für Linux herunterladen](https://github.com/MRFloyd84/iron-vault/releases/latest)**
+
 ![Cockpit von IV-04](docs/img/cockpit.jpg)
 
 ## Funktionen

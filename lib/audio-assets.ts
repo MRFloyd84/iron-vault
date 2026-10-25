@@ -1,8 +1,9 @@
+import { assetUrl } from './asset-url';
 // Keep the existing recordings and Web Audio graph. Report failures instead of
 // turning a failed early request into unexplained, permanently silent playback.
 const failures = new Map<string, string>();
 // A fresh URL for the explicit reimport; retain normal caching afterwards.
-export const audioUrl = (file: string) => '/audio/' + file + '?v=reimport-20261018';
+export const audioUrl = (file: string) => assetUrl('audio/' + file) + '?v=reimport-20261018';
 export const audioAssetErrors = () => Object.fromEntries(failures);
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
 function failed(key: string, error: unknown) {
