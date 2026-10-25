@@ -1,10 +1,15 @@
 {
   "name": "iron-vault",
-  "version": "0.57.0",
+  "version": "0.58.0",
   "private": true,
   "description": "IRON VAULT – 3D-Mech-Pilotenkanzel (Three.js + React + Vite), im Browser oder als Desktop-App",
   "author": "Rene",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MRFloyd84/iron-vault.git"
+  },
   "main": "electron/main.cjs",
+  "desktopName": "iron-vault.desktop",
   "type": "module",
   "engines": {
     "node": ">=22.13.0"
@@ -21,7 +26,11 @@
     "format:check": "prettier --check app lib tests scripts/*.mjs",
     "check": "npm run typecheck && npm run lint && npm test && vite build",
     "app": "vite build && electron .",
-    "dist:linux": "tsc && vite build && electron-builder --linux AppImage --publish never"
+    "dist:linux": "tsc && vite build && electron-builder --linux AppImage --publish never",
+    "release": "tsc && vite build && electron-builder --linux AppImage --publish always"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
@@ -76,7 +85,13 @@
       },
       "syncDesktopName": true
     },
-    "publish": null
-  },
-  "desktopName": "iron-vault.desktop"
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "MRFloyd84",
+        "repo": "iron-vault",
+        "releaseType": "release"
+      }
+    ]
+  }
 }

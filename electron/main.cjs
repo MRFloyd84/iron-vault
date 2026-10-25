@@ -1,7 +1,8 @@
 // IRON VAULT als Desktop-App (Electron). Lädt den fertigen Vite-Build aus `dist/`
 // über ein eigenes Protokoll app://iron-vault/ – so funktionieren fetch() für Modelle,
 // Texturen und Sounds genau wie auf einem Webserver (mit file:// ginge das nicht).
-const { app, BrowserWindow, Menu, net, protocol, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, net, protocol, shell } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 
@@ -63,10 +64,50 @@ function createWindow() {
   return win;
 }
 
+// Automatische Updates über GitHub Releases (siehe package.json → build.publish).
+// Nur im installierten AppImage; ohne Internet startet die App ganz normal.
+// IRON_VAULT_UPDATE_URL=http://… nutzt stattdessen einen eigenen Webserver (z. B. Pi).
+function checkForUpdates(win) {
+  if (!app.isPackaged || !process.env.APPIMAGE) return;
+  const log = (...a) => console.log('[Update]', ...a);
+  autoUpdater.logger = null;
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  if (process.env.IRON_VAULT_UPDATE_URL)
+    autoUpdater.setFeedURL({ provider: 'generic', url: process.env.IRON_VAULT_UPDATE_URL });
+  autoUpdater.on('update-available', (info) => log('verfügbar', info.version));
+  autoUpdater.on('update-not-available', () => log('aktuell', app.getVersion()));
+  autoUpdater.on('download-progress', (p) => {
+    log('lade', Math.round(p.percent) + ' %');
+    win.setProgressBar(p.percent / 100);
+  });
+  autoUpdater.on('error', (e) => {
+    log('nicht möglich:', e.message.split('\n')[0]);
+    win.setProgressBar(-1);
+  });
+  autoUpdater.on('update-downloaded', async (info) => {
+    log('bereit', info.version);
+    win.setProgressBar(-1);
+    const { response } = await dialog.showMessageBox(win, {
+      type: 'info',
+      title: 'IRON VAULT – Update',
+      message: `Update auf Version ${info.version} ist bereit.`,
+      detail: 'Jetzt neu starten? Mit „Später“ wird es beim nächsten Beenden eingespielt.',
+      buttons: ['Jetzt neu starten', 'Später'],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (response === 0) autoUpdater.quitAndInstall();
+  });
+  autoUpdater.checkForUpdates().catch(() => {});
+}
+
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
   serve();
   const win = createWindow();
+  // Erst prüfen, wenn das Spiel geladen ist – der Download stört den Start nicht.
+  win.webContents.once('did-finish-load', () => setTimeout(() => checkForUpdates(win), 4000));
   app.on('second-instance', () => {
     if (win.isMinimized()) win.restore();
     win.focus();

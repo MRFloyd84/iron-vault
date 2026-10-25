@@ -1,7 +1,7 @@
-# IRON VAULT – Quellprojekt, Version 57
+# IRON VAULT – Quellprojekt, Version 58
 
-Stand: 24.10.2026. v46: Aufräumen und neue Oberfläche, v47: Röhren-Look der Displays, v48: Außenhülle, Scheinwerfer, Tag/Nacht, v49: Rundumleuchte am Rücken, v50: Schatten, Schrittgewicht, Regen, v51: Regen-/Donneraufnahmen, Gewitter, v52: Armkanonen, Laser, Schießstand, v53: gealterte Kanzel, giftgrüne Displays, v54: Schwesterschiff IV-02, v55: Füße fest am Boden, Hydraulik an den Beinen, v56: Hydraulikgeräusche, v57: Desktop-App (AppImage).
-Was sich geändert hat, steht in `AENDERUNGEN_v46.md` bis `AENDERUNGEN_v57.md`.
+Stand: 24.10.2026. v46: Aufräumen und neue Oberfläche, v47: Röhren-Look der Displays, v48: Außenhülle, Scheinwerfer, Tag/Nacht, v49: Rundumleuchte am Rücken, v50: Schatten, Schrittgewicht, Regen, v51: Regen-/Donneraufnahmen, Gewitter, v52: Armkanonen, Laser, Schießstand, v53: gealterte Kanzel, giftgrüne Displays, v54: Schwesterschiff IV-02, v55: Füße fest am Boden, Hydraulik an den Beinen, v56: Hydraulikgeräusche, v57: Desktop-App (AppImage), v58: automatische Updates über GitHub.
+Was sich geändert hat, steht in `AENDERUNGEN_v46.md` bis `AENDERUNGEN_v58.md`.
 
 Das ist eine Three.js-/React-Browsersimulation. Seit v46 ist sie ein reines
 **Vite-Projekt** ohne Server-Anteil: `npm run build` erzeugt einen statischen Ordner
@@ -13,7 +13,7 @@ Voraussetzung: Node.js 22.13 oder neuer (Node 24 passt) und npm. Für die erste
 Installation braucht es Internet.
 
 ```sh
-cd IRON_VAULT_v57
+cd IRON_VAULT_v58
 npm ci
 npm run dev
 ```
@@ -29,7 +29,8 @@ bash scripts/install-desktop.sh                      # Startmenü-Eintrag „IRO
 ```
 
 `npm run app` öffnet das Desktop-Fenster direkt aus dem Projekt. Details in
-`AENDERUNGEN_v57.md`.
+`AENDERUNGEN_v57.md`. Die installierte App aktualisiert sich selbst über GitHub Releases;
+ein neues Release veröffentlicht `GH_TOKEN=… npm run release` (siehe `AENDERUNGEN_v58.md`).
 
 ## Produktion
 
