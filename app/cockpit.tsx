@@ -86,6 +86,9 @@ export default function Cockpit() {
   const [armed, setArmed] = useState(false);
   const [laser, setLaser] = useState(false);
   const [weaponInfo, setWeaponInfo] = useState<ReturnType<CockpitScene['weaponInfo']> | null>(null);
+  const [drone, setDrone] = useState<ReturnType<CockpitScene['droneInfo']> | null>(null);
+  const updateInputRef = useRef<() => void>(() => {});
+  const droneControlsRef = useRef(false);
   const reticle = useRef<HTMLDivElement>(null);
   const toggleArmed = () =>
     setArmed((v) => {
@@ -112,6 +115,16 @@ export default function Cockpit() {
       scene.current?.setHeadlights(!v);
       return !v;
     });
+  const toggleDrone = () => {
+    const sc = scene.current;
+    if (!sc) return;
+    const result = sc.droneToggle(stateRef.current);
+    if (!result) return;
+    apply({ ...stateRef.current, message: result.message, error: result.error });
+    if (result.error) audio.current?.beep(true);
+    else void audio.current?.playSwitch().catch(() => {});
+    if (sc.inDrone && !sc.droneInfo().airborne) changeView('front');
+  };
   const held = useRef(new Set<string>()),
     helpRef = useRef(false);
   helpRef.current = help;
@@ -123,6 +136,7 @@ export default function Cockpit() {
   const [cameraView, setCameraView] = useState<CameraView>('front');
   const changeView = (view: CameraView) => {
     if (!scene.current) return;
+    if (view === 'drone' && !scene.current.droneInfo().airborne) return;
     stopInput();
     scene.current.view(view);
     setCameraView(view);
@@ -350,9 +364,33 @@ export default function Cockpit() {
         if (finished) audio.current?.beep();
       }
     }, 70);
-    const movementCodes = ['KeyW', 'KeyS', 'KeyA', 'KeyD', 'Space', 'KeyQ', 'KeyE'];
+    const movementCodes = [
+      'KeyW',
+      'KeyS',
+      'KeyA',
+      'KeyD',
+      'Space',
+      'KeyQ',
+      'KeyE',
+      'ShiftLeft',
+      'ShiftRight',
+    ];
     const updateInput = () => {
       const keys = held.current;
+      const k = (code: string) => Number(keys.has(code));
+      // Fliegt die Drohne, gehören ihr die Steuertasten; der Mech bleibt stehen.
+      if (scene.current?.droneInfo().controls) {
+        scene.current.setDroneInput({
+          forward: k('KeyW') - k('KeyS'),
+          strafe: k('KeyD') - k('KeyA'),
+          climb: k('Space') - Math.max(k('ShiftLeft'), k('ShiftRight')),
+          turn: k('KeyE') - k('KeyQ'),
+        });
+        apply(walkInput(stateRef.current, idleInput()));
+        apply(jointInput(stateRef.current, neutralJoints()));
+        return;
+      }
+      scene.current?.setDroneInput({ forward: 0, strafe: 0, climb: 0, turn: 0 });
       apply(
         walkInput(stateRef.current, {
           forward: Number(keys.has('KeyW')) - Number(keys.has('KeyS')),
@@ -367,6 +405,7 @@ export default function Cockpit() {
         }),
       );
     };
+    updateInputRef.current = updateInput;
     const key = (e: KeyboardEvent) => {
       if (
         e.ctrlKey ||
@@ -384,7 +423,8 @@ export default function Cockpit() {
       )
         return;
       if (movementCodes.includes(e.code)) {
-        if (helpRef.current || !scene.current || scene.current.inHangar || scene.current.inYard)
+        if (helpRef.current || !scene.current) return;
+        if ((scene.current.inHangar || scene.current.inYard) && !scene.current.droneInfo().controls)
           return;
         e.preventDefault();
         if (e.target instanceof HTMLButtonElement) e.target.blur();
@@ -404,8 +444,23 @@ export default function Cockpit() {
         stopInput();
         setHelp(false);
         setAudioCheckOpen(false);
-        if (scene.current?.inHangar || scene.current?.inYard || scene.current?.inMech)
+        if (
+          scene.current?.inHangar ||
+          scene.current?.inYard ||
+          scene.current?.inMech ||
+          scene.current?.inDrone
+        )
           changeView('front');
+        return;
+      }
+      // Drohne: C startet bzw. ruft zurück, Tab wechselt zwischen Cockpit und Drohnensicht.
+      if (e.code === 'Tab' && !helpRef.current && scene.current?.droneInfo().airborne) {
+        e.preventDefault();
+        changeView(scene.current.inDrone ? 'front' : 'drone');
+        return;
+      }
+      if (e.code === 'KeyC' && !helpRef.current) {
+        toggleDrone();
         return;
       }
       if (helpRef.current) return;
@@ -513,6 +568,30 @@ export default function Cockpit() {
     }, 100);
     return () => window.clearInterval(timer);
   }, [armed, laser]);
+  // Drohne mit 10 Hz abfragen: Anzeige, Ton, Steuerübergabe und Meldungen.
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const sc = scene.current;
+      if (!sc) return;
+      const info = sc.droneInfo();
+      setDrone(info.phase === 'docked' && info.rotor < 0.01 ? null : info);
+      if (info.controls !== droneControlsRef.current) {
+        droneControlsRef.current = info.controls;
+        updateInputRef.current();
+      }
+      const level = sc.inDrone ? 0.8 : Math.max(0, 1 - info.distance / 90);
+      audio.current?.setDrone(info.rotor, level, !sc.inDrone && !sc.inMech && !sc.inYard && !sc.inHangar);
+      if (sc.droneNotice) {
+        apply({ ...stateRef.current, message: sc.droneNotice, error: false });
+        sc.droneNotice = null;
+      }
+      if (sc.droneReturned) {
+        sc.droneReturned = false;
+        setCameraView('front');
+      }
+    }, 100);
+    return () => window.clearInterval(timer);
+  }, []);
   // Fadenkreuz folgt der Maus direkt (ohne React-Neuzeichnen pro Mausbewegung).
   useEffect(() => {
     const move = (e: PointerEvent) => {
@@ -524,7 +603,7 @@ export default function Cockpit() {
   }, []);
   // Regengeräusch: in der Kanzel gedämpft, in Außenansichten hell.
   useEffect(() => {
-    audio.current?.setRain(rain ? 1 : 0, !['mech', 'hangar', 'yard'].includes(cameraView));
+    audio.current?.setRain(rain ? 1 : 0, !['mech', 'hangar', 'yard', 'drone'].includes(cameraView));
   }, [rain, cameraView, audioStatus]);
   return (
     <main className="cockpit-app">
@@ -621,7 +700,9 @@ export default function Cockpit() {
               )}
             </strong>
             {tr(
-              cameraView === 'mech'
+              cameraView === 'drone'
+                ? 'DROHNE · AUFKLÄRUNG'
+                : cameraView === 'mech'
                 ? 'IV–04 · AUSSENANSICHT'
                 : cameraView === 'yard'
                   ? 'AUSSENKAMERA · PRÜFSTRECKE'
@@ -668,6 +749,23 @@ export default function Cockpit() {
           >
             {tr('TESTGELÄNDE [U]')}
           </button>
+          <button
+            className="drone-toggle"
+            aria-pressed={!!drone && drone.phase !== 'docked'}
+            title={tr('Drohne starten oder zurückrufen. Tab: Drohnensicht.')}
+            onClick={toggleDrone}
+          >
+            {tr(drone && drone.phase !== 'docked' ? 'DROHNE ZURÜCK [C]' : 'DROHNE [C]')}
+          </button>
+          {drone?.airborne && (
+            <button
+              className="group-end"
+              aria-pressed={cameraView === 'drone'}
+              onClick={() => changeView(cameraView === 'drone' ? 'front' : 'drone')}
+            >
+              {tr('DROHNENSICHT [TAB]')}
+            </button>
+          )}
           <button aria-pressed={cameraView === 'overhead'} onClick={() => changeView('overhead')}>
             {tr('OVERHEAD [O]')}
           </button>
@@ -751,6 +849,46 @@ export default function Cockpit() {
           <button onClick={() => changeView('front')}>{tr('Zurück ins Cockpit [F]')}</button>
         </div>
       )}
+      {cameraView === 'drone' && (
+        <div className="drone-view" aria-label={tr('Drohnensicht')}>
+          <div className="drone-noise" style={{ opacity: 0.08 + (1 - (drone?.signal ?? 1)) * 0.6 }} />
+          <div className="drone-cross" aria-hidden="true" />
+          <div className="drone-status">
+            <strong>{tr('DROHNE / AUFKLÄRUNG')}</strong>
+            <span>
+              {tr(
+                drone?.phase === 'rtb'
+                  ? 'RÜCKKEHR'
+                  : drone?.phase === 'landing'
+                    ? 'LANDUNG'
+                    : drone?.phase === 'flying'
+                      ? 'FLUG'
+                      : 'START',
+              )}
+            </span>
+            <span>{tr(`HÖHE ${Math.round(drone?.altitude ?? 0)} m`)}</span>
+            <span>{tr(`ABSTAND ${Math.round(drone?.distance ?? 0)} m`)}</span>
+            <span className={(drone?.battery ?? 1) < 0.2 ? 'warn' : ''}>
+              {tr(`AKKU ${Math.round((drone?.battery ?? 1) * 100)} %`)}
+            </span>
+            <span className={(drone?.signal ?? 1) < 0.4 ? 'warn' : ''}>
+              {tr(`FUNK ${Math.round((drone?.signal ?? 1) * 100)} %`)}
+            </span>
+            {drone?.marked && <span className="mark">{tr('ZIEL MARKIERT')}</span>}
+            {drone?.rtbReason === 'battery' && (
+              <span className="warn">{tr('AKKU LEER – AUTOMATISCHE RÜCKKEHR')}</span>
+            )}
+            {drone?.rtbReason === 'signal' && (
+              <span className="warn">{tr('FUNK VERLOREN – AUTOMATISCHE RÜCKKEHR')}</span>
+            )}
+          </div>
+          <div className="drone-hint">
+            {tr('W A S D: fliegen · Q / E: drehen · Leertaste / Umschalt: steigen / sinken')}
+            <br />
+            {tr('Linksklick: Ziel markieren · Rechte Maustaste: Kamera schwenken · Tab: Cockpit · C: Rückkehr')}
+          </div>
+        </div>
+      )}
       {help && (
         <aside className="help" aria-label={tr('Bedienung')}>
           <div className="help-heading">
@@ -796,7 +934,7 @@ export default function Cockpit() {
           }}
         />
       )}
-      {armed && !['mech', 'hangar', 'yard'].includes(cameraView) && (
+      {armed && !['mech', 'hangar', 'yard', 'drone'].includes(cameraView) && (
         <div className="reticle" ref={reticle} aria-hidden="true">
           <i
             className={

@@ -25,6 +25,9 @@ Armkanonen. Läuft im Browser oder als Linux-Desktop-App.
 - **Torso und Arme:** Torso drehen, Arme anheben und beugen.
 - **Waffen:** zwei 30-mm-Armkanonen mit freiem Zielen per Maus, Laser-Entfernungsmesser,
   Schießstand mit Klappzielen.
+- **Aufklärungsdrohne:** Auf dem Rücken sitzt ein geflickter Quadrocopter. Starten, mit
+  Tastatur und Maus fliegen – auf dem Kameramonitor im Cockpit oder im Vollbild – und Ziele
+  für die Armkanonen per Laser markieren. Begrenzter Akku und Funk; sie fliegt selbst heim.
 - **Wetter und Licht:** Tag/Nacht, Scheinwerfer und Rundumleuchte, Regen mit nasser
   Panzerung, Pfützen und Tropfen auf der Scheibe, Gewitter.
 - **Eine alte Maschine:** flimmernde Röhrendisplays in Giftgrün, abgenutzter Lack, Zettel
@@ -96,6 +99,7 @@ Der **?**-Knopf oben rechts erklärt alles. Kurz:
 | Q / E, B | Torso drehen, Gelenk-Bedienfeld |
 | V / H / U | Mech-Außenansicht / Hallenkamera / Testgelände |
 | M, P, J | Waffen, Laser, Scheinwerfer |
+| C, Tab | Drohne starten/zurückrufen, Drohnensicht |
 | N, X, L | Tag/Nacht, Regen, Kabinenlicht |
 
 ## Technik

@@ -7,6 +7,7 @@ import { groundHeight, WALK } from './walking';
 import { neutralJoints, type JointPose } from './articulation';
 import { applyWear, bakeRestPositions, buildWaistRing, MechLights } from './mech-details';
 import { Hydraulics } from './mech-hydraulics';
+import { DroneDock } from './drone-model';
 import { assetUrl } from './asset-url';
 
 // Authored cabin coordinates stay intact, uniformly scaled into the torso.
@@ -413,6 +414,9 @@ export class MechExterior {
   planting = new FootPlanting();
   /** Hydraulikzylinder an Knie und Sprunggelenk (siehe mech-hydraulics.ts). */
   hydraulics: Hydraulics | null = null;
+  /** Halterung der Aufklärungsdrohne auf dem Rücken (drone-model.ts). */
+  droneDock = new DroneDock();
+  dockReady = false;
   ready: Promise<void>;
   shadow: THREE.Mesh;
   inspectionKey: THREE.DirectionalLight;
@@ -472,6 +476,8 @@ export class MechExterior {
       // Nach bakeRestPositions: Die Zylinder bekommen keinen Verschleiß-Shader.
       this.hydraulics = new Hydraulics(this.model);
       this.lights.attach(this.model.getObjectByName('Torso')!);
+      this.droneDock.attach(this.model.getObjectByName('Torso') as THREE.Mesh);
+      this.dockReady = true;
       this.root.add(this.model);
       this.model.traverse((o) => {
         if (o instanceof THREE.Mesh) {
@@ -543,6 +549,7 @@ export class MechExterior {
     );
     host.cleanup.push(() => {
       this.disposed = true;
+      this.droneDock.dispose();
       if (this.model) this.release(this.model);
     });
   }
@@ -572,11 +579,13 @@ export class MechExterior {
     inspection: boolean,
     outside = inspection,
     joints: JointPose = neutralJoints(),
+    /** Auch unsichtbar animieren (die Drohnenkamera zeigt den Mech von außen). */
+    animateHidden = false,
   ) {
     // The supplied hull is opaque. Only the original interactive cabin is drawn
     // for the pilot; camera captures hide their common parent to avoid recursion.
     this.root.visible = outside;
-    if (this.model && outside) {
+    if (this.model && (outside || animateHidden)) {
       this.root.updateMatrixWorld(true);
       animateMechanicalRig(this.model, this.legs, walk, joints, this.planting);
       // Rückstoß: Unterarm schlägt kurz nach oben/hinten aus.

@@ -10,6 +10,7 @@ export type AudioStatus = 'idle' | 'active' | 'muted' | 'blocked' | 'error';
 import { RainAudio } from './rain-audio';
 import { WeaponAudio } from './weapon-audio';
 import { HydraulicAudio, preloadHydraulics } from './hydraulic-audio';
+import { DroneAudio } from './drone-audio';
 
 export class MachineAudio {
   private rain: RainAudio | null = null;
@@ -22,6 +23,13 @@ export class MachineAudio {
     if (!this.ctx || !this.master || this.disposed) return;
     if (!this.rain && amount > 0) this.rain = new RainAudio(this.ctx, this.master);
     this.rain?.set(amount, cabin);
+  }
+  private drone: DroneAudio | null = null;
+  /** Rotorgeräusch der Drohne; wird erst beim ersten Start angelegt. */
+  setDrone(rotor: number, level: number, cabin: boolean) {
+    if (!this.ctx || !this.master || this.disposed) return;
+    if (!this.drone && rotor > 0.01) this.drone = new DroneAudio(this.ctx, this.master);
+    this.drone?.set(rotor, level, cabin);
   }
   private weapons: WeaponAudio | null = null;
   private weaponAudio() {
@@ -348,6 +356,7 @@ export class MachineAudio {
     this.bootSound?.dispose();
     this.steps?.dispose();
     this.hydraulics?.dispose();
+    this.drone?.dispose();
     this.rain?.dispose();
     this.effects?.dispose();
     this.serviceAudio?.dispose();

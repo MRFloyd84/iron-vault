@@ -108,6 +108,10 @@ export const HELP: Record<Lang, Help> = {
         'WAFFEN [M] ist der Hauptschalter (MASTER ARM). Gefeuert wird in der Pilotensicht mit der linken Maustaste, das Fadenkreuz folgt der Maus. Die beiden 30-mm-Kanonen in den Unterarmen schießen abwechselnd; die Lafette schwenkt rund ±24° seitlich, liegt das Ziel weiter außen, dreht der Torso automatisch nach (dafür muss die Parkverriegelung gelöst sein). Freigabe nur mit Steuerfreigabe [6] und außerhalb der Halle. Je Kanone 150 Schuss; Dauerfeuer überhitzt die Läufe, dann ist kurz Pause. Nachladen: gesichert in der Halle am Serviceplatz mit geschlossener Parkverriegelung. Schalter und Knöpfe lassen sich auch scharf geschaltet weiter anklicken.',
       ],
       [
+        'Drohne / Taste C',
+        'Auf dem Rücken sitzt eine kleine Aufklärungsdrohne. C startet sie (braucht Hauptstrom und AVIONICS), nach dem Hochlaufen der Rotoren steigt sie von der Halterung. Tab wechselt zwischen Cockpit und Drohnensicht; das Bild läuft außerdem auf dem Kameramonitor. Fliegen: W/S vor und zurück, A/D seitwärts, Q/E drehen, Leertaste steigen, Umschalt sinken; rechte Maustaste schwenkt die Kamera. Linksklick in der Drohnensicht markiert einen Punkt mit dem Laser – die Armkanonen richten sich dann auf dieses Ziel aus. Linksklick ins Leere löscht die Markierung. Der Akku reicht etwa drei Minuten, die Funkreichweite rund 200 m; bei leerem Akku oder Funkverlust kehrt die Drohne selbst zurück. C ruft sie zurück, angedockt lädt sie wieder. In der Halle geht es nur durchs offene Tor hinaus.',
+      ],
+      [
         'Laser / Taste P',
         'Laser-Entfernungsmesser: roter Strahl zum Zielpunkt unter dem Fadenkreuz, Entfernung im HUD und am Fadenkreuz. Nachts und im Regen ist der Strahl draußen gut zu sehen.',
       ],
@@ -234,6 +238,10 @@ export const HELP: Record<Lang, Help> = {
       [
         'Weapons / key M',
         'WEAPONS [M] is the master switch (MASTER ARM). Fire in the pilot view with the left mouse button; the crosshair follows the mouse. The two 30 mm cannons in the forearms fire alternately; the mount swivels about ±24° sideways, and if the target is further out the torso follows automatically (the parking lock must be released for this). Only cleared with control clearance [6] and outside the hall. 150 rounds per cannon; sustained fire overheats the barrels, then there is a short pause. Reloading: safed, in the hall at the service bay with the parking lock engaged. Switches and buttons can still be clicked while armed.',
+      ],
+      [
+        'Drone / key C',
+        'A small reconnaissance drone rides on the back. C launches it (needs main power and AVIONICS); once the rotors have spun up it lifts off its cradle. Tab switches between the cockpit and the drone view; the feed also runs on the camera monitor. Flying: W/S forward and back, A/D sideways, Q/E turn, Space climb, Shift descend; the right mouse button pans the camera. Left click in the drone view marks a point with the laser – the arm cannons then aim at that target. Left click into empty space clears the mark. The battery lasts about three minutes, the radio range is around 200 m; with a flat battery or lost signal the drone returns on its own. C recalls it, docked it recharges. Inside the hall the only way out is through the open gate.',
       ],
       [
         'Laser / key P',

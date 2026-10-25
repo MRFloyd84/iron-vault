@@ -50,8 +50,23 @@ import { MechExterior, MECH, applyMechBodyPose } from './mech-exterior';
 import { serviceWarning, electricalReadings } from './service-systems';
 import { SurroundCameras } from './surround-cameras';
 import { WalkPresentation } from './walk-presentation';
-import { WALK } from './walking';
+import { WALK, groundHeight } from './walking';
 import { onLangChange, tr } from './i18n';
+import {
+  initialDrone,
+  idleDroneInput,
+  stepDrone,
+  droneToggle as toggleDrone,
+  droneBlock,
+  droneAirborne,
+  droneHasControls,
+  droneMark,
+  droneLook,
+  type DroneInput,
+  type DroneState,
+} from './drone';
+import { DroneFeed, DroneRig, LASER_LAYER, TargetMarker } from './drone-model';
+import { camerasPowered } from './surround-cameras';
 import { buildYard, YARD } from './yard-scene';
 import { buildHangar as buildHangarImpl } from './scene/hangar-build';
 import {
@@ -85,7 +100,7 @@ export type Screen = {
   lastDraw: number;
 };
 export type CameraView =
-  'front' | 'overhead' | 'left' | 'right' | 'panel' | 'hangar' | 'yard' | 'mech';
+  'front' | 'overhead' | 'left' | 'right' | 'panel' | 'hangar' | 'yard' | 'mech' | 'drone';
 
 export class CockpitScene {
   walkPose = {
@@ -143,6 +158,19 @@ export class CockpitScene {
   surround: SurroundCameras | null = null;
   exterior: MechExterior | null = null;
   inMech = false;
+  /** Vollbild-Drohnensicht */
+  inDrone = false;
+  drone: DroneState = initialDrone();
+  droneInput: DroneInput = idleDroneInput();
+  droneRig: DroneRig | null = null;
+  droneFeed: DroneFeed | null = null;
+  targetMarker: TargetMarker | null = null;
+  private dockWorld = new THREE.Vector3();
+  private dockForward = new THREE.Vector3();
+  private droneCamWorld = new THREE.Vector3();
+  private droneQuat = new THREE.Quaternion();
+  /** Drohne hat gerade (per Taste) Ziel markiert/gelöscht – für die Meldung in der Oberfläche */
+  droneNotice: string | null = null;
   orbitYaw = 0.65;
   orbitPitch = 0.18;
   orbitDistance: number = MECH.orbitRadius;
@@ -420,6 +448,16 @@ export class CockpitScene {
     this.weaponSystem = new WeaponSystem(this.scene, new FiringRange(this));
     // IV-02: abgestelltes, ausgeschlachtetes Schwesterschiff vor der Werkstatt
     new SisterMech(this, this.wet);
+    // Aufklärungsdrohne (Halterung am Rücken: mech-exterior.ts)
+    this.droneRig = new DroneRig(this.scene);
+    this.droneRig.root.visible = false;
+    this.droneFeed = new DroneFeed();
+    this.targetMarker = new TargetMarker(this.scene);
+    this.cleanup.push(() => {
+      this.droneRig?.dispose();
+      this.droneFeed?.dispose();
+      this.targetMarker?.dispose();
+    });
     this.cleanup.push(() => this.weaponSystem?.dispose());
     void this.exterior.ready.then(() => {
       if (this.exterior?.model) this.weaponSystem?.attach(this.exterior.model);
@@ -453,7 +491,13 @@ export class CockpitScene {
     const c = this.renderer.domElement;
     const move = (e: PointerEvent) => {
       if (this.drag) {
-        if (this.inMech) {
+        if (this.inDrone) {
+          this.drone = droneLook(
+            this.drone,
+            (e.clientX - this.lastX) * 0.004,
+            (e.clientY - this.lastY) * 0.003,
+          );
+        } else if (this.inMech) {
           this.targetOrbitYaw -= (e.clientX - this.lastX) * 0.006;
           this.targetOrbitPitch = THREE.MathUtils.clamp(
             this.targetOrbitPitch + (e.clientY - this.lastY) * 0.004,
@@ -484,6 +528,10 @@ export class CockpitScene {
         this.lastY = e.clientY;
         c.setPointerCapture(e.pointerId);
         c.style.cursor = 'grabbing';
+      }
+      if (e.button === 0 && this.inDrone) {
+        this.markFromDrone();
+        return;
       }
       if (e.button === 0 && !this.inMech) {
         const hit = this.pick(e);
@@ -907,7 +955,7 @@ export class CockpitScene {
     return addGaugeImpl(this, parent, x, y, z, r, kind, title);
   }
   pick(e: PointerEvent) {
-    if (this.inHangar || this.inYard || this.inMech) return null;
+    if (this.inHangar || this.inYard || this.inMech || this.inDrone) return null;
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.pointer.set(
       ((e.clientX - rect.left) / rect.width) * 2 - 1,
@@ -958,11 +1006,13 @@ export class CockpitScene {
     this.view('front');
   }
   view(name: CameraView) {
-    const wasExterior = this.inHangar || this.inYard || this.inMech;
+    const wasExterior = this.inHangar || this.inYard || this.inMech || this.inDrone;
+    if (name === 'drone' && !droneAirborne(this.drone)) name = 'front';
     this.inHangar = name === 'hangar';
     this.inYard = name === 'yard';
     this.inMech = name === 'mech';
-    const outside = this.inHangar || this.inYard || this.inMech;
+    this.inDrone = name === 'drone';
+    const outside = this.inHangar || this.inYard || this.inMech || this.inDrone;
     this.cabin.visible = true;
     this.camera.near = outside ? 0.08 : 0.08 * MECH.cabinScale;
     (outside ? this.scene : this.cabin).add(this.camera);
@@ -979,6 +1029,7 @@ export class CockpitScene {
       hangar: [0, 0.035, 70],
       yard: [0.16, -0.12, 65],
       mech: [0, 0, 55],
+      drone: [0, 0, 70],
     };
     [this.targetYaw, this.targetPitch, this.targetFov] = presets[name];
     if (wasExterior !== outside || outside) {
@@ -995,13 +1046,8 @@ export class CockpitScene {
       this.orbitDistance = this.targetOrbitDistance;
       this.updateOrbit(1);
     }
-    this.renderer.toneMappingExposure = this.inMech
-      ? 1.05
-      : this.inYard
-        ? 1.05
-        : this.inHangar
-          ? 1.2
-          : 0.94;
+    this.renderer.toneMappingExposure =
+      this.inMech || this.inDrone ? 1.05 : this.inYard ? 1.05 : this.inHangar ? 1.2 : 0.94;
     this.baseEnvIntensity = this.inMech ? 0.55 : 0.18;
     this.baseFogDensity = this.inYard ? 0.0035 : 0.0025;
     this.applyDayNight();
@@ -1041,6 +1087,9 @@ export class CockpitScene {
     const far = origin.clone().addScaledVector(dir, 800);
     const hit = range.hitTest(origin, far);
     this.aimPoint.copy(hit ? hit.point : far);
+    // Von der Drohne markiertes Ziel hat Vorrang: die Kanonen richten sich darauf aus.
+    const mark = this.drone.mark;
+    if (mark && droneAirborne(this.drone)) this.aimPoint.set(mark.x, mark.y, mark.z);
     this.laserFrom.copy(this.cabin.localToWorld(new THREE.Vector3(0, 0.15, -2.4)));
     this.aimRange = this.laserFrom.distanceTo(this.aimPoint);
   }
@@ -1129,6 +1178,100 @@ export class CockpitScene {
         this.dust?.spawn(e.point.x, e.point.y, e.point.z, 0.35, time, Math.floor(time * 131));
     }
     ws.range.update(time);
+  }
+  /** Drohne: Halterung verfolgen, Zustand fortschreiben, Modell und Markierung zeichnen. */
+  private updateDrone(s: MachineState, dt: number, time: number) {
+    const rig = this.droneRig,
+      dock = this.exterior?.dockReady ? this.exterior.droneDock : null;
+    if (!rig || !dock) return;
+    dock.world(this.dockWorld);
+    // Blickrichtung des Rumpfs: lokale +z-Achse des Mech-Modells zeigt nach vorn.
+    this.dockForward.set(0, 0, 1).transformDirection(dock.anchor.matrixWorld);
+    const dockYaw = Math.atan2(-this.dockForward.x, -this.dockForward.z);
+    const prev = this.drone.phase;
+    this.drone = stepDrone(
+      this.drone,
+      droneHasControls(this.drone) ? this.droneInput : idleDroneInput(),
+      Math.min(dt, 0.1),
+      {
+        dock: { x: this.dockWorld.x, y: this.dockWorld.y, z: this.dockWorld.z },
+        dockYaw,
+        ground: (x, z) => MECH.floor + groundHeight(x, z),
+        gate: s.hangar.position,
+        wind: insideShelter(this.drone.pos.x, this.drone.pos.z) ? 0 : this.rainAmount,
+        time,
+      },
+      camerasPowered(s),
+    );
+    // Gelandet: zurück ins Cockpit, falls die Vollbildsicht aktiv war.
+    if (prev !== 'docked' && this.drone.phase === 'docked' && this.inDrone) {
+      this.view('front');
+      this.droneReturned = true;
+    }
+    rig.root.visible = true;
+    rig.update(this.drone, time, this.nightAmount, dt);
+    this.targetMarker?.update(this.drone, time);
+    this.camera.layers[this.inDrone ? 'disable' : 'enable'](LASER_LAYER);
+  }
+  /** Für den Kamera-Monitor: Mech-Hülle kurz sichtbar machen, Drohne selbst ausblenden. */
+  private showHullFor() {
+    const hull = this.exterior?.root,
+      rig = this.droneRig?.root;
+    const hullWas = hull?.visible ?? false,
+      rigWas = rig?.visible ?? false;
+    if (hull) hull.visible = true;
+    if (rig) rig.visible = false;
+    return () => {
+      if (hull) hull.visible = hullWas;
+      if (rig) rig.visible = rigWas;
+    };
+  }
+  /** Ziel markieren: Strahl durch den Mauszeiger der Drohnensicht. Ins Leere = löschen. */
+  markFromDrone() {
+    const range = this.weaponSystem?.range;
+    if (!this.droneRig || !range || !droneAirborne(this.drone)) return;
+    this.camera.updateMatrixWorld();
+    this.aimRay.setFromCamera(this.aimNdc, this.camera);
+    const origin = this.aimRay.ray.origin,
+      far = origin.clone().addScaledVector(this.aimRay.ray.direction, 600);
+    const hit = range.hitTest(origin, far);
+    const point = hit ? hit.point : null;
+    this.drone = droneMark(this.drone, point ? { x: point.x, y: point.y, z: point.z } : null);
+    this.droneNotice = point ? 'Ziel markiert.' : 'Zielmarkierung gelöscht.';
+  }
+  /** Taste: starten bzw. zurückrufen. Meldung für das Kommunikationsdisplay. */
+  droneToggle(s: MachineState): { message: string; error: boolean } | null {
+    const block = droneBlock(s, this.drone);
+    if (block) return { message: block, error: true };
+    if (!this.exterior?.dockReady) return { message: 'Drohne noch nicht bereit.', error: true };
+    const before = this.drone.phase;
+    this.drone = toggleDrone(this.drone, s);
+    if (before === 'docked' && this.drone.phase === 'spinup')
+      return { message: 'Drohne startet. Rotoren laufen hoch.', error: false };
+    if (this.drone.phase === 'rtb')
+      return { message: 'Drohne kehrt zurück und landet auf der Halterung.', error: false };
+    return null;
+  }
+  setDroneInput(input: DroneInput) {
+    this.droneInput = input;
+  }
+  /** Drohne hat angedockt, während die Drohnensicht aktiv war (Oberfläche schaltet zurück). */
+  droneReturned = false;
+  /** Für die Oberfläche (~10 Hz). */
+  droneInfo() {
+    const d = this.drone;
+    return {
+      phase: d.phase,
+      airborne: droneAirborne(d),
+      controls: droneHasControls(d),
+      battery: d.battery,
+      signal: d.signal,
+      altitude: Math.max(0, d.pos.y - MECH.floor - groundHeight(d.pos.x, d.pos.z)),
+      distance: Math.hypot(d.pos.x - this.dockWorld.x, d.pos.z - this.dockWorld.z),
+      marked: !!d.mark,
+      rtbReason: d.rtbReason,
+      rotor: d.rotor,
+    };
   }
   /** Für die Oberfläche: Zustand des Waffensystems (wird mit ~10 Hz abgefragt). */
   weaponInfo() {
@@ -1400,7 +1543,7 @@ export class CockpitScene {
       walking = Math.min(1, Math.abs(walk.speed) / 0.8 + Math.abs(walk.turnRate) * 3);
     const phase = walk.phase * Math.PI * 2,
       amplitude = this.reduced ? 0 : s.walk.sway * walking;
-    const outside = this.inMech || this.inHangar || this.inYard;
+    const outside = this.inMech || this.inHangar || this.inYard || this.inDrone;
     setCockpitInterior(this.cabin, this.interior, !outside);
     applyMechBodyPose(
       this.cabin,
@@ -1409,7 +1552,16 @@ export class CockpitScene {
       false,
       this.jointPose.torso,
     );
-    this.exterior?.update(this.cabin, s, walk, this.inMech, outside, this.jointPose);
+    this.exterior?.update(
+      this.cabin,
+      s,
+      walk,
+      this.inMech,
+      outside,
+      this.jointPose,
+      droneAirborne(this.drone),
+    );
+    this.updateDrone(s, dt, time);
     // Tag/Nacht-Übergang
     if (this.nightAmount !== this.nightTarget) {
       this.nightAmount +=
@@ -1452,6 +1604,7 @@ export class CockpitScene {
       !this.inHangar &&
       !this.inYard &&
       !this.inMech &&
+      !this.inDrone &&
       !looking &&
       !this.reduced &&
       (s.stage >= 4 || s.busy === 3)
@@ -1459,7 +1612,14 @@ export class CockpitScene {
         : 0;
     this.camera.rotation.set(this.pitch + vibration, this.yaw, 0, 'YXZ');
     if (this.inMech) this.updateOrbit(damp);
-    if (!this.inHangar && !this.inYard && !this.inMech) {
+    if (this.inDrone && this.droneRig) {
+      // Die Hauptkamera sitzt in der Drohne (Kamera am Gimbal).
+      this.droneRig.camera.getWorldPosition(this.droneCamWorld);
+      this.droneRig.camera.getWorldQuaternion(this.droneQuat);
+      this.camera.position.copy(this.droneCamWorld);
+      this.camera.quaternion.copy(this.droneQuat);
+    }
+    if (!this.inHangar && !this.inYard && !this.inMech && !this.inDrone) {
       const visual = looking ? amplitude * 0.25 : amplitude;
       this.camera.position.set(
         Math.sin(phase) * 0.045 * visual,
@@ -1559,7 +1719,22 @@ export class CockpitScene {
     );
     const cameraScreen = this.screens.find((sc) => sc.kind === 'cameras');
     const ready = this.displayBoot.phase === 'ready';
-    if (cameraScreen && this.surround) {
+    const feed = ready && droneAirborne(this.drone) && !this.surround?.systems && this.droneFeed;
+    if (cameraScreen && feed && this.droneRig) {
+      // Drohne in der Luft: der Kamera-Monitor zeigt ihr Bild.
+      cameraScreen.material.map = feed.output.texture;
+      if (!outside && this.screenFrustum.intersectsObject(cameraScreen.mesh))
+        feed.update(
+          this.renderer,
+          this.scene,
+          this.droneRig.camera,
+          this.drone,
+          ms,
+          Math.hypot(this.drone.pos.x - this.dockWorld.x, this.drone.pos.z - this.dockWorld.z),
+          !!this.drone.mark && this.weapons.armed,
+          () => this.showHullFor(),
+        );
+    } else if (cameraScreen && this.surround) {
       cameraScreen.material.map =
         ready && !this.surround.systems ? this.surround.output.texture : cameraScreen.texture;
       if (ready) {
@@ -1595,7 +1770,7 @@ export class CockpitScene {
       this.hover(hit ? { text: hit.userData.label, x: e.clientX, y: e.clientY } : null);
       this.renderer.domElement.style.cursor = hit
         ? 'pointer'
-        : this.weapons.armed && !this.inHangar && !this.inYard && !this.inMech
+        : (this.weapons.armed && !this.inHangar && !this.inYard && !this.inMech) || this.inDrone
           ? 'crosshair'
           : 'default';
     }

@@ -25,6 +25,9 @@ browser or as a Linux desktop app.
 - **Torso and arms:** turn the torso, raise and bend the arms.
 - **Weapons:** two 30 mm arm cannons with free mouse aiming, laser rangefinder, a firing
   range with knock-down targets.
+- **Recon drone:** a patched-up quadcopter rides on the mech's back. Launch it, fly it
+  with keyboard and mouse – on the cockpit camera monitor or full screen – and laser-mark
+  targets for the arm cannons. Limited battery and radio range; it flies home on its own.
 - **Weather and light:** day/night, headlights and a rotating beacon, rain with wet
   armour, puddles and drops on the windscreen, thunderstorms.
 - **An old machine:** flickering CRT displays in toxic green, worn paint, notes and tape in
@@ -93,6 +96,7 @@ The **?** button (top right) explains everything. In short:
 | Q / E, B | turn the torso, joint panel |
 | V / H / U | mech exterior / hangar camera / test ground |
 | M, P, J | weapons, laser, headlights |
+| C, Tab | launch/recall the drone, drone view |
 | N, X, L | day/night, rain, cabin light |
 
 ## Technology
