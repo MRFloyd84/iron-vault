@@ -1,0 +1,33 @@
+# Baut bei jedem Versions-Tag (z. B. v0.59.0) das AppImage und veröffentlicht es als
+# GitHub-Release. Die installierte App findet es beim nächsten Start (electron-updater).
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  appimage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Typen, Lint, alle Tests und der Vite-Build – nur ein grünes Projekt wird veröffentlicht.
+      - run: npm run check
+      - name: Tag passt zur Version in package.json
+        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      - name: AppImage bauen und als Release veröffentlichen
+        run: npx electron-builder --linux AppImage --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Installationsskript anhängen
+        run: gh release upload "$GITHUB_REF_NAME" scripts/install-desktop.sh --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

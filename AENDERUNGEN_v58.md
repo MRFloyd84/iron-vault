@@ -27,14 +27,22 @@ dann kommen alle Updates von allein.
 
 ## Neues Release veröffentlichen
 
+Das übernimmt GitHub selbst (`.github/workflows/release.yml`):
+
 ```sh
-# Version in package.json erhöhen, dann (GitHub-Token mit Schreibrecht für das Repo):
-GH_TOKEN=… npm run release
+# Version in package.json erhöhen (z. B. 0.59.0), committen, dann:
+git tag v0.59.0
+git push origin main v0.59.0
 ```
 
-`npm run release` baut das AppImage und lädt drei Dateien in ein GitHub-Release hoch: das
-AppImage, die Blockmap und `latest-linux.yml`. Nach dieser Datei sucht die App.
-`npm run dist:linux` baut weiterhin nur lokal, ohne hochzuladen.
+- **Auslöser:** Der Tag startet den Bau auf GitHub.
+- **Prüfung:** Erst laufen Typen, Lint, alle Tests und der Build. Danach wird
+  kontrolliert, ob Tag und Version zusammenpassen.
+- **Veröffentlichen:** Erst dann wird das Release veröffentlicht, mit AppImage,
+  `latest-linux.yml` und Installationsskript.
+- **Kein Token nötig:** Den Zugang stellt GitHub dem Bau selbst bereit.
+- **Lokal:** `npm run dist:linux` baut weiterhin nur lokal. `GH_TOKEN=… npm run release`
+  geht als Notweg, wenn du direkt von deinem PC veröffentlichen willst.
 
 ## Eigener Update-Server statt GitHub
 

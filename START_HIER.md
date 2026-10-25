@@ -30,7 +30,8 @@ bash scripts/install-desktop.sh                      # Startmenü-Eintrag „IRO
 
 `npm run app` öffnet das Desktop-Fenster direkt aus dem Projekt. Details in
 `AENDERUNGEN_v57.md`. Die installierte App aktualisiert sich selbst über GitHub Releases;
-ein neues Release veröffentlicht `GH_TOKEN=… npm run release` (siehe `AENDERUNGEN_v58.md`).
+ein neues Release entsteht auf GitHub, sobald ein Versions-Tag wie `v0.59.0` hochgeladen wird
+(siehe `AENDERUNGEN_v58.md`).
 
 ## Produktion
 
