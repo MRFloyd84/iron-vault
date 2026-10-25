@@ -4,6 +4,7 @@ import { collisionAt } from './walking';
 
 export const JOINTS = [
   'torso',
+  'pitch',
   'leftShoulder',
   'leftElbow',
   'rightShoulder',
@@ -13,6 +14,8 @@ export type Joint = (typeof JOINTS)[number];
 export type JointPose = Record<Joint, number>;
 export const JOINT_LIMITS: Record<Joint, readonly [number, number]> = {
   torso: [-45, 45],
+  /** Oberkörper neigen: leicht nach oben (+) bzw. unten (−), Grad */
+  pitch: [-10, 8],
   leftShoulder: [0, 40],
   rightShoulder: [0, 40],
   leftElbow: [0, 55],
@@ -21,6 +24,7 @@ export const JOINT_LIMITS: Record<Joint, readonly [number, number]> = {
 export const RAD = Math.PI / 180;
 export const neutralJoints = (): JointPose => ({
   torso: 0,
+  pitch: 0,
   leftShoulder: 0,
   leftElbow: 0,
   rightShoulder: 0,
@@ -33,8 +37,9 @@ export const initialArticulation = (): Articulation => ({
   input: neutralJoints(),
   effort: 0,
 });
-export const armsExtended = (pose: JointPose) =>
-  JOINTS.some((k) => k !== 'torso' && pose[k] > 0.00001);
+/** Armgelenke (Schultern, Ellenbogen) – Torso drehen und neigen zählt nicht dazu. */
+export const isArm = (k: Joint) => k !== 'torso' && k !== 'pitch';
+export const armsExtended = (pose: JointPose) => JOINTS.some((k) => isArm(k) && pose[k] > 0.00001);
 // Conservative swept arm envelope, verified against the actual GLB. Reserve
 // it before extending, so an arm cannot start moving through a nearby wall.
 export const ARM_RADIUS = 7.2;
@@ -80,8 +85,8 @@ export function jointCommand(s: MachineState, joint: Joint | 'neutral', degrees 
         'Torso-Schwenkbereich blockiert. Grundstellung wählen oder mehr Abstand zu Hindernissen halten.',
     };
   if (
-    joint !== 'torso' &&
     joint !== 'neutral' &&
+    isArm(joint) &&
     target[joint] > s.articulation.pose[joint] &&
     (s.walk.z > -45 || collisionAt(s.walk.x, s.walk.z, s.hangar.position, ARM_RADIUS))
   )
@@ -122,7 +127,8 @@ export function advanceArticulation(s: MachineState, dt: number): MachineState {
   let effort = 0;
   for (const k of JOINTS) {
     const [min, max] = JOINT_LIMITS[k],
-      rate = (k === 'torso' ? 18 : 24) * RAD * Math.min(1, s.actualPressure / 210),
+      rate =
+        (k === 'torso' ? 18 : k === 'pitch' ? 7 : 24) * RAD * Math.min(1, s.actualPressure / 210),
       step = rate * Math.min(dt, 0.5);
     if (a.input[k])
       target[k] = Math.max(min * RAD, Math.min(max * RAD, pose[k] + a.input[k] * step));
@@ -133,7 +139,7 @@ export function advanceArticulation(s: MachineState, dt: number): MachineState {
     )
       target[k] = pose[k];
     if (
-      k !== 'torso' &&
+      isArm(k) &&
       target[k] > pose[k] &&
       (s.walk.z > -45 || collisionAt(s.walk.x, s.walk.z, s.hangar.position, ARM_RADIUS))
     )

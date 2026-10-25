@@ -94,3 +94,54 @@ test('joint interpolation matches walking delay and resets across suspension', (
     assert.equal(out.torso, 5);
   }
 });
+
+test('Torso neigen: Kanzel kippt um die Hüfte, Beine bleiben stehen', async () => {
+  const THREE = await import('three');
+  const { applyMechBodyPose, pelvisCounterPose, MECH, WAIST_Y } =
+    await import('../lib/mech-exterior.ts');
+  const { WALK } = await import('../lib/walking.ts');
+  const build = (torso, pitch) => {
+    const cabin = new THREE.Group();
+    cabin.scale.setScalar(MECH.cabinScale);
+    const root = new THREE.Group();
+    root.position.set(0, (MECH.floor - MECH.cabinLift) / MECH.cabinScale, WALK.originZ);
+    root.scale.setScalar(MECH.modelScale / MECH.cabinScale);
+    root.rotation.y = Math.PI;
+    cabin.add(root);
+    const pelvis = new THREE.Group();
+    root.add(pelvis);
+    const foot = new THREE.Object3D();
+    foot.position.set(0.12, 0.02, 0.08);
+    const hip = new THREE.Object3D();
+    hip.position.set(0, WAIST_Y, 0);
+    pelvis.add(foot, hip);
+    const walk = {
+      x: 10,
+      z: -60,
+      yaw: 0.4,
+      speed: 0,
+      turnRate: 0,
+      phase: 0,
+      height: 0,
+      pitch: 0,
+      roll: 0,
+    };
+    applyMechBodyPose(cabin, walk, 1, false, torso, pitch);
+    pelvisCounterPose(pelvis, torso, pitch);
+    cabin.updateMatrixWorld(true);
+    const at = (o) => o.getWorldPosition(new THREE.Vector3());
+    // Blickrichtung der Kanzel
+    const look = new THREE.Vector3(0, 0, -1).applyQuaternion(
+      cabin.getWorldQuaternion(new THREE.Quaternion()),
+    );
+    return { foot: at(foot), hip: at(hip), look };
+  };
+  const rest = build(0.3, 0),
+    up = build(0.3, 8 * RAD),
+    down = build(0.3, -10 * RAD);
+  assert.ok(rest.foot.distanceTo(up.foot) < 1e-6, 'Fuß bleibt beim Neigen stehen');
+  assert.ok(rest.foot.distanceTo(down.foot) < 1e-6);
+  assert.ok(rest.hip.distanceTo(up.hip) < 1e-6, 'Drehpunkt ist die Hüfte');
+  assert.ok(up.look.y > rest.look.y + 0.1, 'positiv = nach oben');
+  assert.ok(down.look.y < rest.look.y - 0.1);
+});

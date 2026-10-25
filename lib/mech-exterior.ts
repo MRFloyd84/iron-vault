@@ -22,6 +22,11 @@ export const MECH = {
   orbitTargetY: 2.1,
 } as const;
 export const MECH_ASSET = assetUrl('models/iron-vault-rigged.glb');
+/** Hüfthöhe im Modell (Modelleinheiten): Trennung Ober-/Unterkörper, Drehpunkt fürs Neigen. */
+export const WAIST_Y = 0.565;
+/** Hüfte in Kanzel-Koordinaten (Kanzel ist um cabinScale verkleinert). */
+const WAIST_CABIN_Y =
+  (MECH.floor - MECH.cabinLift) / MECH.cabinScale + (WAIST_Y * MECH.modelScale) / MECH.cabinScale;
 type WalkPose = CockpitScene['walkPose'];
 type Leg = {
   side: number;
@@ -57,6 +62,7 @@ export function applyMechBodyPose(
   motion = 1,
   updateChildren = true,
   torsoYaw = 0,
+  torsoPitch = 0,
 ) {
   const amount = gaitAmount(walk) * motion,
     phase = walk.phase * Math.PI * 2;
@@ -88,6 +94,19 @@ export function applyMechBodyPose(
         .applyQuaternion(cabin.quaternion),
     );
     cabin.rotateY(torsoYaw);
+  }
+  // Oberkörper neigen: um die Hüfte (nicht um die Kanzel), nach oben positiv.
+  if (torsoPitch) {
+    const y = WAIST_CABIN_Y,
+      z = WALK.originZ,
+      c = Math.cos(torsoPitch),
+      sn = Math.sin(torsoPitch);
+    cabin.position.add(
+      new THREE.Vector3(0, y - (y * c - z * sn), z - (y * sn + z * c))
+        .multiplyScalar(MECH.cabinScale)
+        .applyQuaternion(cabin.quaternion),
+    );
+    cabin.rotateX(torsoPitch);
   }
   if (updateChildren) cabin.updateMatrixWorld(true);
   else cabin.updateWorldMatrix(true, false);
@@ -321,6 +340,15 @@ function aimJoint(joint: THREE.Object3D, rest: THREE.Vector3, target: THREE.Vect
   joint.updateMatrixWorld(true);
 }
 
+/**
+ * Becken hebt Drehen und Neigen des Oberkörpers wieder auf: Beine bleiben stehen.
+ * Im Modell zeigt +x zur anderen Seite (Modell um 180° gedreht) – daher +pitch.
+ */
+export function pelvisCounterPose(pelvis: THREE.Object3D, torso: number, pitch: number) {
+  pelvis.rotation.set(pitch, -torso, 0, 'XYZ');
+  pelvis.position.set(0, WAIST_Y - WAIST_Y * Math.cos(pitch), -WAIST_Y * Math.sin(pitch));
+}
+
 // Exposed separately for non-browser tests against the actual imported asset.
 export function animateMechanicalRig(
   model: THREE.Object3D,
@@ -333,7 +361,7 @@ export function animateMechanicalRig(
   const moving = gaitAmount(walk);
   const pelvis = model.getObjectByName('PelvisFrame');
   if (pelvis) {
-    pelvis.rotation.y = -(joints?.torso ?? 0);
+    pelvisCounterPose(pelvis, joints?.torso ?? 0, joints?.pitch ?? 0);
     pelvis.updateMatrixWorld(true);
   }
   const pole = new THREE.Vector3(-Math.sin(walk.yaw), 0, -Math.cos(walk.yaw));

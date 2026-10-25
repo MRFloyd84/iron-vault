@@ -29,7 +29,7 @@ import {
   dcPowerAvailable,
   type MachineState,
 } from '../lib/machine';
-import { walkInput, idleInput, walkSetting, walkingStopped } from '../lib/walking';
+import { walkInput, idleInput, walkSetting, walkingStopped, walkGear } from '../lib/walking';
 import { hangarCommand } from '../lib/hangar';
 import { mobilityCommand, restraintLabel } from '../lib/mobility';
 import { serviceWarning, electricalReadings, sourceLabel } from '../lib/service-systems';
@@ -381,7 +381,14 @@ export default function Cockpit() {
       'KeyE',
       'ShiftLeft',
       'ShiftRight',
+      'PitchUp',
+      'PitchDown',
     ];
+    // X/Y nach Beschriftung (QWERTZ und QWERTY): Oberkörper leicht nach oben/unten neigen
+    const virtualCode = (e: KeyboardEvent) => {
+      const k = e.key.toLowerCase();
+      return k === 'x' ? 'PitchUp' : k === 'y' ? 'PitchDown' : e.code;
+    };
     const updateInput = () => {
       const keys = held.current;
       const k = (code: string) => Number(keys.has(code));
@@ -409,6 +416,7 @@ export default function Cockpit() {
         jointInput(stateRef.current, {
           ...neutralJoints(),
           torso: Number(keys.has('KeyQ')) - Number(keys.has('KeyE')),
+          pitch: Number(keys.has('PitchUp')) - Number(keys.has('PitchDown')),
         }),
       );
     };
@@ -429,14 +437,24 @@ export default function Cockpit() {
         walkingStopped(stateRef.current)
       )
         return;
-      if (movementCodes.includes(e.code)) {
+      const code = virtualCode(e);
+      // Umschalt: Geschwindigkeitsstufe (fliegt die Drohne, gehört Umschalt ihr)
+      if (
+        (e.code === 'ShiftLeft' || e.code === 'ShiftRight') &&
+        !e.repeat &&
+        !helpRef.current &&
+        scene.current &&
+        !scene.current.droneInfo().controls
+      )
+        apply(walkGear(stateRef.current));
+      if (movementCodes.includes(code)) {
         if (helpRef.current || !scene.current) return;
         if ((scene.current.inHangar || scene.current.inYard) && !scene.current.droneInfo().controls)
           return;
         e.preventDefault();
         if (e.target instanceof HTMLButtonElement) e.target.blur();
-        if (e.repeat || held.current.has(e.code)) return;
-        held.current.add(e.code);
+        if (e.repeat || held.current.has(code)) return;
+        held.current.add(code);
         updateInput();
         void audio.current?.enable().catch(() => {});
         return;
@@ -506,14 +524,14 @@ export default function Cockpit() {
       if (e.key.toLowerCase() === 'l') operate.current(10);
       if (e.key.toLowerCase() === 'n' && !e.repeat) toggleNight();
       if (e.key.toLowerCase() === 'j' && !e.repeat) toggleHeadlights();
-      if (e.key.toLowerCase() === 'x' && !e.repeat) toggleRain();
+      if (e.key.toLowerCase() === 'z' && !e.repeat) toggleRain();
       if (e.key.toLowerCase() === 'm' && !e.repeat) toggleArmed();
       if (e.key.toLowerCase() === 'p' && !e.repeat) toggleLaser();
       if (e.key.toLowerCase() === 't') operate.current(30);
       if (e.key.toLowerCase() === 'k') operate.current(35);
     };
     const keyup = (e: KeyboardEvent) => {
-      if (held.current.delete(e.code)) {
+      if (held.current.delete(virtualCode(e)) || held.current.delete(e.code)) {
         e.preventDefault();
         updateInput();
       }
@@ -756,7 +774,9 @@ export default function Cockpit() {
                     ? 'AUSSENKAMERA · PRÜFSTRECKE'
                     : cameraView === 'hangar'
                       ? 'HALLENKAMERA · WARTUNGSBEREICH'
-                      : 'PILOTENSICHT · ' + restraintLabel(state),
+                      : 'PILOTENSICHT · ' +
+                        restraintLabel(state) +
+                        (state.walk.gear === 2 ? ' · STUFE 2' : ''),
             )}
           </div>
           {track?.active && track.active.status === 'active' && (
@@ -808,6 +828,13 @@ export default function Cockpit() {
             }}
           >
             {tr('GELENKE [B]')}
+          </button>
+          <button
+            aria-pressed={state.walk.gear === 2}
+            title={tr('Geschwindigkeitsstufe: Schritt oder Eilmarsch (Umschalt)')}
+            onClick={() => apply(walkGear(stateRef.current))}
+          >
+            {tr(state.walk.gear === 2 ? 'STUFE 2 [⇧]' : 'STUFE 1 [⇧]')}
           </button>
           <button
             className="mech-view group-end"
@@ -902,7 +929,7 @@ export default function Cockpit() {
             {tr('LASER [P]')}
           </button>
           <button aria-pressed={rain} onClick={toggleRain}>
-            {tr('REGEN [X]')}
+            {tr('REGEN [Z]')}
           </button>
           <button aria-pressed={night} onClick={toggleNight}>
             {tr(night ? 'NACHT [N]' : 'TAG [N]')}

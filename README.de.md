@@ -110,7 +110,9 @@ Der **?**-Knopf oben rechts erklärt alles. Kurz:
 | M, P, J | Waffen, Laser, Scheinwerfer |
 | C, Tab | Drohne starten/zurückrufen, Drohnensicht |
 | I | Einsatzleitung und Karte |
-| N, X, L | Tag/Nacht, Regen, Kabinenlicht |
+| N, Z, L | Tag/Nacht, Regen, Kabinenlicht |
+| X / Y | Oberkörper nach oben / unten neigen |
+| Umschalt | Geschwindigkeitsstufe 1 / 2 |
 
 ## Technik
 

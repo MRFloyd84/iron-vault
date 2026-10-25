@@ -23,6 +23,7 @@ export default function ArticulationPanel({
   const block = articulationBlock(s),
     rows: [Joint, string][] = [
       ['torso', 'TORSO · LINKS / RECHTS'],
+      ['pitch', 'TORSO · NEIGEN (X / Y)'],
       [side === 'left' ? 'leftShoulder' : 'rightShoulder', 'SCHULTER · ANHEBEN'],
       [side === 'left' ? 'leftElbow' : 'rightElbow', 'ELLENBOGEN · BEUGEN'],
     ];

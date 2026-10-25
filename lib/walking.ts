@@ -21,11 +21,15 @@ export type WalkState = {
   sway: number;
   blocked: string;
   input: WalkInput;
+  /** Geschwindigkeitsstufe: 1 = Schritt, 2 = Eilmarsch (nur außerhalb der Halle) */
+  gear: 1 | 2;
 };
 export const WALK = {
   radius: 4.65,
   originZ: 1.3,
   maxSpeed: 2.2,
+  /** Stufe 2 (Eilmarsch), vorwärts */
+  fastSpeed: 4,
   reverseSpeed: 1.1,
   turnSpeed: 0.28,
   accel: 0.65,
@@ -50,7 +54,25 @@ export const initialWalk = (): WalkState => ({
   sway: 0.4,
   blocked: '',
   input: idleInput(),
+  gear: 1,
 });
+/** Stufe 2 gilt erst draußen; in der Halle und am Tor bleibt es beim Schritt. */
+export const fastAllowed = (x: number, z: number) => z < -40 || Math.abs(x) > 20;
+/** Umschalten zwischen Schritt und Eilmarsch. */
+export function walkGear(s: MachineState): MachineState {
+  const gear = s.walk.gear === 2 ? 1 : 2;
+  return {
+    ...s,
+    walk: { ...s.walk, gear },
+    error: false,
+    message:
+      gear === 2
+        ? fastAllowed(s.walk.x, s.walk.z)
+          ? 'Stufe 2: Eilmarsch, bis 14 km/h.'
+          : 'Stufe 2 gewählt – wirkt erst außerhalb der Halle.'
+        : 'Stufe 1: Schritt, bis 8 km/h.',
+  };
+}
 export const walkingStopped = (s: MachineState) =>
   Math.abs(s.walk.speed) < 0.02 && Math.abs(s.walk.turnRate) < 0.005;
 export const atServiceBay = (s: MachineState) =>
@@ -249,7 +271,8 @@ export function advanceWalking(state: MachineState, dt: number): MachineState {
   const demand = permitted && !input.brake;
   const forward = demand ? input.forward : 0,
     turn = demand ? input.turn : 0;
-  const target = forward * (forward < 0 ? WALK.reverseSpeed : WALK.maxSpeed) * state.throttle;
+  const top = w.gear === 2 && fastAllowed(w.x, w.z) ? WALK.fastSpeed : WALK.maxSpeed;
+  const target = forward * (forward < 0 ? WALK.reverseSpeed : top) * state.throttle;
   const targetTurn = turn * WALK.turnSpeed * Math.sqrt(state.throttle);
   const steps = Math.max(1, Math.ceil(Math.min(0.5, dt) / 0.025)),
     h = Math.min(0.5, dt) / steps;

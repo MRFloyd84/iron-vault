@@ -12,11 +12,11 @@ export const HELP: Record<Lang, Help> = {
       ],
       [
         'Gehen / WASD',
-        'Nach LINK und gelöster Parkverriegelung: Hangartor öffnen, im rechten Display GEHEN wählen und Leistung auf mindestens 25 % stellen. W vorwärts, S rückwärts, A/D drehen. Loslassen bremst sanft; Leertaste hält die Schnellbremse. Bild auf/ab verändert die Leistungsbegrenzung. Maximal rund 8 km/h vorwärts, 4 km/h rückwärts. Mauern, Tore, Container und Streckenbarrieren blockieren den Weg. Die Rampe mittig und gerade anfahren.',
+        'Nach LINK und gelöster Parkverriegelung: Hangartor öffnen, im rechten Display GEHEN wählen und Leistung auf mindestens 25 % stellen. W vorwärts, S rückwärts, A/D drehen. Loslassen bremst sanft; Leertaste hält die Schnellbremse. Bild auf/ab verändert die Leistungsbegrenzung. Maximal rund 8 km/h vorwärts, 4 km/h rückwärts. Umschalt wechselt in Stufe 2 (Eilmarsch, bis 14 km/h vorwärts) und zurück; Stufe 2 wirkt erst außerhalb der Halle. Mauern, Tore, Container und Streckenbarrieren blockieren den Weg. Die Rampe mittig und gerade anfahren.',
       ],
       [
         'Torso und Arme / B',
-        'GELENKE [B] öffnet die Steuerung. Q/E dreht den Torso bis 45° nach links/rechts, unabhängig von der Laufrichtung. Das Cockpit und seine Kameras drehen mit. Im Bedienfeld linken oder rechten Arm wählen, dann Schulter und Ellenbogen getrennt einstellen. R fährt alle Gelenke langsam in Grundstellung. LINK, gesunde Hydraulik und gelöste Parkverriegelung sind nötig. Arme nur im freien Testgelände ausfahren und vor engen Durchfahrten wieder einziehen. Bei Strom- oder Freigabeverlust halten die Gelenke; alte Bewegungsziele werden verworfen. Die Waffenarme besitzen noch keine Greifer.',
+        'GELENKE [B] öffnet die Steuerung. Q/E dreht den Torso bis 45° nach links/rechts, unabhängig von der Laufrichtung. Das Cockpit und seine Kameras drehen mit. X neigt den Oberkörper leicht nach oben (bis 8°), Y nach unten (bis 10°) – praktisch für Ziele am Hang. Im Bedienfeld linken oder rechten Arm wählen, dann Schulter und Ellenbogen getrennt einstellen. R fährt alle Gelenke langsam in Grundstellung. LINK, gesunde Hydraulik und gelöste Parkverriegelung sind nötig. Arme nur im freien Testgelände ausfahren und vor engen Durchfahrten wieder einziehen. Bei Strom- oder Freigabeverlust halten die Gelenke; alte Bewegungsziele werden verworfen. Die Waffenarme besitzen noch keine Greifer.',
       ],
       [
         'Schrittbewegung',
@@ -128,7 +128,7 @@ export const HELP: Record<Lang, Help> = {
         'Am Ende des Testgeländes stehen sieben Klappziele aus Stahl (fallen bei Treffer um und richten sich nach sechs Sekunden wieder auf), daneben zwei alte Fahrzeugwracks. Treffer und Schüsse zählt das HUD.',
       ],
       [
-        'Regen / Taste X',
+        'Regen / Taste Z',
         'Lässt es regnen: Regenschleier, der im Scheinwerferkegel aufleuchtet, nasser Asphalt mit Pfützen, nasse Panzerung (trocknet in der Halle langsam), Tropfen auf der Frontscheibe und Regenrauschen – in der Kanzel dumpf trommelnd, draußen hell. Bei starkem Regen zieht ein Gewitter auf: Blitze erhellen den Himmel, der Donner folgt je nach Entfernung. Unter dem Hallendach bleibt es trocken. Licht und Schatten werden trüber, der Nebel dichter.',
       ],
       [
@@ -155,11 +155,11 @@ export const HELP: Record<Lang, Help> = {
       ],
       [
         'Walking / WASD',
-        'After LINK and with the parking lock released: open the hangar door, select WALK on the right display and set power to at least 25 %. W forward, S reverse, A/D turn. Releasing the keys brakes gently; holding Space applies the emergency brake. Page Up/Down changes the power limit. Top speed is about 8 km/h forward, 4 km/h in reverse. Walls, doors, containers and track barriers block the way. Approach the ramp centred and straight.',
+        'After LINK and with the parking lock released: open the hangar door, select WALK on the right display and set power to at least 25 %. W forward, S reverse, A/D turn. Releasing the keys brakes gently; holding Space applies the emergency brake. Page Up/Down changes the power limit. Top speed is about 8 km/h forward, 4 km/h in reverse. Shift switches to gear 2 (forced march, up to 14 km/h forward) and back; gear 2 only takes effect outside the hall. Walls, doors, containers and track barriers block the way. Approach the ramp centred and straight.',
       ],
       [
         'Torso and arms / B',
-        'JOINTS [B] opens the controls. Q/E turns the torso up to 45° left/right, independent of the walking direction. The cockpit and its cameras turn with it. Select the left or right arm in the panel, then set shoulder and elbow separately. R slowly returns all joints to the neutral position. LINK, healthy hydraulics and a released parking lock are required. Only extend the arms in the open test ground and retract them before narrow passages. On loss of power or clearance the joints hold; old motion targets are discarded. The weapon arms have no grippers yet.',
+        'JOINTS [B] opens the controls. Q/E turns the torso up to 45° left/right, independent of the walking direction. The cockpit and its cameras turn with it. X tilts the upper body slightly up (up to 8°), Y down (up to 10°) – handy for targets on slopes. Select the left or right arm in the panel, then set shoulder and elbow separately. R slowly returns all joints to the neutral position. LINK, healthy hydraulics and a released parking lock are required. Only extend the arms in the open test ground and retract them before narrow passages. On loss of power or clearance the joints hold; old motion targets are discarded. The weapon arms have no grippers yet.',
       ],
       [
         'Step motion',
@@ -268,7 +268,7 @@ export const HELP: Record<Lang, Help> = {
         'At the end of the test ground stand seven steel knock-down targets (they fall when hit and rise again after six seconds), next to them two old vehicle wrecks. The HUD counts hits and shots.',
       ],
       [
-        'Rain / key X',
+        'Rain / key Z',
         'Makes it rain: rain curtain lighting up in the headlight beams, wet asphalt with puddles, wet armour (dries slowly in the hall), drops on the windscreen and the sound of rain – a dull drumming in the cabin, bright outside. In heavy rain a thunderstorm rolls in: lightning lights up the sky, the thunder follows depending on distance. Under the hall roof it stays dry. Light and shadows become duller, the fog denser.',
       ],
       [

@@ -1678,6 +1678,7 @@ export class CockpitScene {
       outside ? 1 : this.reduced ? 0 : Math.min(1, s.walk.sway / 0.4),
       false,
       this.jointPose.torso,
+      this.jointPose.pitch,
     );
     this.exterior?.update(
       this.cabin,
