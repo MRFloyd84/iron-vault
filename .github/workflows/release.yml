@@ -1,33 +1,51 @@
-# Baut bei jedem Versions-Tag (z. B. v0.59.0) das AppImage und veröffentlicht es als
-# GitHub-Release. Die installierte App findet es beim nächsten Start (electron-updater).
+# Veröffentlicht automatisch ein GitHub-Release, sobald auf `main` eine neue Version in
+# package.json ankommt (oder per Hand über „Run workflow“). Die installierte App findet
+# es beim nächsten Start (electron-updater). Gibt es das Release zur Version schon,
+# passiert nichts.
 name: Release
 
 on:
   push:
-    tags: ['v*']
+    branches: [main]
+    paths: [package.json]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   appimage:
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
+      - name: Version bestimmen, vorhandenes Release überspringen
+        id: version
+        run: |
+          v="v$(node -p "require('./package.json').version")"
+          echo "tag=$v" >> "$GITHUB_OUTPUT"
+          if gh release view "$v" >/dev/null 2>&1; then
+            echo "Release $v gibt es schon – nichts zu tun."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-node@v4
+        if: steps.version.outputs.skip != 'true'
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - if: steps.version.outputs.skip != 'true'
+        run: npm ci
       # Typen, Lint, alle Tests und der Vite-Build – nur ein grünes Projekt wird veröffentlicht.
-      - run: npm run check
-      - name: Tag passt zur Version in package.json
-        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      - if: steps.version.outputs.skip != 'true'
+        run: npm run check
       - name: AppImage bauen und als Release veröffentlichen
+        if: steps.version.outputs.skip != 'true'
         run: npx electron-builder --linux AppImage --publish always
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Installationsskript anhängen
-        run: gh release upload "$GITHUB_REF_NAME" scripts/install-desktop.sh --clobber
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: steps.version.outputs.skip != 'true'
+        run: gh release upload "${{ steps.version.outputs.tag }}" scripts/install-desktop.sh --clobber
