@@ -487,6 +487,10 @@ export class MechExterior {
                 o.parent?.parent?.name === 'IV headlight'
               )
                 continue;
+              // Beidseitig: Das Modell ist in starre Teile zerlegt. Drehen Schulter, Ellbogen
+              // oder Knie, öffnen sich an den Nähten kleine Spalte; einseitig sähe man dort
+              // durch die Panzerung hindurch (helle, zackige Risse beim Gehen).
+              material.side = THREE.DoubleSide;
               material.envMapIntensity = 0.4;
               material.roughness = 1;
               material.metalness = 0.8;

@@ -1,7 +1,7 @@
 # IRON VAULT – Quellprojekt, Version 59
 
-Stand: 24.10.2026. v46: Aufräumen und neue Oberfläche, v47: Röhren-Look der Displays, v48: Außenhülle, Scheinwerfer, Tag/Nacht, v49: Rundumleuchte am Rücken, v50: Schatten, Schrittgewicht, Regen, v51: Regen-/Donneraufnahmen, Gewitter, v52: Armkanonen, Laser, Schießstand, v53: gealterte Kanzel, giftgrüne Displays, v54: Schwesterschiff IV-02, v55: Füße fest am Boden, Hydraulik an den Beinen, v56: Hydraulikgeräusche, v57: Desktop-App (AppImage), v58: automatische Updates über GitHub, v59: Englisch und Sprachmenü, v59.1: Lizenzbereinigung (IV-02 optional), v59.2: Rundumleuchte sitzt fest.
-Was sich geändert hat, steht in `AENDERUNGEN_v46.md` bis `AENDERUNGEN_v59_2.md`.
+Stand: 24.10.2026. v46: Aufräumen und neue Oberfläche, v47: Röhren-Look der Displays, v48: Außenhülle, Scheinwerfer, Tag/Nacht, v49: Rundumleuchte am Rücken, v50: Schatten, Schrittgewicht, Regen, v51: Regen-/Donneraufnahmen, Gewitter, v52: Armkanonen, Laser, Schießstand, v53: gealterte Kanzel, giftgrüne Displays, v54: Schwesterschiff IV-02, v55: Füße fest am Boden, Hydraulik an den Beinen, v56: Hydraulikgeräusche, v57: Desktop-App (AppImage), v58: automatische Updates über GitHub, v59: Englisch und Sprachmenü, v59.1: Lizenzbereinigung (IV-02 optional), v59.2: Rundumleuchte sitzt fest, v59.3: keine Risse an Schultern und Ellbogen.
+Was sich geändert hat, steht in `AENDERUNGEN_v46.md` bis `AENDERUNGEN_v59_3.md`.
 
 Das ist eine Three.js-/React-Browsersimulation. Seit v46 ist sie ein reines
 **Vite-Projekt** ohne Server-Anteil: `npm run build` erzeugt einen statischen Ordner

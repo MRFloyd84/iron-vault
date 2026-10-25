@@ -1,6 +1,6 @@
 {
   "name": "iron-vault",
-  "version": "0.59.2",
+  "version": "0.59.3",
   "private": true,
   "description": "IRON VAULT – 3D-Mech-Pilotenkanzel (Three.js + React + Vite), im Browser oder als Desktop-App",
   "author": "Rene",
