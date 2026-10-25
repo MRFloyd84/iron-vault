@@ -1,0 +1,29 @@
+# Einmaliges Werkzeug: setzt einen Versions-Tag auf einen anderen Commit (z. B. nach einer
+# Bereinigung der Historie). Start nur per Hand unter Actions → Retag → „Run workflow“.
+name: Retag
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag, z. B. v0.59.0
+        required: true
+      sha:
+        description: Ziel-Commit (volle SHA)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  retag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Tag versetzen
+        run: |
+          git cat-file -e "${{ inputs.sha }}^{commit}"
+          git tag -f "${{ inputs.tag }}" "${{ inputs.sha }}"
+          git push -f origin "refs/tags/${{ inputs.tag }}"
