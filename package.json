@@ -4,6 +4,7 @@
   "private": true,
   "description": "IRON VAULT – 3D-Mech-Pilotenkanzel (Three.js + React + Vite), im Browser oder als Desktop-App",
   "author": "Rene",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/MRFloyd84/iron-vault.git"

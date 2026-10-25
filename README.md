@@ -121,4 +121,11 @@ in [`docs/ENTWICKLUNG_BIS_v45.md`](docs/ENTWICKLUNG_BIS_v45.md).
   `public/audio/*-sources.json`), hydraulic sounds generated with ElevenLabs, everything
   else synthesised with Web Audio.
 
-There is no open-source licence for this project yet.
+## Licence
+
+The source code is open source under the [MIT licence](LICENSE) – use it, change it,
+share it. Models, textures and sound recordings are excluded and keep the terms of their
+sources; see [ASSETS.md](ASSETS.md).
+
+Contributions, bug reports and ideas are welcome as
+[issues](https://github.com/MRFloyd84/iron-vault/issues) or pull requests.

@@ -116,4 +116,11 @@ Shader. Geräusche sind Aufnahmen und Web-Audio-Synthese.
   `public/audio/*-sources.json`), Hydraulikgeräusche mit ElevenLabs erzeugt, alles Übrige
   mit Web Audio synthetisiert.
 
-Für das Projekt ist noch keine Open-Source-Lizenz festgelegt.
+## Lizenz
+
+Der Quelltext ist Open Source unter der [MIT-Lizenz](LICENSE) – nutzen, ändern,
+weitergeben. Ausgenommen sind Modelle, Texturen und Geräuschaufnahmen; für sie gelten die
+Bedingungen ihrer Quellen, siehe [ASSETS.md](ASSETS.md).
+
+Beiträge, Fehlermeldungen und Ideen gern als
+[Issues](https://github.com/MRFloyd84/iron-vault/issues) oder Pull Requests.
