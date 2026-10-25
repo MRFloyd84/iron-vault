@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { hash } from './display-aging';
 import { FiringRange, type Hit, type HitKind } from './firing-range';
 import { WEAPON } from './weapons';
+import { groundHeight } from './walking';
 
 const ROUNDS = 96;
 const SPARKS = 480;
@@ -71,7 +72,7 @@ function flashTexture() {
   return t;
 }
 
-export type ImpactEvent = { kind: HitKind; point: THREE.Vector3; plate?: number };
+export type ImpactEvent = { kind: HitKind; point: THREE.Vector3; plate?: number; target?: string };
 
 export class WeaponSystem {
   range: FiringRange;
@@ -398,7 +399,7 @@ export class WeaponSystem {
         const seed = Math.floor(time * 997) + n;
         this.spawnSparks(hit.point, hit.normal, hit.kind === 'ground' ? 10 : 22, time, seed);
         this.mark(hit, time);
-        events.push({ kind: hit.kind, point: hit.point.clone(), plate: hit.plate });
+        events.push({ kind: hit.kind, point: hit.point.clone(), plate: hit.plate, target: hit.target });
         continue;
       }
       if (r.age > 2.2) {
@@ -437,7 +438,7 @@ export class WeaponSystem {
       c.age += dt;
       c.vel.y -= 9.81 * dt;
       c.pos.addScaledVector(c.vel, dt);
-      const floor = -2.58;
+      const floor = -2.58 + groundHeight(c.pos.x, c.pos.z);
       if (c.pos.y < floor) {
         c.pos.y = floor;
         c.vel.y *= -0.3;

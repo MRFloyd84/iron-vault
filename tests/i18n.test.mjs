@@ -15,6 +15,7 @@ const NOT_SHOWN = new Set([
   'Sprunggelenk',
   'Deutsch',
   'yard-container',
+  'container',
   // Im Englischen gleich bzw. Eigenname (Namensschild)
   'Container',
   'MÜLLER K.',

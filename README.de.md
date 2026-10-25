@@ -4,8 +4,8 @@
 
 Eine Cockpit-Simulation eines alten, verschlissenen Lauf-Mechs – **IV-04** – in 3D. Du
 sitzt in der Pilotenkapsel, fährst die Maschine Schalter für Schalter aus dem Kaltstart
-hoch, läufst aus dem Hangar ins Testgelände und schießt am Schießstand mit den
-Armkanonen. Läuft im Browser oder als Linux-Desktop-App.
+hoch, läufst aus dem Hangar in die Wüste und erledigst mit Armkanonen und Drohne
+Aufklärungs- und Zerstörungseinsätze. Läuft im Browser oder als Linux-Desktop-App.
 
 **▶ [Im Browser spielen](https://mrfloyd84.github.io/iron-vault/)** – ohne Installation
 (Desktop-Browser mit WebGL, Ton an). · **[Für Linux herunterladen](https://github.com/MRFloyd84/iron-vault/releases/latest)**
@@ -28,6 +28,14 @@ Armkanonen. Läuft im Browser oder als Linux-Desktop-App.
 - **Aufklärungsdrohne:** Auf dem Rücken sitzt ein geflickter Quadrocopter. Starten, mit
   Tastatur und Maus fliegen – auf dem Kameramonitor im Cockpit oder im Vollbild – und Ziele
   für die Armkanonen per Laser markieren. Begrenzter Akku und Funk; sie fliegt selbst heim.
+- **Wüste mit 1,5 × 1,5 km:** Pisten zu Raffinerie, Förderanlage, Funkstation auf dem
+  Kamm, Munitionsdepot und Ruinensiedlung; Pipeline, Stromleitung, Tafelberge, ein
+  Dünenfeld und das verschollene Wrack von IV-01. IV-04 läuft am Hang; zu steiles Gelände
+  lehnt die Steuerung ab.
+- **Einsätze:** sechs Aufklärungs- und Zerstörungseinsätze aus der Einsatzleitung mit
+  Reliefkarte – Objekte mit der Drohne erfassen, Tanks, Radar, Lastwagen und
+  Schieberstationen zerstören (Explosionen, Brand, Rauch), dann zurück in die Halle. Ein
+  echtes Taktik-Display und ein Wegweiser führen.
 - **Wetter und Licht:** Tag/Nacht, Scheinwerfer und Rundumleuchte, Regen mit nasser
   Panzerung, Pfützen und Tropfen auf der Scheibe, Gewitter.
 - **Eine alte Maschine:** flimmernde Röhrendisplays in Giftgrün, abgenutzter Lack, Zettel
@@ -39,7 +47,8 @@ Armkanonen. Läuft im Browser oder als Linux-Desktop-App.
 | | |
 | --- | --- |
 | ![IV-04 im Hangar](docs/img/mech.jpg) | ![Hydraulikzylinder an den Beinen](docs/img/hydraulics.jpg) |
-| ![IV-02, das abgestellte Schwesterschiff](docs/img/iv-02.jpg) | |
+| ![IV-02, das abgestellte Schwesterschiff](docs/img/iv-02.jpg) | ![Die Wüste rund um das Testgelände](docs/img/desert.jpg) |
+| ![Einsatzleitung mit Reliefkarte](docs/img/missions.jpg) | |
 
 ## Herunterladen (Linux-Desktop-App)
 
@@ -100,6 +109,7 @@ Der **?**-Knopf oben rechts erklärt alles. Kurz:
 | V / H / U | Mech-Außenansicht / Hallenkamera / Testgelände |
 | M, P, J | Waffen, Laser, Scheinwerfer |
 | C, Tab | Drohne starten/zurückrufen, Drohnensicht |
+| I | Einsatzleitung und Karte |
 | N, X, L | Tag/Nacht, Regen, Kabinenlicht |
 
 ## Technik

@@ -45,6 +45,10 @@ export class MachineAudio {
     w?.shot();
   }
   /** Einschlag in `distance` Metern. */
+  /** Explosion eines Ziels (Entfernung zum Hörer, Größe). */
+  explosion(distance: number, size: number) {
+    this.weaponAudio()?.explosion(distance, size);
+  }
   impact(kind: 'steel' | 'wreck' | 'ground', distance: number) {
     this.weaponAudio()?.impact(kind, distance);
   }

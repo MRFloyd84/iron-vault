@@ -21,13 +21,6 @@ export function buildYard(host: CockpitScene) {
   const pale = host.mat({ color: 0xa2b3b1, metalness: 0.5, roughness: 0.54 });
   const yellow = host.mat({ color: 0xc5a151, roughness: 0.78 });
   const white = host.mat({ color: 0xc7c9b9, roughness: 0.85 });
-  const earth = host.mat({
-    color: 0x4b514c,
-    roughness: 1,
-    map: concrete.map,
-    normalMap: concrete.normalMap,
-    normalScale: new THREE.Vector2(0.55, 0.55),
-  });
   const lamp = host.mat({
     color: 0xffe6b3,
     emissive: 0xffc876,
@@ -35,7 +28,7 @@ export function buildYard(host: CockpitScene) {
     toneMapped: false,
   });
   const cyan = host.mat({ color: 0x70adbc, emissive: 0x4c909c, emissiveIntensity: 0.8 });
-  const materials = [concrete, asphalt, container, steel, pale, yellow, white, earth];
+  const materials = [concrete, asphalt, container, steel, pale, yellow, white];
   const block = (
     x: number,
     y: number,
@@ -54,33 +47,7 @@ export function buildYard(host: CockpitScene) {
   block(0, -2.81, -104, 110, 0.4, 138);
   block(0, -2.8, -140, 16, 0.4, 210, asphalt);
   block(0, -2.81, -36.3, 34, 0.4, 4);
-  const terrain = new THREE.PlaneGeometry(460, 430, 46, 43);
-  terrain.rotateX(-Math.PI / 2);
-  const points = terrain.getAttribute('position'),
-    uv = terrain.getAttribute('uv');
-  for (let i = 0; i < points.count; i++) {
-    const x = points.getX(i),
-      z = points.getZ(i) - 125;
-    uv.setXY(i, x, z);
-    const edge = Math.max(0, Math.abs(x) - 65, -z - 247) / 110;
-    points.setXYZ(
-      i,
-      x,
-      YARD.floor -
-        0.27 +
-        Math.min(1, edge) *
-          Math.max(
-            0,
-            17 + 12 * Math.sin(x * 0.029 + z * 0.019) + 8 * Math.cos(z * 0.044 - x * 0.012),
-          ),
-      z,
-    );
-  }
-  terrain.computeVertexNormals();
-  host.geometries.set('yard-terrain', terrain);
-  const ground = new THREE.Mesh(terrain, earth);
-  ground.receiveShadow = true;
-  root.add(ground);
+  // Das umgebende Gelände (Wüste, 1,5 km) baut world-scene.ts.
   for (const x of [-8.15, 8.15]) mark(x, -137, 0.16, 200);
   for (let z = -47; z > -222; z -= 12) mark(0, z, 0.15, 4, white);
   for (let z = -48; z > -160; z -= 17)

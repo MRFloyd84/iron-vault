@@ -17,7 +17,7 @@ test('day values match v48 except the softer sky reflection (sun carries light s
   assert.ok(Math.abs(day.skyIntensity - 0.8) < 1e-12);
   assert.equal(day.hemiIntensity, 0.2);
   assert.equal(day.hemiSky.getHex(), 0x91aea8);
-  assert.equal(day.fogColor.getHex(), 0x39444a);
+  assert.equal(day.fogColor.getHex(), 0x8a7f70);
   assert.equal(day.yardEnv, 0.55);
   assert.equal(day.envScale, 1);
   assert.equal(day.lampGlow, 3);

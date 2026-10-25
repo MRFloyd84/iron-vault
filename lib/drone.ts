@@ -1,6 +1,7 @@
 // Aufklärungsdrohne von IV-04: sitzt in einer Halterung auf dem Rücken, startet auf Knopfdruck,
 // wird mit Tastatur und Maus geflogen und kehrt bei leerem Akku oder Funkverlust selbst zurück.
 // Reine Logik ohne three.js (Weltkoordinaten in Metern, y nach oben), damit sie testbar ist.
+import { MAP } from './terrain';
 import type { MachineState } from './machine';
 import { mainPowerAvailable } from './machine';
 import { SHELTER } from './weather';
@@ -52,8 +53,8 @@ export const DRONE = {
   /** Ladezeit leer → voll in der Halterung (Sekunden) */
   recharge: 90,
   /** Funk: voll bis hier, dann abnehmend bis lost */
-  signalFull: 120,
-  signalLost: 230,
+  signalFull: 200,
+  signalLost: 340,
   minBattery: 0.06,
   lowBattery: 0.2,
   spinup: 2.4,
@@ -244,9 +245,9 @@ export function stepDrone(
   n.vel.z += Math.sin(w.time * 1.1 + 4.1) * gust * dt;
   n.vel.y += Math.sin(w.time * 2.3) * gust * 0.4 * dt;
   const next = {
-    x: clamp(n.pos.x + n.vel.x * dt, -49, 49),
+    x: clamp(n.pos.x + n.vel.x * dt, MAP.minX + 20, MAP.maxX - 20),
     y: n.pos.y + n.vel.y * dt,
-    z: clamp(n.pos.z + n.vel.z * dt, -228, 12),
+    z: clamp(n.pos.z + n.vel.z * dt, MAP.minZ + 20, 12),
   };
   const floor = w.ground(next.x, next.z) + DRONE.minClearance;
   if (next.y < floor) {

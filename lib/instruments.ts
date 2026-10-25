@@ -16,7 +16,26 @@ import {
 import { tr } from './i18n';
 import { assetUrl } from './asset-url';
 export type TelemetrySample = { pressure: number; temperature: number };
-export type InstrumentAssets = { structureAtlas?: CanvasImageSource };
+/** Lagebild für das Taktik-Display (Welt in Metern, Norden = −z). */
+export type Tactical = {
+  x: number;
+  z: number;
+  yaw: number;
+  drone: { x: number; z: number } | null;
+  roads: readonly (readonly [number, number])[][];
+  blips: { x: number; z: number }[];
+  targets: { x: number; z: number; destroyed: boolean; objective: boolean }[];
+  objective: {
+    x: number;
+    z: number;
+    r: number;
+    exact: boolean;
+    label: string;
+    distance: number;
+  } | null;
+  mission: string | null;
+};
+export type InstrumentAssets = { structureAtlas?: CanvasImageSource; tactical?: Tactical };
 export const STRUCTURE_ATLAS = assetUrl('instruments/mech-structure-atlas.png');
 const C = {
   text: '#c6ffa0',
@@ -306,17 +325,89 @@ export function renderInstrument(
         c.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
         c.stroke();
       }
-      for (const [mx, my] of [
-        [-125, -106],
-        [175, 30],
-        [-56, 191],
-        [-380, 190],
-        [420, -300],
-      ]) {
-        const xx = (mx / s.radarRange) * r,
-          yy = (my / s.radarRange) * r;
-        if (Math.hypot(xx, yy) < r) {
-          rect(x + xx - 4, y + yy - 4, 8, 8, C.accent, 1);
+      const tac = assets.tactical;
+      if (tac) {
+        const k = r / s.radarRange;
+        const px = (wx: number) => x + (wx - tac.x) * k,
+          py = (wz: number) => y + (wz - tac.z) * k;
+        c.save();
+        c.beginPath();
+        c.arc(x, y, r, 0, Math.PI * 2);
+        c.clip();
+        // Pisten
+        c.strokeStyle = C.faint;
+        c.lineWidth = 6;
+        for (const road of tac.roads) {
+          c.beginPath();
+          road.forEach(([wx, wz], i) => (i ? c.lineTo(px(wx), py(wz)) : c.moveTo(px(wx), py(wz))));
+          c.stroke();
+        }
+        // Bauwerke als Radarechos
+        for (const b of tac.blips) rect(px(b.x) - 3, py(b.z) - 3, 6, 6, C.muted, 1);
+        // Ziele: Raute; zerstört: Kreuz
+        for (const t of tac.targets) {
+          const tx = px(t.x),
+            ty = py(t.z);
+          if (t.destroyed) {
+            line(tx - 6, ty - 6, tx + 6, ty + 6, C.muted, 2);
+            line(tx - 6, ty + 6, tx + 6, ty - 6, C.muted, 2);
+            continue;
+          }
+          c.strokeStyle = t.objective ? C.amber : C.accent;
+          c.lineWidth = 3;
+          c.beginPath();
+          c.moveTo(tx, ty - 9);
+          c.lineTo(tx + 9, ty);
+          c.lineTo(tx, ty + 9);
+          c.lineTo(tx - 9, ty);
+          c.closePath();
+          c.stroke();
+        }
+        // Drohne
+        if (tac.drone) {
+          const dx = px(tac.drone.x),
+            dy = py(tac.drone.z);
+          c.fillStyle = C.green;
+          c.beginPath();
+          c.moveTo(dx, dy - 9);
+          c.lineTo(dx + 7, dy + 6);
+          c.lineTo(dx - 7, dy + 6);
+          c.closePath();
+          c.fill();
+        }
+        // Einsatzziel: genauer Punkt oder Suchgebiet
+        const o = tac.objective;
+        if (o) {
+          const blink = Math.sin(time * 5) > -0.3;
+          c.strokeStyle = C.amber;
+          c.lineWidth = 3;
+          if (!o.exact) c.setLineDash([10, 8]);
+          if (blink || !o.exact) {
+            c.beginPath();
+            c.arc(px(o.x), py(o.z), Math.max(10, o.r * k), 0, Math.PI * 2);
+            c.stroke();
+          }
+          c.setLineDash([]);
+        }
+        c.restore();
+        // Ziel außerhalb der Reichweite: Pfeil am Rand
+        if (o && o.distance * k > r) {
+          const a = Math.atan2(o.z - tac.z, o.x - tac.x);
+          const ex = x + Math.cos(a) * (r - 16),
+            ey = y + Math.sin(a) * (r - 16);
+          c.fillStyle = C.amber;
+          c.beginPath();
+          c.moveTo(ex + Math.cos(a) * 14, ey + Math.sin(a) * 14);
+          c.lineTo(ex + Math.cos(a + 2.5) * 12, ey + Math.sin(a + 2.5) * 12);
+          c.lineTo(ex + Math.cos(a - 2.5) * 12, ey + Math.sin(a - 2.5) * 12);
+          c.closePath();
+          c.fill();
+        }
+        // Blickrichtung des Mechs
+        line(x, y, x - Math.sin(tac.yaw) * 34, y - Math.cos(tac.yaw) * 34, C.text, 3);
+        if (tac.mission && o) {
+          text(o.label, 36, 172, 22, C.amber);
+          mono(Math.round(o.distance) + ' m', 805, 172, 24, C.amber);
         }
       }
       if (s.testPhase === 'sensors') {

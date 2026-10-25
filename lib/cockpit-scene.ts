@@ -66,6 +66,12 @@ import {
   type DroneState,
 } from './drone';
 import { DroneFeed, DroneRig, LASER_LAYER, TargetMarker } from './drone-model';
+import { DesertWorld } from './world-scene';
+import { WorldTargets } from './world-targets';
+import { MissionDirector } from './mission-director';
+import { mission as missionById } from './missions';
+import { STRUCTURES, TARGETS, structureTop } from './world-layout';
+import { ROADS } from './terrain';
 import { camerasPowered } from './surround-cameras';
 import { buildYard, YARD } from './yard-scene';
 import { buildHangar as buildHangarImpl } from './scene/hangar-build';
@@ -120,7 +126,21 @@ export class CockpitScene {
   jointPose = neutralJoints();
   scene = new THREE.Scene();
   cabin = new THREE.Group();
-  camera = new THREE.PerspectiveCamera(60, 1, 0.08, 440);
+  camera = new THREE.PerspectiveCamera(60, 1, 0.08, 2600);
+  world: DesertWorld | null = null;
+  worldTargets: WorldTargets | null = null;
+  /** Explosion: Entfernung zur Kamera (m) und Größe – für den Ton. */
+  onExplosion: ((distance: number, size: number) => void) | null = null;
+  /** Ziel zerstört (Missionen). */
+  onTargetDestroyed: ((id: string) => void) | null = null;
+  missions = new MissionDirector();
+  private droneForward = new THREE.Vector3();
+  private droneEye = new THREE.Vector3();
+  /** Radarechos: Bauwerke (ohne Leitungen) */
+  private blips = STRUCTURES.filter((s) => s.kind !== 'pipe' && s.kind !== 'pylon').map((s) => ({
+    x: s.x,
+    z: s.z,
+  }));
   renderer: THREE.WebGLRenderer;
   frame = 0;
   disposed = false;
@@ -227,7 +247,7 @@ export class CockpitScene {
   nightTarget = 0;
   nightAmount = 0;
   baseEnvIntensity = 0.18;
-  baseFogDensity = 0.0025;
+  baseFogDensity = 0.0011;
   headlightsOn = false;
   headlightSince = -10;
   lastPowered = false;
@@ -446,6 +466,22 @@ export class CockpitScene {
     this.footprints = new Footprints(this.scene);
     this.rain = new RainField(this.scene);
     this.weaponSystem = new WeaponSystem(this.scene, new FiringRange(this));
+    // Wüste mit Anlagen (1,5 × 1,5 km) um das Testgelände
+    performance.mark('iv-world-start');
+    this.world = new DesertWorld(this);
+    performance.measure('iv-world', 'iv-world-start');
+    this.worldTargets = new WorldTargets(this.scene, this.world);
+    const targets = this.worldTargets;
+    this.weaponSystem.range.destroyed = targets.destroyed;
+    targets.onDestroyed = (id, point, size) => {
+      this.camera.getWorldPosition(this.camWorld);
+      this.onExplosion?.(point.distanceTo(this.camWorld), size);
+      this.onTargetDestroyed?.(id);
+    };
+    this.cleanup.push(() => {
+      this.worldTargets?.dispose();
+      this.world?.dispose();
+    });
     // IV-02: abgestelltes, ausgeschlachtetes Schwesterschiff vor der Werkstatt
     new SisterMech(this, this.wet);
     // Aufklärungsdrohne (Halterung am Rücken: mech-exterior.ts)
@@ -1049,7 +1085,7 @@ export class CockpitScene {
     this.renderer.toneMappingExposure =
       this.inMech || this.inDrone ? 1.05 : this.inYard ? 1.05 : this.inHangar ? 1.2 : 0.94;
     this.baseEnvIntensity = this.inMech ? 0.55 : 0.18;
-    this.baseFogDensity = this.inYard ? 0.0035 : 0.0025;
+    this.baseFogDensity = this.inYard ? 0.0016 : 0.0011;
     this.applyDayNight();
     this.camera.updateMatrixWorld();
     this.pendingPointer = null;
@@ -1173,7 +1209,14 @@ export class CockpitScene {
         this.weapons = { ...this.weapons, hits: this.weapons.hits + 1 };
       } else if (e.kind === 'wreck')
         this.weapons = { ...this.weapons, hits: this.weapons.hits + 1 };
-      this.onImpact?.(e.kind, e.point.distanceTo(this.camWorld));
+      else if (e.kind === 'target' && e.target) {
+        this.worldTargets?.hit(e.target, time);
+        this.weapons = { ...this.weapons, hits: this.weapons.hits + 1 };
+      }
+      this.onImpact?.(
+        e.kind === 'structure' ? 'wreck' : e.kind === 'target' ? 'steel' : e.kind,
+        e.point.distanceTo(this.camWorld),
+      );
       if (e.kind === 'ground')
         this.dust?.spawn(e.point.x, e.point.y, e.point.z, 0.35, time, Math.floor(time * 131));
     }
@@ -1196,7 +1239,8 @@ export class CockpitScene {
       {
         dock: { x: this.dockWorld.x, y: this.dockWorld.y, z: this.dockWorld.z },
         dockYaw,
-        ground: (x, z) => MECH.floor + groundHeight(x, z),
+        // Boden oder Dach: über Gebäuden hält die Drohne Abstand zur Oberkante
+        ground: (x, z) => MECH.floor + Math.max(groundHeight(x, z), structureTop(x, z)),
         gate: s.hangar.position,
         wind: insideShelter(this.drone.pos.x, this.drone.pos.z) ? 0 : this.rainAmount,
         time,
@@ -1227,6 +1271,83 @@ export class CockpitScene {
     };
   }
   /** Ziel markieren: Strahl durch den Mauszeiger der Drohnensicht. Ins Leere = löschen. */
+  /** Einsatz: Erfassen, Fortschritt, Lagebild für das Taktik-Display. */
+  private updateMissions(dt: number, time: number) {
+    const walk = this.walkPose,
+      rig = this.droneRig;
+    const airborne = droneAirborne(this.drone) && this.drone.phase === 'flying';
+    if (rig) {
+      rig.camera.getWorldPosition(this.droneEye);
+      rig.camera.getWorldDirection(this.droneForward);
+    }
+    const targets = this.worldTargets;
+    this.missions.update(
+      dt,
+      walk,
+      insideShelter(walk.x, walk.z),
+      { airborne, position: this.droneEye, forward: this.droneForward, signal: this.drone.signal },
+      (id) => targets?.destroyed(id) ?? false,
+    );
+    void time;
+    const info = this.missions.info(walk.x, walk.z);
+    const objectiveIds = new Set(
+      info.active
+        ? (missionById(info.active.id)?.objectives ?? []).flatMap((o) =>
+            o.kind === 'destroy' ? [o.target] : [],
+          )
+        : [],
+    );
+    const next = info.active?.next;
+    this.instrumentAssets.tactical = {
+      x: walk.x,
+      z: walk.z,
+      yaw: walk.yaw,
+      drone: droneAirborne(this.drone) ? { x: this.drone.pos.x, z: this.drone.pos.z } : null,
+      roads: ROADS,
+      blips: this.blips,
+      targets: TARGETS.map((t) => ({
+        x: t.x,
+        z: t.z,
+        destroyed: targets?.destroyed(t.id) ?? false,
+        objective: objectiveIds.has(t.id),
+      })),
+      objective: next
+        ? {
+            x: next.x,
+            z: next.z,
+            r: next.r,
+            exact: next.exact,
+            label: next.label,
+            distance: next.distance,
+          }
+        : null,
+      mission: info.active?.title ?? null,
+    };
+  }
+  /** Einsatz beginnen (Ziele werden wieder aufgebaut). */
+  startMission(id: string) {
+    const ids = this.missions.start(id, this.lastTime / 1000);
+    this.worldTargets?.restore(ids);
+  }
+  abortMission() {
+    this.missions.abort();
+  }
+  missionInfo() {
+    const w = this.walkPose;
+    // Blickrichtung: in der Drohnensicht die Drohne, sonst Mech + Torso + Kopfdrehung
+    const yaw = this.inDrone
+      ? this.drone.yaw
+      : w.yaw + this.jointPose.torso + (this.inMech ? 0 : this.yaw);
+    return {
+      ...this.missions.info(w.x, w.z),
+      x: w.x,
+      z: w.z,
+      yaw: w.yaw,
+      heading: ((((-yaw * 180) / Math.PI) % 360) + 360) % 360,
+      drone: droneAirborne(this.drone) ? { x: this.drone.pos.x, z: this.drone.pos.z } : null,
+      destroyed: TARGETS.filter((t) => this.worldTargets?.destroyed(t.id)).map((t) => t.id),
+    };
+  }
   markFromDrone() {
     const range = this.weaponSystem?.range;
     if (!this.droneRig || !range || !droneAirborne(this.drone)) return;
@@ -1238,6 +1359,7 @@ export class CockpitScene {
     const point = hit ? hit.point : null;
     this.drone = droneMark(this.drone, point ? { x: point.x, y: point.y, z: point.z } : null);
     this.droneNotice = point ? 'Ziel markiert.' : 'Zielmarkierung gelöscht.';
+    if (point) this.missions.markAt(point);
     if (point) this.droneMarks++;
   }
   /** Taste: starten bzw. zurückrufen. Meldung für das Kommunikationsdisplay. */
@@ -1567,6 +1689,15 @@ export class CockpitScene {
       droneAirborne(this.drone),
     );
     this.updateDrone(s, dt, time);
+    this.world?.update(time, dt);
+    this.worldTargets?.update(
+      dt,
+      time,
+      this.renderer.domElement.height * 0.9,
+      this.scene.fog instanceof THREE.FogExp2 ? this.scene.fog : null,
+      this.sun.color,
+    );
+    this.updateMissions(dt, time);
     // Tag/Nacht-Übergang
     if (this.nightAmount !== this.nightTarget) {
       this.nightAmount +=

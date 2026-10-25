@@ -25,7 +25,8 @@ export function dayNightParams(n: number) {
     hemiIntensity: lerp(0.2, 0.09, n),
     hemiSky: mixColor(0x91aea8, 0x41557e, n),
     hemiGround: mixColor(0x10130e, 0x07080a, n),
-    fogColor: mixColor(0x39444a, 0x0a0f17, n),
+    // Tag: heller Wüstendunst (seit v61, vorher 0x39444a für den engen Hof)
+    fogColor: mixColor(0x8a7f70, 0x0a0f17, n),
     fogScale: lerp(1, 1.5, n),
     // Seit v50 trägt die tiefe Abendsonne mehr Licht; Himmelsreflexion etwas zurück.
     yardEnv: lerp(0.55, 0.07, n),

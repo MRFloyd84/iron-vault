@@ -31,7 +31,7 @@ const LED = { y: 0.562, z: 0.25 } as const;
 /** Quadrocopter, rund 1,6 m Spannweite mit Rotoren. Ursprung = Unterseite der Kufen. */
 export class DroneRig {
   root = new THREE.Group();
-  camera = new THREE.PerspectiveCamera(70, 1.6, 0.05, 600);
+  camera = new THREE.PerspectiveCamera(70, 1.6, 0.1, 1600);
   light: THREE.SpotLight;
   ready: Promise<void>;
   private gimbal = new THREE.Group();

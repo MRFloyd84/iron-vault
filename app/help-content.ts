@@ -109,11 +109,19 @@ export const HELP: Record<Lang, Help> = {
       ],
       [
         'Drohne / Taste C',
-        'Auf dem Rücken sitzt eine kleine Aufklärungsdrohne. C startet sie (braucht Hauptstrom und AVIONICS), nach dem Hochlaufen der Rotoren steigt sie von der Halterung. Tab wechselt zwischen Cockpit und Drohnensicht; das Bild läuft außerdem auf dem Kameramonitor. Fliegen: W/S vor und zurück, A/D seitwärts, Q/E drehen, Leertaste steigen, Umschalt sinken; rechte Maustaste schwenkt die Kamera. Linksklick in der Drohnensicht markiert einen Punkt mit dem Laser – die Armkanonen richten sich dann auf dieses Ziel aus. Linksklick ins Leere löscht die Markierung. Der Akku reicht etwa drei Minuten, die Funkreichweite rund 200 m; bei leerem Akku oder Funkverlust kehrt die Drohne selbst zurück. C ruft sie zurück, angedockt lädt sie wieder. In der Halle geht es nur durchs offene Tor hinaus.',
+        'Auf dem Rücken sitzt eine kleine Aufklärungsdrohne. C startet sie (braucht Hauptstrom und AVIONICS), nach dem Hochlaufen der Rotoren steigt sie von der Halterung. Tab wechselt zwischen Cockpit und Drohnensicht; das Bild läuft außerdem auf dem Kameramonitor. Fliegen: W/S vor und zurück, A/D seitwärts, Q/E drehen, Leertaste steigen, Umschalt sinken; rechte Maustaste schwenkt die Kamera. Linksklick in der Drohnensicht markiert einen Punkt mit dem Laser – die Armkanonen richten sich dann auf dieses Ziel aus. Linksklick ins Leere löscht die Markierung. Der Akku reicht etwa drei Minuten, die Funkreichweite rund 300 m; bei leerem Akku oder Funkverlust kehrt die Drohne selbst zurück. C ruft sie zurück, angedockt lädt sie wieder. In der Halle geht es nur durchs offene Tor hinaus.',
       ],
       [
         'Laser / Taste P',
         'Laser-Entfernungsmesser: roter Strahl zum Zielpunkt unter dem Fadenkreuz, Entfernung im HUD und am Fadenkreuz. Nachts und im Regen ist der Strahl draußen gut zu sehen.',
+      ],
+      [
+        'Wüste und Karte',
+        'Rund um das Testgelände liegt eine Wüste von 1,5 × 1,5 km: Pisten zum Kreuzweg und zu fünf Anlagen (Raffinerie, Förderanlage, Funkstation, Depot, Siedlung), Pipeline, Stromleitung, Tafelberge und ein Dünenfeld. Hinaus geht es am Südende des Testgeländes östlich an den Zielscheiben vorbei. IV-04 läuft auf Pisten sicher; zu steile Hänge und Dünen lehnt die Steuerung ab („Hang zu steil“). Das Taktik-Display zeigt das echte Lagebild (Reichweite mit dem RANGE-Knopf bis 1000 m): Pisten, Bauwerke, Ziele, Drohne und das Einsatzziel; liegt es außerhalb, zeigt ein Pfeil am Rand die Richtung.',
+      ],
+      [
+        'Einsätze / Taste I',
+        'EINSATZ [I] öffnet die Einsatzleitung mit Lagekarte (Norden oben, Planquadrate A–F / 1–6 à 250 m). Einsatz wählen, Auftrag lesen, starten. Links unter der Ortsanzeige steht dann das nächste Ziel mit Entfernung, Kompassrichtung und Richtungspfeil. Aufklären: das Objekt mit der Drohne mittig ins Bild nehmen, bis es erfasst ist (oder mit Linksklick markieren). Zerstören: mit den Armkanonen beschießen, bis es explodiert; Tanks brennen lange und heftig. Ist alles erledigt, zurück in die Halle – erst dort ist der Einsatz erfüllt. Munition reicht für einen Einsatz, nachladen in der Halle. Erfüllte Einsätze merkt sich der Browser.',
       ],
       [
         'Schießstand',
@@ -241,11 +249,19 @@ export const HELP: Record<Lang, Help> = {
       ],
       [
         'Drone / key C',
-        'A small reconnaissance drone rides on the back. C launches it (needs main power and AVIONICS); once the rotors have spun up it lifts off its cradle. Tab switches between the cockpit and the drone view; the feed also runs on the camera monitor. Flying: W/S forward and back, A/D sideways, Q/E turn, Space climb, Shift descend; the right mouse button pans the camera. Left click in the drone view marks a point with the laser – the arm cannons then aim at that target. Left click into empty space clears the mark. The battery lasts about three minutes, the radio range is around 200 m; with a flat battery or lost signal the drone returns on its own. C recalls it, docked it recharges. Inside the hall the only way out is through the open gate.',
+        'A small reconnaissance drone rides on the back. C launches it (needs main power and AVIONICS); once the rotors have spun up it lifts off its cradle. Tab switches between the cockpit and the drone view; the feed also runs on the camera monitor. Flying: W/S forward and back, A/D sideways, Q/E turn, Space climb, Shift descend; the right mouse button pans the camera. Left click in the drone view marks a point with the laser – the arm cannons then aim at that target. Left click into empty space clears the mark. The battery lasts about three minutes, the radio range is around 300 m; with a flat battery or lost signal the drone returns on its own. C recalls it, docked it recharges. Inside the hall the only way out is through the open gate.',
       ],
       [
         'Laser / key P',
         'Laser rangefinder: red beam to the aim point under the crosshair, distance in the HUD and at the crosshair. At night and in the rain the beam is clearly visible outside.',
+      ],
+      [
+        'Desert and map',
+        'Around the test ground lies a desert of 1.5 × 1.5 km: tracks to the crossroads and to five sites (refinery, mine, radio station, depot, settlement), a pipeline, a power line, mesas and a dune field. The way out is at the south end of the test ground, past the targets on the east side. IV-04 walks safely on the tracks; slopes and dunes that are too steep are refused by the controls (“Slope too steep”). The tactical display shows the real situation (range up to 1000 m with the RANGE knob): tracks, structures, targets, the drone and the mission objective; if it lies outside, an arrow at the edge shows the direction.',
+      ],
+      [
+        'Missions / key I',
+        'MISSION [I] opens mission control with a situation map (north up, grid squares A–F / 1–6 of 250 m). Choose a mission, read the briefing, start it. The next objective then appears at the left below the location display, with distance, compass bearing and a direction arrow. Recon: keep the object centred in the drone image until it is identified (or mark it with a left click). Destroy: fire the arm cannons at it until it explodes; tanks burn long and fiercely. When everything is done, return to the hall – only there is the mission complete. Ammunition lasts for one mission; reload in the hall. The browser remembers completed missions.',
       ],
       [
         'Firing range',

@@ -1,6 +1,8 @@
 import type { MachineState } from './machine';
 import { releaseBlock } from './mobility';
 import { articulationRadius } from './articulation';
+import { terrainHeight, insideMap, yardWeight } from './terrain';
+import { WORLD_OBSTACLES } from './world-layout';
 
 export type WalkInput = { forward: number; turn: number; brake: boolean };
 export type WalkState = {
@@ -163,6 +165,17 @@ export const WALK_OBSTACLES: Obstacle[] = [
     label: 'IV-02 (abgestellt)',
     sister: true,
   },
+  // Seitenzäune des Testgeländes (nach Süden offen: dort geht es in die Wüste)
+  ...[-1, 1].map((side) => ({ x: side * 53, z: -110, w: 0.6, d: 136, label: 'Zaun' })),
+  // Klappziele am Schießstand (Sockel) und Torpfosten am Streckenende
+  ...[-36, -24, -12, 0, 12, 24, 36].map((x) => ({
+    x,
+    z: -231.2,
+    w: 3.2,
+    d: 1.2,
+    label: 'Zielscheibe',
+  })),
+  ...[-15, 15].map((x) => ({ x, z: -234, w: 0.6, d: 0.6, label: 'Torpfosten' })),
 ];
 function circleBox(x: number, z: number, o: Obstacle, r: number) {
   const dx = x - o.x,
@@ -183,18 +196,26 @@ export function collisionAt(x: number, z: number, gate: number, r = WALK.radius)
     if (Math.abs(x) + r > 6.9) return 'Torrahmen';
     if (Math.abs(x) + r > gate * 7.2) return 'Hangartor';
   }
-  if (z < -225 || Math.abs(x) > 49) return 'Geländegrenze';
+  if (!insideMap(x, z, 30)) return 'Geländegrenze';
   for (const o of WALK_OBSTACLES)
     if ((!o.sister || sisterPark.present) && circleBox(x, z, o, r)) return o.label;
+  for (const o of WORLD_OBSTACLES) {
+    const reach = (o.w + o.d) / 2 + r;
+    if (Math.abs(x - o.x) > reach || Math.abs(z - o.z) > reach) continue;
+    if (circleBox(x, z, o, r)) return o.label;
+  }
   return null;
 }
+/** Steilste begehbare Neigung (rad): längs ~20°, quer ~23°. */
+export const MAX_PITCH = 0.36;
+export const MAX_ROLL = 0.4;
 export function groundHeight(x: number, z: number) {
   if (Math.abs(x) <= 5.5 && z <= -105 && z >= -137)
     return z >= -117 ? (-105 - z) * 0.15 : z >= -125 ? 1.8 : (z + 137) * 0.15;
   if (x >= -21.5 && x <= -12.5)
     for (let i = 0; i < 9; i++)
       if (Math.abs(z - (-105 - i * 1.65)) < 0.25) return 0.14 + (i % 3) * 0.06;
-  return 0;
+  return terrainHeight(x, z);
 }
 function floorPose(x: number, z: number, yaw: number) {
   // Two support regions smooth the step onto a ramp while retaining pitch and roll.
@@ -256,8 +277,17 @@ export function advanceWalking(state: MachineState, dt: number): MachineState {
     );
     // Reject ramp sidewalls; entering via either graded end stays below this slope.
     const jump = Math.abs(groundHeight(x, z) - groundHeight(w.x, w.z));
-    if ((Math.abs(w.speed) > 0.0001 || Math.abs(w.turnRate) > 0.0001) && (obstacle || jump > 0.3)) {
-      obstruction = obstacle ?? 'Rampenseitenwand';
+    // Zu steiles Gelände: nur Bewegungen, die die Neigung noch vergrößern, werden abgelehnt.
+    const uphill = (pitch: number) => Math.max(0, pitch * Math.sign(w.speed || 1));
+    const steep =
+      yardWeight(x, z) < 1 &&
+      ((uphill(pose.pitch) > MAX_PITCH && uphill(pose.pitch) > uphill(w.pitch) + 1e-4) ||
+        (Math.abs(pose.roll) > MAX_ROLL && Math.abs(pose.roll) > Math.abs(w.roll) + 1e-4));
+    if (
+      (Math.abs(w.speed) > 0.0001 || Math.abs(w.turnRate) > 0.0001) &&
+      (obstacle || jump > 0.3 || steep)
+    ) {
+      obstruction = obstacle ?? (jump > 0.3 ? 'Rampenseitenwand' : 'Hang zu steil');
       w.speed = 0;
       w.turnRate = 0;
     } else {

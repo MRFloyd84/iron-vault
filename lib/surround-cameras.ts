@@ -40,7 +40,7 @@ export class SurroundCameras {
   powered = false;
   reducedMotion = false;
   cameras = SURROUND_VIEWS.map((v) => {
-    const c = new THREE.PerspectiveCamera(65, 1.6, 0.15, 440);
+    const c = new THREE.PerspectiveCamera(65, 1.6, 0.15, 1200);
     c.position.set(v.x, 0.95, v.z);
     c.rotation.set(-0.24, v.yaw, 0, 'YXZ');
     c.updateMatrix();

@@ -925,3 +925,202 @@ button:disabled {
     font-size: 11px;
   }
 }
+
+/* Einsatz: Wegweiser unter der Ortsanzeige */
+.mission-track {
+  margin-top: 10px;
+  max-width: 340px;
+  padding: 8px 12px 9px;
+  border-left: 2px solid #efbd68;
+  background: linear-gradient(90deg, #080c0cd0, #080c0c00);
+  font: 12px var(--mono);
+  color: #e8d3a6;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-shadow: var(--hud-shadow);
+}
+.mission-track strong {
+  color: #f3c97a;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+}
+.track-next {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.track-next b {
+  color: #fff1cf;
+  font-weight: 600;
+}
+.track-arrow {
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 14px solid #f3c97a;
+  transition: transform 0.15s linear;
+  flex: none;
+}
+.track-scan {
+  position: relative;
+  padding-bottom: 6px;
+  color: #b8ff8a;
+}
+.track-scan em {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  background: #98ff53;
+  box-shadow: 0 0 6px #98ff53;
+}
+.track-count {
+  color: #b9a983;
+}
+
+/* Einsatzleitung */
+.mission-panel {
+  position: absolute;
+  left: 50%;
+  top: 76px;
+  transform: translateX(-50%);
+  width: min(1180px, calc(100vw - 32px));
+  max-height: calc(100dvh - 96px);
+  overflow: auto;
+  z-index: 5;
+  padding: 16px 18px 18px;
+  background: #101a18f8;
+  border: 1px solid var(--panel-border);
+  border-top: 3px solid #efbd68;
+  box-shadow: 0 20px 80px #000a;
+  color: #dce6d3;
+  font: 13px var(--mono);
+  overscroll-behavior: contain;
+}
+.mission-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.mission-heading strong {
+  letter-spacing: 0.14em;
+  font-size: 15px;
+}
+.mission-heading span {
+  color: #9fb08f;
+  flex: 1;
+}
+.mission-heading button {
+  border: 1px solid var(--button-border);
+  background: var(--button);
+  color: #e3eed9;
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
+}
+.mission-body {
+  display: grid;
+  grid-template-columns: 250px minmax(260px, 470px) minmax(220px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.mission-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mission-list button {
+  width: 100%;
+  text-align: left;
+  display: grid;
+  gap: 3px;
+  padding: 9px 10px;
+  border: 1px solid var(--button-border);
+  background: var(--button);
+  color: #e3eed9;
+  font: inherit;
+  cursor: pointer;
+}
+.mission-list button[aria-pressed='true'] {
+  border-color: #efbd68;
+  background: #2a2614;
+}
+.mission-type {
+  color: #efbd68;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+.mission-title {
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+.mission-state {
+  font-size: 11px;
+  color: #8a9a80;
+}
+.mission-state.running {
+  color: #f3c97a;
+}
+.mission-state.done {
+  color: #98ff53;
+}
+.mission-map {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid #4a4632;
+  background: #8a7656;
+  image-rendering: auto;
+}
+.mission-brief h3 {
+  margin: 4px 0 8px;
+  font-size: 16px;
+  letter-spacing: 0.08em;
+}
+.mission-brief p {
+  line-height: 1.5;
+  color: #cfd8c4;
+}
+.mission-brief ol {
+  padding-left: 20px;
+  line-height: 1.7;
+}
+.mission-brief li.done {
+  color: #98ff53;
+  text-decoration: line-through;
+}
+.mission-done {
+  color: #98ff53 !important;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.mission-actions button {
+  width: 100%;
+  padding: 11px;
+  font: 600 13px var(--mono);
+  letter-spacing: 0.1em;
+  border: 1px solid #efbd68;
+  background: #3a2f12;
+  color: #ffe2a8;
+  cursor: pointer;
+}
+.mission-actions .mission-abort {
+  border-color: #b8603c;
+  background: #3a1a12;
+  color: #ffc2a8;
+}
+.mission-hint {
+  font-size: 11px;
+  color: #8a9a80 !important;
+}
+@media (max-width: 900px) {
+  .mission-body {
+    grid-template-columns: 1fr;
+  }
+}

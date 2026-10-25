@@ -5,6 +5,8 @@ import * as THREE from 'three';
 import type { CockpitScene } from './cockpit-scene';
 import { groundHeight, WRECKS } from './walking';
 import { YARD } from './yard-scene';
+import { terrainHeight } from './terrain';
+import { WORLD_OBSTACLES, TARGETS } from './world-layout';
 
 export const PLATE_Z = -231.2;
 export const PLATE_XS = [-36, -24, -12, 0, 12, 24, 36] as const;
@@ -12,14 +14,100 @@ export { WRECKS } from './walking';
 /** Sekunden, bis ein umgeklapptes Ziel wieder hochkommt. */
 export const PLATE_RESET = 6;
 
-export type HitKind = 'steel' | 'wreck' | 'ground';
+export type HitKind = 'steel' | 'wreck' | 'ground' | 'structure' | 'target';
 export type Hit = {
   point: THREE.Vector3;
   normal: THREE.Vector3;
   kind: HitKind;
   t: number;
   plate?: number;
+  /** Getroffenes Ziel (kind 'target') */
+  target?: string;
 };
+
+/** Trefferquader der Außenwelt: Mitte, halbe Maße, Drehung um y (wie die Gehhindernisse). */
+type WorldBox = {
+  c: THREE.Vector3;
+  half: THREE.Vector3;
+  angle: number;
+  radius: number;
+  target?: string;
+};
+const FLOOR = -2.6;
+export const WORLD_BOXES: WorldBox[] = [
+  ...WORLD_OBSTACLES.filter((o) => !o.target).map((o) => {
+    const bottom = FLOOR + terrainHeight(o.x, o.z) - 0.6,
+      top = FLOOR + o.top;
+    const half = new THREE.Vector3(o.w / 2, Math.max(0.3, (top - bottom) / 2), o.d / 2);
+    return {
+      c: new THREE.Vector3(o.x, (top + bottom) / 2, o.z),
+      half,
+      angle: o.angle ?? 0,
+      radius: half.length(),
+    };
+  }),
+  ...TARGETS.map((t) => {
+    const half = new THREE.Vector3(...t.half);
+    return {
+      c: new THREE.Vector3(t.x, FLOOR + t.y, t.z),
+      half,
+      angle: t.a,
+      radius: half.length(),
+      target: t.id,
+    };
+  }),
+];
+const la = new THREE.Vector3(),
+  lb = new THREE.Vector3(),
+  seg = new THREE.Vector3(),
+  rel = new THREE.Vector3();
+function toLocal(p: THREE.Vector3, box: WorldBox, out: THREE.Vector3) {
+  const dx = p.x - box.c.x,
+    dz = p.z - box.c.z,
+    c = Math.cos(box.angle),
+    s = Math.sin(box.angle);
+  return out.set(c * dx - s * dz, p.y - box.c.y, s * dx + c * dz);
+}
+/** Erster Treffer an Gebäuden, Felsen und Zielen der Außenwelt. */
+export function worldHit(
+  p0: THREE.Vector3,
+  p1: THREE.Vector3,
+  destroyed: (id: string) => boolean = () => false,
+): Hit | null {
+  let best: Hit | null = null;
+  seg.subVectors(p1, p0);
+  const len2 = seg.lengthSq();
+  for (const box of WORLD_BOXES) {
+    // Vorprüfung: Abstand Mittelpunkt–Strecke größer als Umkugel
+    rel.subVectors(box.c, p0);
+    const t = len2 > 0 ? Math.max(0, Math.min(1, rel.dot(seg) / len2)) : 0;
+    const dx = rel.x - seg.x * t,
+      dy = rel.y - seg.y * t,
+      dz = rel.z - seg.z * t;
+    if (dx * dx + dy * dy + dz * dz > box.radius * box.radius) continue;
+    toLocal(p0, box, la);
+    toLocal(p1, box, lb);
+    const r = segmentBox(la, lb, box.half);
+    if (!r || (best && r.t >= best.t)) continue;
+    // Normale zurück in Weltlage drehen
+    const c = Math.cos(box.angle),
+      s = Math.sin(box.angle);
+    const n = new THREE.Vector3(
+      c * r.normal.x + s * r.normal.z,
+      r.normal.y,
+      -s * r.normal.x + c * r.normal.z,
+    );
+    const alive = box.target && !destroyed(box.target);
+    best = {
+      t: r.t,
+      point: new THREE.Vector3().lerpVectors(p0, p1, r.t),
+      normal: n,
+      kind: alive ? 'target' : 'structure',
+      target: alive ? box.target : undefined,
+    };
+  }
+  return best;
+}
 
 type Collider = { mesh: THREE.Object3D; half: THREE.Vector3; kind: HitKind; plate?: number };
 
@@ -97,6 +185,8 @@ function plateTexture() {
 
 export class FiringRange {
   root = new THREE.Group();
+  /** Ziele der Außenwelt, die schon zerstört sind (Treffer zählen dann als Trümmer). */
+  destroyed: (id: string) => boolean = () => false;
   plates: { hinge: THREE.Group; down: number; fallStart: number }[] = [];
   private colliders: Collider[] = [];
 
@@ -204,6 +294,8 @@ export class FiringRange {
         };
       }
     }
+    const world = worldHit(p0, p1, this.destroyed);
+    if (world && (!best || world.t < best.t)) best = world;
     const ground = groundHit(p0, p1);
     if (ground && (!best || ground.t < best.t)) best = ground;
     return best;
@@ -229,7 +321,7 @@ export function groundHit(p0: THREE.Vector3, p1: THREE.Vector3): Hit | null {
       return {
         t: tt,
         point: new THREE.Vector3().lerpVectors(p0, p1, tt),
-        normal: new THREE.Vector3(0, 1, 0),
+        normal: groundNormal(p0.x + (p1.x - p0.x) * tt, p0.z + (p1.z - p0.z) * tt),
         kind: 'ground',
       };
     }
@@ -237,4 +329,11 @@ export function groundHit(p0: THREE.Vector3, p1: THREE.Vector3): Hit | null {
     prevH = h;
   }
   return null;
+}
+
+function groundNormal(x: number, z: number) {
+  const e = 1;
+  const gx = (groundHeight(x + e, z) - groundHeight(x - e, z)) / (2 * e),
+    gz = (groundHeight(x, z + e) - groundHeight(x, z - e)) / (2 * e);
+  return new THREE.Vector3(-gx, 1, -gz).normalize();
 }

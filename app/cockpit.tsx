@@ -3,6 +3,8 @@ import LanguageMenu, { useLang } from './language-menu';
 import { HELP } from './help-content';
 import { tr } from '../lib/i18n';
 import ArticulationPanel from './articulation-panel';
+import MissionPanel from './mission-panel';
+import { sectorName } from '../lib/terrain';
 import AudioCheck from './audio-check';
 import {
   jointCommand,
@@ -87,6 +89,10 @@ export default function Cockpit() {
   const [laser, setLaser] = useState(false);
   const [weaponInfo, setWeaponInfo] = useState<ReturnType<CockpitScene['weaponInfo']> | null>(null);
   const [drone, setDrone] = useState<ReturnType<CockpitScene['droneInfo']> | null>(null);
+  const [missionOpen, setMissionOpen] = useState(false);
+  const [track, setTrack] = useState<ReturnType<CockpitScene['missionInfo']> | null>(null);
+  const readMission = useRef(() => scene.current?.missionInfo() ?? null).current;
+  const trackKey = useRef('');
   const updateInputRef = useRef<() => void>(() => {});
   const droneControlsRef = useRef(false);
   const reticle = useRef<HTMLDivElement>(null);
@@ -323,6 +329,7 @@ export default function Cockpit() {
             audio.current?.thunder(variant, distance);
           scene.current.onGunshot = (cabin) => audio.current?.gunshot(cabin);
           scene.current.onImpact = (kind, distance) => audio.current?.impact(kind, distance);
+          scene.current.onExplosion = (distance, size) => audio.current?.explosion(distance, size);
           if (import.meta.env.DEV)
             (window as unknown as { ironVault?: unknown }).ironVault = {
               scene: scene.current,
@@ -444,6 +451,7 @@ export default function Cockpit() {
         stopInput();
         setHelp(false);
         setAudioCheckOpen(false);
+        setMissionOpen(false);
         if (
           scene.current?.inHangar ||
           scene.current?.inYard ||
@@ -464,6 +472,11 @@ export default function Cockpit() {
         return;
       }
       if (helpRef.current) return;
+      if (e.code === 'KeyI') {
+        stopInput();
+        setMissionOpen((v) => !v);
+        return;
+      }
       if (e.code === 'KeyB') {
         stopInput();
         setJointsOpen((v) => !v);
@@ -594,6 +607,31 @@ export default function Cockpit() {
         sc.droneReturned = false;
         setCameraView('front');
       }
+      // Einsatz: Wegweiser und Meldungen
+      // Nur neu zeichnen, wenn sich Sichtbares ändert (nicht zehnmal pro Sekunde).
+      const t = sc.missionInfo(),
+        a = t.active;
+      const key = [
+        sectorName(t.x, t.z),
+        t.z < -250 || Math.abs(t.x) > 70,
+        a?.id,
+        a?.status,
+        a?.next?.label,
+        Math.round(a?.next?.distance ?? 0),
+        Math.round(((a?.next?.bearing ?? 0) - t.heading) / 3),
+        Math.round((a?.scanning?.progress ?? 0) * 20),
+        a?.objectives.filter((o) => o.done).length,
+      ].join('|');
+      if (key !== trackKey.current) {
+        trackKey.current = key;
+        setTrack(t);
+      }
+      const notice = sc.missions.notices.shift();
+      if (notice) {
+        apply({ ...stateRef.current, message: notice.text, error: false });
+        if (notice.done) void audio.current?.playSwitch().catch(() => {});
+        else audio.current?.beep(false);
+      }
     }, 100);
     return () => window.clearInterval(timer);
   }, []);
@@ -698,24 +736,62 @@ export default function Cockpit() {
         <div className="hud-left">
           <div className="mission-tag">
             <strong>
-              {tr(
-                cameraView === 'yard' || (cameraView !== 'hangar' && state.walk.z < -35)
-                  ? 'TESTGELÄNDE 07'
-                  : 'HANGAR 07',
-              )}
+              {track &&
+              cameraView !== 'hangar' &&
+              cameraView !== 'yard' &&
+              (track.z < -250 || Math.abs(track.x) > 70)
+                ? tr('WÜSTE · SEKTOR ' + sectorName(track.x, track.z))
+                : tr(
+                    cameraView === 'yard' || (cameraView !== 'hangar' && state.walk.z < -35)
+                      ? 'TESTGELÄNDE 07'
+                      : 'HANGAR 07',
+                  )}
             </strong>
             {tr(
               cameraView === 'drone'
                 ? 'DROHNE · AUFKLÄRUNG'
                 : cameraView === 'mech'
-                ? 'IV–04 · AUSSENANSICHT'
-                : cameraView === 'yard'
-                  ? 'AUSSENKAMERA · PRÜFSTRECKE'
-                  : cameraView === 'hangar'
-                    ? 'HALLENKAMERA · WARTUNGSBEREICH'
-                    : 'PILOTENSICHT · ' + restraintLabel(state),
+                  ? 'IV–04 · AUSSENANSICHT'
+                  : cameraView === 'yard'
+                    ? 'AUSSENKAMERA · PRÜFSTRECKE'
+                    : cameraView === 'hangar'
+                      ? 'HALLENKAMERA · WARTUNGSBEREICH'
+                      : 'PILOTENSICHT · ' + restraintLabel(state),
             )}
           </div>
+          {track?.active && track.active.status === 'active' && (
+            <div className="mission-track">
+              <strong>{tr(track.active.title)}</strong>
+              {track.active.next && (
+                <span className="track-next">
+                  <i
+                    className="track-arrow"
+                    style={{ transform: `rotate(${track.active.next.bearing - track.heading}deg)` }}
+                    aria-hidden="true"
+                  />
+                  {tr(track.active.next.label)}
+                  <b>
+                    {Math.round(track.active.next.distance)} m ·{' '}
+                    {String(Math.round(track.active.next.bearing)).padStart(3, '0')}°
+                  </b>
+                </span>
+              )}
+              {track.active.scanning && (
+                <span className="track-scan">
+                  {tr('ERFASSE ' + track.active.scanning.label)}
+                  <em style={{ width: Math.round(track.active.scanning.progress * 100) + '%' }} />
+                </span>
+              )}
+              <span className="track-count">
+                {tr(
+                  'Ziele: ' +
+                    track.active.objectives.filter((o) => o.done).length +
+                    ' / ' +
+                    track.active.objectives.length,
+                )}
+              </span>
+            </div>
+          )}
           {!audioActive && (
             <button className="audio-notice" onClick={toggleSound}>
               {tr(soundLabel)}
@@ -753,6 +829,17 @@ export default function Cockpit() {
             onClick={() => changeView('yard')}
           >
             {tr('TESTGELÄNDE [U]')}
+          </button>
+          <button
+            className="mission-toggle"
+            aria-expanded={missionOpen}
+            title={tr('Einsatz wählen, Lagekarte')}
+            onClick={() => {
+              stopInput();
+              setMissionOpen((v) => !v);
+            }}
+          >
+            {tr('EINSATZ [I]')}
           </button>
           <button
             className="drone-toggle"
@@ -856,7 +943,10 @@ export default function Cockpit() {
       )}
       {cameraView === 'drone' && (
         <div className="drone-view" aria-label={tr('Drohnensicht')}>
-          <div className="drone-noise" style={{ opacity: 0.08 + (1 - (drone?.signal ?? 1)) * 0.6 }} />
+          <div
+            className="drone-noise"
+            style={{ opacity: 0.08 + (1 - (drone?.signal ?? 1)) * 0.6 }}
+          />
           <div className="drone-cross" aria-hidden="true" />
           <div className="drone-status">
             <strong>{tr('DROHNE / AUFKLÄRUNG')}</strong>
@@ -890,7 +980,9 @@ export default function Cockpit() {
           <div className="drone-hint">
             {tr('W A S D: fliegen · Q / E: drehen · Leertaste / Umschalt: steigen / sinken')}
             <br />
-            {tr('Linksklick: Ziel markieren · Rechte Maustaste: Kamera schwenken · Tab: Cockpit · C: Rückkehr')}
+            {tr(
+              'Linksklick: Ziel markieren · Rechte Maustaste: Kamera schwenken · Tab: Cockpit · C: Rückkehr',
+            )}
           </div>
         </div>
       )}
@@ -928,6 +1020,17 @@ export default function Cockpit() {
             <p key={note}>{note}</p>
           ))}
         </aside>
+      )}
+      {missionOpen && !help && (
+        <MissionPanel
+          read={readMission}
+          start={(id) => {
+            scene.current?.startMission(id);
+            setMissionOpen(false);
+          }}
+          abort={() => scene.current?.abortMission()}
+          close={() => setMissionOpen(false)}
+        />
       )}
       {jointsOpen && !help && (
         <ArticulationPanel

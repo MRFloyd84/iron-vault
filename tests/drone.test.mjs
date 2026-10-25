@@ -86,7 +86,8 @@ test('leerer Akku und Funkverlust lösen die Rückkehr aus; die Drohne dockt an 
   far = run(far, idleDroneInput(), 0.1);
   assert.equal(far.phase, 'rtb');
   assert.equal(far.rtbReason, 'signal');
-  const mid = run({ ...airborne(), pos: { x: 0, y: 10, z: -80 - 175 } }, idleDroneInput(), 0.05);
+  const half = (DRONE.signalFull + DRONE.signalLost) / 2;
+  const mid = run({ ...airborne(), pos: { x: 0, y: 10, z: -80 - half } }, idleDroneInput(), 0.05);
   assert.ok(mid.signal > 0.2 && mid.signal < 0.8, 'Signal nimmt mit der Entfernung ab');
 });
 

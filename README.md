@@ -4,7 +4,7 @@
 
 A cockpit simulation of an old, worn-out walking mech – **IV-04** – in 3D. You sit in the
 pilot capsule, bring the machine up from a cold start switch by switch, walk it out of the
-hangar onto the test ground and fire its arm cannons at the firing range. Runs in the
+hangar into the desert and take on recon and strike missions with its arm cannons and drone. Runs in the
 browser or as a Linux desktop app.
 
 **▶ [Play in your browser](https://mrfloyd84.github.io/iron-vault/)** – no installation
@@ -28,6 +28,13 @@ browser or as a Linux desktop app.
 - **Recon drone:** a patched-up quadcopter rides on the mech's back. Launch it, fly it
   with keyboard and mouse – on the cockpit camera monitor or full screen – and laser-mark
   targets for the arm cannons. Limited battery and radio range; it flies home on its own.
+- **A 1.5 × 1.5 km desert:** tracks to a refinery, a mine, a radio station on a ridge, an
+  ammunition depot and a ruined settlement; pipeline, power line, mesas, a dune field and
+  the lost wreck of IV-01. IV-04 walks on slopes; terrain that is too steep is refused.
+- **Missions:** six recon and strike missions from mission control with a relief map –
+  identify objects with the drone, destroy fuel tanks, radar, trucks and valve stations
+  (explosions, fire and smoke), then return to the hall. A real tactical display and a
+  waypoint indicator guide you.
 - **Weather and light:** day/night, headlights and a rotating beacon, rain with wet
   armour, puddles and drops on the windscreen, thunderstorms.
 - **An old machine:** flickering CRT displays in toxic green, worn paint, notes and tape in
@@ -38,7 +45,8 @@ browser or as a Linux desktop app.
 | | |
 | --- | --- |
 | ![IV-04 in the hangar](docs/img/mech.jpg) | ![Hydraulic cylinders on the legs](docs/img/hydraulics.jpg) |
-| ![IV-02, the parked sister mech](docs/img/iv-02.jpg) | |
+| ![IV-02, the parked sister mech](docs/img/iv-02.jpg) | ![The desert around the test ground](docs/img/desert.jpg) |
+| ![Mission control with relief map](docs/img/missions.jpg) | |
 
 ## Download (Linux desktop app)
 
@@ -97,6 +105,7 @@ The **?** button (top right) explains everything. In short:
 | V / H / U | mech exterior / hangar camera / test ground |
 | M, P, J | weapons, laser, headlights |
 | C, Tab | launch/recall the drone, drone view |
+| I | mission control and map |
 | N, X, L | day/night, rain, cabin light |
 
 ## Technology

@@ -122,7 +122,11 @@ test('ramp sidewalls, containers, walls, barriers and outer limits are solid', (
   assert.equal(collisionAt(9.7, -87, 1), 'Betonbarriere');
   assert.equal(collisionAt(17, 0, 1), 'Hangarseitenwand');
   assert.equal(collisionAt(0, 9, 1), 'Hangarrückwand');
-  assert.equal(collisionAt(0, -226, 1), 'Geländegrenze');
+  assert.equal(collisionAt(0, -1430, 1), 'Geländegrenze');
+  assert.equal(collisionAt(745, -600, 1), 'Geländegrenze');
+  assert.equal(collisionAt(53, -120, 1), 'Zaun');
+  // Ausgang in die Wüste: östlich der Schießbahn zwischen Zaunende und Zielscheiben frei
+  assert.equal(collisionAt(46, -205), null);
   const r = ready();
   let s = input({ ...r, walk: { ...r.walk, x: -6, z: -121, yaw: -Math.PI / 2 } });
   s = travel(s, 5);

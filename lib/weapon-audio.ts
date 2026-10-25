@@ -88,4 +88,35 @@ export class WeaponAudio {
       );
     }
   }
+
+  /**
+   * Explosion in `distance` Metern, `size` ≈ Feuerballradius. Synthetisch: Knall,
+   * tiefer Druckstoß, langes Grollen; der Schall kommt mit 343 m/s verzögert an.
+   */
+  explosion(distance: number, size: number) {
+    const ctx = this.ctx;
+    const t = ctx.currentTime + Math.min(5, distance / 343);
+    const far = Math.max(0.06, 1 - distance / 1400),
+      big = Math.min(1.6, 0.5 + size / 8);
+    // Knall – hohe Anteile verlieren sich mit der Entfernung
+    this.burst(t, 1600, 0.6, 0.9 * far * far * big, 0.14);
+    this.tone(t, 72, 24, 1.5 * far * big, 1.1);
+    // Grollen: tiefpassgefiltertes Rauschen, lang ausklingend
+    const src = ctx.createBufferSource();
+    src.buffer = this.noise;
+    src.loop = true;
+    src.playbackRate.value = 0.5;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(900 * far + 120, t);
+    lp.frequency.exponentialRampToValueAtTime(140, t + 2.5);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.9 * far * big, t + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 1.2 + size * 0.35);
+    src.connect(lp).connect(g).connect(this.cabinFilter);
+    src.start(t);
+    src.stop(t + 1.3 + size * 0.35);
+    src.onended = () => src.disconnect();
+  }
 }
