@@ -579,8 +579,13 @@ export default function Cockpit() {
         droneControlsRef.current = info.controls;
         updateInputRef.current();
       }
-      const level = sc.inDrone ? 0.8 : Math.max(0, 1 - info.distance / 90);
-      audio.current?.setDrone(info.rotor, level, !sc.inDrone && !sc.inMech && !sc.inYard && !sc.inHangar);
+      const level = sc.inDrone ? 0.75 : Math.max(0, 1 - info.distance / 90);
+      audio.current?.setDrone(
+        info,
+        level,
+        !sc.inDrone && !sc.inMech && !sc.inYard && !sc.inHangar,
+        sc.inDrone,
+      );
       if (sc.droneNotice) {
         apply({ ...stateRef.current, message: sc.droneNotice, error: false });
         sc.droneNotice = null;

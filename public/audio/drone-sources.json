@@ -1,0 +1,61 @@
+{
+  "origin": "Von Rene mit ElevenLabs Sound Effects erzeugt (Prompts in AENDERUNGEN_v60_1.md).",
+  "files": [
+    {
+      "file": "drone-hover-loop.ogg",
+      "source": "assets-src/audio/drone/hover-loop.mp3",
+      "source_sha256": "8c9b4aced5f74432fb70eae6320fdd9cf177eaab41e08aef46a763cfd98a267b",
+      "duration_seconds": 6.88,
+      "peak": 0.4057,
+      "rms_dbfs": -22.0
+    },
+    {
+      "file": "drone-spinup.ogg",
+      "source": "assets-src/audio/drone/spinup.mp3",
+      "source_sha256": "e50cec9088944ae770c66f312120315b724d6569647af375732d77824385aad3",
+      "duration_seconds": 2.146,
+      "peak": 0.7507,
+      "rms_dbfs": -24.0
+    },
+    {
+      "file": "drone-spindown.ogg",
+      "source": "assets-src/audio/drone/spindown.mp3",
+      "source_sha256": "cc22e6677c5d2c3ad9e3e5f9d07a1f1df893a8d06ceced3c3b4dc24672e7f228",
+      "duration_seconds": 1.68,
+      "peak": 0.7286,
+      "rms_dbfs": -24.0
+    },
+    {
+      "file": "drone-release.ogg",
+      "source": "assets-src/audio/drone/release.mp3",
+      "source_sha256": "8d2d725b204d7eb3a3f2c40479ea919e2613374b17eb73c13af35ca171b8b127",
+      "duration_seconds": 1.637,
+      "peak": 0.9,
+      "rms_dbfs": -22.75
+    },
+    {
+      "file": "drone-dock.ogg",
+      "source": "assets-src/audio/drone/dock.mp3",
+      "source_sha256": "f8397fbf9a1a37f02852a84a552401a35d83554c5d67cdff6dcf75b067e11e58",
+      "duration_seconds": 1.471,
+      "peak": 0.7236,
+      "rms_dbfs": -21.0
+    },
+    {
+      "file": "drone-mark.ogg",
+      "source": "assets-src/audio/drone/mark.mp3",
+      "source_sha256": "8397f89fd19763dba2e77fa10a0cbc8e708f9f1a6514f93b88abb1e4aa590137",
+      "duration_seconds": 0.314,
+      "peak": 0.3815,
+      "rms_dbfs": -22.0
+    },
+    {
+      "file": "drone-static-loop.ogg",
+      "source": "assets-src/audio/drone/static-loop.mp3",
+      "source_sha256": "fe7f444c76f5b058921cd77de72b47193326394bf8b489e5b448defa8e704d09",
+      "duration_seconds": 2.68,
+      "peak": 0.2924,
+      "rms_dbfs": -26.0
+    }
+  ]
+}

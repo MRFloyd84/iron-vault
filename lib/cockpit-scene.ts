@@ -449,7 +449,7 @@ export class CockpitScene {
     // IV-02: abgestelltes, ausgeschlachtetes Schwesterschiff vor der Werkstatt
     new SisterMech(this, this.wet);
     // Aufklärungsdrohne (Halterung am Rücken: mech-exterior.ts)
-    this.droneRig = new DroneRig(this.scene);
+    this.droneRig = new DroneRig(this.scene, manager);
     this.droneRig.root.visible = false;
     this.droneFeed = new DroneFeed();
     this.targetMarker = new TargetMarker(this.scene);
@@ -1238,6 +1238,7 @@ export class CockpitScene {
     const point = hit ? hit.point : null;
     this.drone = droneMark(this.drone, point ? { x: point.x, y: point.y, z: point.z } : null);
     this.droneNotice = point ? 'Ziel markiert.' : 'Zielmarkierung gelöscht.';
+    if (point) this.droneMarks++;
   }
   /** Taste: starten bzw. zurückrufen. Meldung für das Kommunikationsdisplay. */
   droneToggle(s: MachineState): { message: string; error: boolean } | null {
@@ -1257,6 +1258,8 @@ export class CockpitScene {
   }
   /** Drohne hat angedockt, während die Drohnensicht aktiv war (Oberfläche schaltet zurück). */
   droneReturned = false;
+  /** Zählt gesetzte Zielmarkierungen (für den Einrast-Ton). */
+  private droneMarks = 0;
   /** Für die Oberfläche (~10 Hz). */
   droneInfo() {
     const d = this.drone;
@@ -1271,6 +1274,8 @@ export class CockpitScene {
       marked: !!d.mark,
       rtbReason: d.rtbReason,
       rotor: d.rotor,
+      marks: this.droneMarks,
+      speed: Math.hypot(d.vel.x, d.vel.y, d.vel.z),
     };
   }
   /** Für die Oberfläche: Zustand des Waffensystems (wird mit ~10 Hz abgefragt). */

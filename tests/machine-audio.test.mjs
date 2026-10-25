@@ -104,14 +104,14 @@ function setup() {
   };
 }
 
-// 19 Bestandsgeräusche + 16 Hydraulik-Ereignisse + Hydraulikpumpe (v56)
-test('all 36 active sound paths are preloaded through versioned URLs', async () => {
+// 19 Bestandsgeräusche + 16 Hydraulik-Ereignisse + Hydraulikpumpe (v56) + 7 Drohne (v60.1)
+test('all 43 active sound paths are preloaded through versioned URLs', async () => {
   const f = setup();
   try {
     await setImmediate();
     const paths = f.requests.map((url) => new URL(url, 'https://example.test'));
-    assert.equal(paths.length, 36);
-    assert.equal(new Set(paths.map((url) => url.pathname)).size, 36);
+    assert.equal(paths.length, 43);
+    assert.equal(new Set(paths.map((url) => url.pathname)).size, 43);
     assert.ok(paths.every((url) => url.searchParams.has('v')));
   } finally {
     f.restore();

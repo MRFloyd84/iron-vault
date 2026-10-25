@@ -10,7 +10,7 @@ export type AudioStatus = 'idle' | 'active' | 'muted' | 'blocked' | 'error';
 import { RainAudio } from './rain-audio';
 import { WeaponAudio } from './weapon-audio';
 import { HydraulicAudio, preloadHydraulics } from './hydraulic-audio';
-import { DroneAudio } from './drone-audio';
+import { DroneAudio, preloadDroneAudio, type DroneSoundInput } from './drone-audio';
 
 export class MachineAudio {
   private rain: RainAudio | null = null;
@@ -25,11 +25,12 @@ export class MachineAudio {
     this.rain?.set(amount, cabin);
   }
   private drone: DroneAudio | null = null;
-  /** Rotorgeräusch der Drohne; wird erst beim ersten Start angelegt. */
-  setDrone(rotor: number, level: number, cabin: boolean) {
+  private droneBytes = preloadDroneAudio();
+  /** Geräusche der Drohne: level 0…1 nach Entfernung, feed = Drohnensicht aktiv. */
+  setDrone(d: DroneSoundInput, level: number, cabin: boolean, feed: boolean) {
     if (!this.ctx || !this.master || this.disposed) return;
-    if (!this.drone && rotor > 0.01) this.drone = new DroneAudio(this.ctx, this.master);
-    this.drone?.set(rotor, level, cabin);
+    if (!this.drone) this.drone = new DroneAudio(this.ctx, this.master, this.droneBytes);
+    this.drone.set(d, level, cabin, feed);
   }
   private weapons: WeaponAudio | null = null;
   private weaponAudio() {

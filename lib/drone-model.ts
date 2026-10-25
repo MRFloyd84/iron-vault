@@ -1,9 +1,10 @@
-// Die Drohne in der Szene: Modell (prozedural, geflickt), Halterung auf dem Mech-Rücken,
+// Die Drohne in der Szene: Modell (Tripo, von Rene), Rotoren, Halterung auf dem Mech-Rücken,
 // Kamera mit Bild für den Cockpit-Monitor, Lichtkegel und Zielmarkierung.
 import * as THREE from 'three';
 import type { DroneState } from './drone';
 import { drawDisplaySurface } from './display-surface';
-import { hash } from './display-aging';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { assetUrl } from './asset-url';
 import { tr } from './i18n';
 
 const RAD = Math.PI / 180;
@@ -12,60 +13,39 @@ export const DRONE_DOCK = { x: -0.045, z: -0.14 } as const;
 /** Mech-Modell: 1 Modelleinheit = 9,5 m */
 const MODEL_TO_M = 9.5;
 
-function tapeTexture() {
-  const c = document.createElement('canvas');
-  c.width = 128;
-  c.height = 64;
-  const x = c.getContext('2d')!;
-  x.fillStyle = '#4b4f45';
-  x.fillRect(0, 0, 128, 64);
-  for (let i = 0; i < 260; i++) {
-    x.fillStyle = `rgba(${20 + hash(i, 1) * 40},${20 + hash(i, 2) * 30},${15},${0.25 * hash(i, 3)})`;
-    x.fillRect(hash(i, 4) * 128, hash(i, 5) * 64, 1 + hash(i, 6) * 6, 1 + hash(i, 7) * 3);
-  }
-  // Gewebeband quer über dem Rumpf
-  x.fillStyle = 'rgba(165,165,152,0.9)';
-  x.fillRect(46, 0, 22, 64);
-  x.strokeStyle = 'rgba(90,90,80,0.6)';
-  for (let i = 0; i < 8; i++) {
-    x.beginPath();
-    x.moveTo(46, i * 8 + 2);
-    x.lineTo(68, i * 8 + 4);
-    x.stroke();
-  }
-  x.fillStyle = '#c8a032';
-  x.fillRect(0, 54, 128, 4);
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
-}
-
-/** Maßstab der Drohne und ihrer Halterung (Grundmaße 0,9 m → rund 1,6 m Spannweite). */
-const DRONE_SCALE = 1.8;
+/** Maßstab der Halterung (Grundmaße × 1,8 passen zu den Kufen des Modells). */
+const DOCK_SCALE = 1.8;
 /** Ebene des Markierlasers; nur Außenkameras schalten sie ein. */
 export const LASER_LAYER = 2;
+export const DRONE_ASSET = assetUrl('models/iv-04-drone.glb');
+/**
+ * Maße des Modells (Meter, Ursprung = Unterseite der Kufen, vorn = −z), aufbereitet aus
+ * Renes Tripo-Modell: ein Teil, Texturatlas. Die Rotorblätter fehlen im Modell absichtlich –
+ * sie werden hier gebaut, damit sie sich drehen.
+ */
+const HUB = { x: 0.501, y: 0.548, z: 0.398 } as const;
+const BLADE_RADIUS = 0.3;
+const GIMBAL = { y: 0.155, z: -0.3 } as const;
+const LED = { y: 0.562, z: 0.25 } as const;
 
-/** Quadrocopter, ca. 1,6 m Spannweite. Ursprung = Unterseite der Kufen. */
+/** Quadrocopter, rund 1,6 m Spannweite mit Rotoren. Ursprung = Unterseite der Kufen. */
 export class DroneRig {
   root = new THREE.Group();
   camera = new THREE.PerspectiveCamera(70, 1.6, 0.05, 600);
   light: THREE.SpotLight;
+  ready: Promise<void>;
   private gimbal = new THREE.Group();
   private rotors: THREE.Group[] = [];
   private discs: THREE.MeshBasicMaterial;
   private led: THREE.MeshStandardMaterial;
   private disposables: { dispose(): void }[] = [];
-  constructor(scene: THREE.Scene) {
+  constructor(scene: THREE.Scene, manager?: THREE.LoadingManager) {
     this.root.name = 'IV-04 recon drone';
-    this.root.scale.setScalar(DRONE_SCALE);
-    const tape = tapeTexture();
-    const body = new THREE.MeshStandardMaterial({ map: tape, roughness: 0.75, metalness: 0.35 });
-    const dark = new THREE.MeshStandardMaterial({
-      color: 0x24261f,
-      roughness: 0.6,
-      metalness: 0.5,
+    const blade = new THREE.MeshStandardMaterial({
+      color: 0x24251f,
+      roughness: 0.55,
+      metalness: 0.3,
     });
-    const blade = new THREE.MeshStandardMaterial({ color: 0x1c1d19, roughness: 0.5 });
     this.discs = new THREE.MeshBasicMaterial({
       color: 0x3a3d36,
       transparent: true,
@@ -74,37 +54,17 @@ export class DroneRig {
       side: THREE.DoubleSide,
     });
     this.led = new THREE.MeshStandardMaterial({ color: 0x220000, emissive: 0xff2a1a });
-    this.disposables.push(tape, body, dark, blade, this.discs, this.led);
-    const add = (
-      geo: THREE.BufferGeometry,
-      mat: THREE.Material,
-      parent: THREE.Object3D = this.root,
-    ) => {
-      const m = new THREE.Mesh(geo, mat);
-      m.castShadow = true;
-      parent.add(m);
-      this.disposables.push(geo);
-      return m;
-    };
-    const hull = add(new THREE.BoxGeometry(0.34, 0.1, 0.26), body);
-    hull.position.y = 0.16;
-    const top = add(new THREE.BoxGeometry(0.2, 0.05, 0.16), dark);
-    top.position.y = 0.235;
-    // Antenne
-    const antenna = add(new THREE.CylinderGeometry(0.004, 0.004, 0.16, 6), dark);
-    antenna.position.set(-0.08, 0.32, 0.06);
-    // Kufen
-    for (const sx of [-1, 1]) {
-      const skid = add(new THREE.BoxGeometry(0.02, 0.02, 0.3), dark);
-      skid.position.set(sx * 0.13, 0.01, 0);
-      for (const sz of [-1, 1]) {
-        const leg = add(new THREE.BoxGeometry(0.015, 0.11, 0.015), dark);
-        leg.position.set(sx * 0.12, 0.065, sz * 0.09);
-      }
+    this.disposables.push(blade, this.discs, this.led);
+    // Rotoren: zwei Blätter mit verdrehten Spitzen, dazu eine Unschärfe-Scheibe
+    const blades = new THREE.BoxGeometry(BLADE_RADIUS * 2, 0.008, 0.055);
+    const pos = blades.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      // Leicht angestellte Blätter: Vorderkante oben, gegenläufig auf beiden Seiten
+      const x = pos.getX(i);
+      pos.setY(i, pos.getY(i) + Math.sign(x) * pos.getZ(i) * 0.12);
     }
-    // Arme und Rotoren
-    const blades = new THREE.BoxGeometry(0.34, 0.006, 0.035);
-    const disc = new THREE.CircleGeometry(0.18, 24);
+    blades.computeVertexNormals();
+    const disc = new THREE.CircleGeometry(BLADE_RADIUS + 0.01, 28);
     disc.rotateX(-Math.PI / 2);
     this.disposables.push(blades, disc);
     for (const [ax, az] of [
@@ -113,44 +73,44 @@ export class DroneRig {
       [1, -1],
       [-1, -1],
     ]) {
-      const arm = add(new THREE.BoxGeometry(0.03, 0.025, 0.32), dark);
-      arm.position.set(ax * 0.15, 0.18, az * 0.15);
-      arm.rotation.y = Math.atan2(ax, az);
-      const motor = add(new THREE.CylinderGeometry(0.028, 0.032, 0.05, 12), dark);
-      motor.position.set(ax * 0.27, 0.205, az * 0.27);
       const rotor = new THREE.Group();
-      rotor.position.set(ax * 0.27, 0.235, az * 0.27);
+      rotor.position.set(ax * HUB.x, HUB.y, az * HUB.z);
+      rotor.rotation.y = ax * az;
       const b = new THREE.Mesh(blades, blade);
       b.castShadow = true;
-      rotor.add(b);
-      const d = new THREE.Mesh(disc, this.discs);
-      rotor.add(d);
+      rotor.add(b, new THREE.Mesh(disc, this.discs));
       this.root.add(rotor);
       this.rotors.push(rotor);
     }
-    // Positionslicht hinten
-    const led = add(new THREE.SphereGeometry(0.012, 8, 6), this.led);
-    led.position.set(0, 0.17, 0.135);
-    // Kamera-Gimbal vorn unten
-    this.gimbal.position.set(0, 0.1, -0.12);
+    // Blinkendes Positionslicht hinten oben (sitzt auf der roten Kappe des Modells)
+    const ledGeo = new THREE.SphereGeometry(0.022, 10, 8);
+    this.disposables.push(ledGeo);
+    const led = new THREE.Mesh(ledGeo, this.led);
+    led.position.set(0, LED.y, LED.z);
+    this.root.add(led);
+    // Kamera-Gimbal vorn unten (die Kugel selbst gehört zum Modell)
+    this.gimbal.position.set(0, GIMBAL.y, GIMBAL.z);
     this.root.add(this.gimbal);
-    const ball = add(new THREE.SphereGeometry(0.035, 12, 10), dark, this.gimbal);
-    ball.position.set(0, 0, 0);
-    const lens = add(
-      new THREE.CylinderGeometry(0.014, 0.014, 0.02, 10),
-      new THREE.MeshStandardMaterial({ color: 0x0a0d10, roughness: 0.1, metalness: 0.9 }),
-      this.gimbal,
-    );
-    lens.rotation.x = Math.PI / 2;
-    lens.position.z = -0.035;
     this.gimbal.add(this.camera);
-    this.camera.position.set(0, 0, -0.05);
+    this.camera.position.set(0, 0, -0.07);
     // Suchscheinwerfer am Gimbal (für Nachtflüge)
     this.light = new THREE.SpotLight(0xfff1d6, 0, 70, 0.42, 0.55, 1.6);
-    this.light.position.set(0, -0.02, -0.04);
+    this.light.position.set(0, -0.02, -0.06);
     this.light.target.position.set(0, 0, -5);
     this.gimbal.add(this.light, this.light.target);
     scene.add(this.root);
+    this.ready = new GLTFLoader(manager).loadAsync(DRONE_ASSET).then((gltf) => {
+      gltf.scene.traverse((o) => {
+        if (!(o instanceof THREE.Mesh)) return;
+        o.castShadow = true;
+        o.receiveShadow = true;
+        this.disposables.push(o.geometry);
+        const m = o.material as THREE.MeshStandardMaterial;
+        for (const t of [m.map, m.normalMap, m.roughnessMap]) if (t) this.disposables.push(t);
+        this.disposables.push(m);
+      });
+      this.root.add(gltf.scene);
+    });
   }
   /** Pro Bild: Lage aus dem Zustand, Rotoren drehen, Licht. */
   update(d: DroneState, time: number, night: number, dt: number) {
@@ -190,7 +150,7 @@ export class DroneDock {
     const base = new THREE.Group();
     if (hit) base.position.copy(torso.worldToLocal(hit.point.clone()));
     else base.position.set(DRONE_DOCK.x, 0.945, DRONE_DOCK.z);
-    base.scale.setScalar(DRONE_SCALE / MODEL_TO_M); // ab hier in Metern (Drohnenmaßstab)
+    base.scale.setScalar(DOCK_SCALE / MODEL_TO_M); // ab hier in Metern (Halterungsmaßstab)
     torso.add(base);
     const steel = new THREE.MeshStandardMaterial({
       color: 0x3b3f36,
@@ -214,15 +174,16 @@ export class DroneDock {
       this.disposables.push(geo);
       return m;
     };
-    add(new THREE.BoxGeometry(0.62, 0.04, 0.5), steel, 0, 0.02, 0);
+    // Grundplatte; Gummipuffer genau unter den Kufen des Modells (±0,33 m)
+    add(new THREE.BoxGeometry(0.46, 0.04, 0.5), steel, 0, 0.02, 0);
     for (const sx of [-1, 1]) {
-      add(new THREE.BoxGeometry(0.06, 0.06, 0.4), rubber, sx * 0.13, 0.07, 0);
+      add(new THREE.BoxGeometry(0.05, 0.06, 0.44), rubber, sx * 0.186, 0.07, 0);
       // Klauen, die die Kufen halten
       for (const sz of [-1, 1])
-        add(new THREE.BoxGeometry(0.05, 0.09, 0.04), steel, sx * 0.17, 0.085, sz * 0.12);
+        add(new THREE.BoxGeometry(0.03, 0.09, 0.04), steel, sx * 0.218, 0.085, sz * 0.15);
     }
     // Ladekontakt
-    add(new THREE.CylinderGeometry(0.03, 0.03, 0.05, 10), steel, 0, 0.065, 0.16);
+    add(new THREE.CylinderGeometry(0.03, 0.03, 0.05, 10), steel, 0, 0.065, 0.2);
     this.anchor.position.set(0, 0.1, 0);
     base.add(this.anchor);
   }

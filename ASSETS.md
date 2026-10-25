@@ -17,8 +17,10 @@ selbst prüfen.
 | Sound recordings | `public/audio/*.ogg`, `*.mp3` | Third-party recordings (Pixabay Content License); names, cuts and processing in `public/audio/*-sources.json` |
 | Rain and thunder | `public/audio/rain-loop.ogg`, `thunder-*.ogg`, `assets-src/audio/rain-original.mp3`, `thunder-original.mp3` | Generated with ElevenLabs Sound Effects (paid plan) |
 | Hydraulic sounds | `public/audio/hyd-*.ogg`, `assets-src/audio/hydraulics/` | Generated with ElevenLabs Sound Effects, paid plan (`public/audio/hydraulic-sources.json`) |
+| Recon drone | `public/models/iv-04-drone.glb` | Drone model generated with Tripo by Rene, merged into one textured part with `scripts/prepare-drone-model.mjs` (rotor blades are built in code) |
+| Drone sounds | `public/audio/drone-*.ogg`, `assets-src/audio/drone/` | Generated with ElevenLabs Sound Effects, paid plan (`public/audio/drone-sources.json`) |
 
-Sounds synthesised in code (Web Audio: weapons, rain noise, beeps) and all canvas-drawn
+Sounds synthesised in code (Web Audio: weapons, rain noise, beeps, warning tones) and all canvas-drawn
 displays, labels and textures are part of the source code and covered by the MIT licence.
 
 **Unprocessed Pixabay originals are not in this repository.** The Pixabay licence does not

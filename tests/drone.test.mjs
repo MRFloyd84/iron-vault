@@ -135,3 +135,16 @@ test('Ziel markieren und Kamera schwenken', () => {
   assert.equal(back.phase, 'docked');
   assert.equal(back.mark, null);
 });
+
+test('Drohnengeräusche: Start, Abheben, Landung, Abbruch und Markierung', async () => {
+  const { droneSoundEvents } = await import('../lib/drone-audio.ts');
+  const at = (phase, marks = 0) => ({ phase, rotor: 1, marks, signal: 1, speed: 0 });
+  assert.deepEqual(droneSoundEvents(null, at('spinup')), []);
+  assert.deepEqual(droneSoundEvents(at('docked'), at('spinup')), ['spinup']);
+  assert.deepEqual(droneSoundEvents(at('spinup'), at('launch')), ['release']);
+  assert.deepEqual(droneSoundEvents(at('flying'), at('flying')), []);
+  assert.deepEqual(droneSoundEvents(at('landing'), at('docked')), ['dock', 'spindown']);
+  // Start ohne Strom abgebrochen: nichts setzt auf, Motoren laufen nur aus.
+  assert.deepEqual(droneSoundEvents(at('spinup'), at('docked')), ['spindown']);
+  assert.deepEqual(droneSoundEvents(at('flying', 2), at('flying', 3)), ['mark']);
+});
