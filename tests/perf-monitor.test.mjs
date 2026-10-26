@@ -40,13 +40,23 @@ test('Diagnose: Bildrate, Mittel, Maximum und 1 %-Low aus den Bildabständen', (
   assert.equal(m.stats().frames, 0);
 });
 
-test('Diagnose: Pausen (verdeckter Tab) verfälschen die Bildzeit nicht', () => {
-  const m = new PerfMonitor(fakeRenderer());
-  m.frame(0);
-  m.frame(16);
-  m.frame(5016); // 5 s Pause
-  m.frame(5032);
-  const s = m.stats();
-  assert.equal(s.frames, 2);
-  assert.equal(s.frameMaxMs, 16);
+test('Diagnose: lange Hänger zählen, verdeckter Tab nicht', () => {
+  const listeners = {};
+  globalThis.document = { addEventListener: (k, f) => (listeners[k] = f) };
+  try {
+    const m = new PerfMonitor(fakeRenderer());
+    m.frame(0);
+    m.frame(16);
+    m.frame(2016); // 2 s Hänger: muss sichtbar sein
+    assert.equal(m.stats().frames, 2);
+    assert.equal(m.stats().frameMaxMs, 2000);
+    listeners.visibilitychange(); // Tab verdeckt, rAF pausiert
+    m.frame(60000);
+    m.frame(60016);
+    const s = m.stats();
+    assert.equal(s.frames, 3);
+    assert.equal(s.frameMaxMs, 2000);
+  } finally {
+    delete globalThis.document;
+  }
 });

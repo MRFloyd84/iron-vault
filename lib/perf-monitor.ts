@@ -63,6 +63,9 @@ export class PerfMonitor {
   constructor(renderer: THREE.WebGLRenderer) {
     this.renderer = renderer;
     renderer.info.autoReset = false;
+    // Verdeckter Tab: rAF pausiert, die Lücke ist kein langsames Bild
+    if (typeof document !== 'undefined')
+      document.addEventListener('visibilitychange', () => (this.lastStamp = -1));
   }
 
   /** Messfenster leeren (z. B. nach einem Ansichtswechsel). */
@@ -75,7 +78,8 @@ export class PerfMonitor {
   frame(ms: number) {
     if (this.lastStamp >= 0) {
       const dt = ms - this.lastStamp;
-      if (dt > 0 && dt < 1000) {
+      // Auch lange Hänger zählen (früher ab 1 s verworfen und damit unsichtbar)
+      if (dt > 0 && dt < 30000) {
         this.intervals[this.head] = dt;
         this.head = (this.head + 1) % N;
         this.count = Math.min(N, this.count + 1);
