@@ -35,7 +35,12 @@ export class WeaponAudio {
     g.gain.exponentialRampToValueAtTime(0.0001, at + decay);
     src.connect(f).connect(g).connect(this.cabinFilter);
     src.start(at, Math.random() * 0.2, decay + 0.05);
-    src.onended = () => src.disconnect();
+    // Filter und Pegel mit abbauen – sonst bleiben bei Dauerfeuer viele tote Knoten hängen
+    src.onended = () => {
+      src.disconnect();
+      f.disconnect();
+      g.disconnect();
+    };
   }
 
   private tone(
@@ -56,7 +61,10 @@ export class WeaponAudio {
     o.connect(g).connect(this.cabinFilter);
     o.start(at);
     o.stop(at + decay + 0.02);
-    o.onended = () => o.disconnect();
+    o.onended = () => {
+      o.disconnect();
+      g.disconnect();
+    };
   }
 
   setCabin(cabin: boolean) {
@@ -117,6 +125,10 @@ export class WeaponAudio {
     src.connect(lp).connect(g).connect(this.cabinFilter);
     src.start(t);
     src.stop(t + 1.3 + size * 0.35);
-    src.onended = () => src.disconnect();
+    src.onended = () => {
+      src.disconnect();
+      lp.disconnect();
+      g.disconnect();
+    };
   }
 }

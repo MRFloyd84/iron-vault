@@ -4,6 +4,7 @@ import { HELP } from './help-content';
 import { tr } from '../lib/i18n';
 import ArticulationPanel from './articulation-panel';
 import MissionPanel from './mission-panel';
+import PerfOverlay from './perf-overlay';
 import { sectorName } from '../lib/terrain';
 import AudioCheck from './audio-check';
 import {
@@ -93,6 +94,24 @@ export default function Cockpit() {
   const [track, setTrack] = useState<ReturnType<CockpitScene['missionInfo']> | null>(null);
   const readMission = useRef(() => scene.current?.missionInfo() ?? null).current;
   const trackKey = useRef('');
+  const droneKeyRef = useRef('');
+  const getScene = useRef(() => scene.current).current;
+  const [diag, setDiag] = useState(() => {
+    try {
+      return localStorage.getItem('iron-vault.diag') === '1' || location.search.includes('diag=1');
+    } catch {
+      return false;
+    }
+  });
+  const toggleDiag = () =>
+    setDiag((v) => {
+      try {
+        localStorage.setItem('iron-vault.diag', v ? '0' : '1');
+      } catch {
+        /* nur für diese Sitzung */
+      }
+      return !v;
+    });
   const updateInputRef = useRef<() => void>(() => {});
   const droneControlsRef = useRef(false);
   const reticle = useRef<HTMLDivElement>(null);
@@ -335,7 +354,9 @@ export default function Cockpit() {
               scene: scene.current,
               state: stateRef,
             };
-          void scene.current.ready
+          const sc = scene.current;
+          void sc.ready
+            .then(() => sc.precompile())
             .then(() => {
               if (!stopped) setLoaded(true);
             })
@@ -460,6 +481,11 @@ export default function Cockpit() {
         return;
       }
       if (e.repeat) return;
+      if (e.code === 'F3') {
+        e.preventDefault();
+        toggleDiag();
+        return;
+      }
       if (e.code === 'KeyG' && !helpRef.current) {
         e.preventDefault();
         operate.current(68);
@@ -605,7 +631,24 @@ export default function Cockpit() {
       const sc = scene.current;
       if (!sc) return;
       const info = sc.droneInfo();
-      setDrone(info.phase === 'docked' && info.rotor < 0.01 ? null : info);
+      // Anzeige nur bei sichtbaren Änderungen neu zeichnen
+      const show = info.phase === 'docked' && info.rotor < 0.01 ? null : info;
+      const droneKey = show
+        ? [
+            show.phase,
+            Math.round(show.battery * 100),
+            Math.round(show.signal * 100),
+            Math.round(show.altitude),
+            Math.round(show.distance),
+            show.marked,
+            show.rtbReason,
+            show.airborne,
+          ].join('|')
+        : '';
+      if (droneKey !== droneKeyRef.current) {
+        droneKeyRef.current = droneKey;
+        setDrone(show);
+      }
       if (info.controls !== droneControlsRef.current) {
         droneControlsRef.current = info.controls;
         updateInputRef.current();
@@ -1034,6 +1077,9 @@ export default function Cockpit() {
             >
               {tr('Audioprüfung öffnen')}
             </button>
+            <button aria-pressed={diag} onClick={toggleDiag}>
+              {tr(diag ? 'Diagnose ausblenden (F3)' : 'Diagnose anzeigen (F3)')}
+            </button>
           </div>
           <dl>
             {HELP[lang].sections.map(([title, text]) => (
@@ -1048,6 +1094,7 @@ export default function Cockpit() {
           ))}
         </aside>
       )}
+      {diag && <PerfOverlay scene={getScene} />}
       {missionOpen && !help && (
         <MissionPanel
           read={readMission}

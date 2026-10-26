@@ -69,7 +69,9 @@ export class Explosions {
   private dummy = new THREE.Object3D();
   private seed = 1;
 
-  constructor(private scene: THREE.Scene) {
+  private scene: THREE.Scene;
+  constructor(scene: THREE.Scene) {
+    this.scene = scene;
     this.fireTex = radial([
       [0, 'rgba(255,250,215,1)'],
       [0.25, 'rgba(255,190,80,0.95)'],
@@ -90,6 +92,10 @@ export class Explosions {
       opacity: 0.85,
     });
     this.disposables.push(this.fireTex, ballMat, this.fireMat);
+    // Unsichtbarer Platzhalter: so wird der Brand-Shader beim Laden mit übersetzt.
+    const keep = new THREE.Sprite(this.fireMat);
+    keep.visible = false;
+    scene.add(keep);
     for (let i = 0; i < FIREBALLS; i++) {
       const sprite = new THREE.Sprite(ballMat.clone());
       sprite.visible = false;

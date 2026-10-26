@@ -124,7 +124,10 @@ export class RainAudio {
     );
     source.connect(gain).connect(this.thunderFilter);
     source.start();
-    source.onended = () => source.disconnect();
+    source.onended = () => {
+      source.disconnect();
+      gain.disconnect();
+    };
   }
 
   dispose() {

@@ -119,15 +119,19 @@ test('six cameras cover front and rear with left/right tied to mech sides', () =
 });
 test('round-robin capture updates all six without six world renders in one frame', () => {
   const { monitor, renderer } = fixture();
+  // Eine Aufnahme je 33 ms (≈ 30/s), reihum
   for (let i = 0; i < 6; i++) {
     const count = renderer.captures.length;
-    monitor.update(i * 17, live(), true);
+    monitor.update(i * 34, live(), true);
     assert.equal(renderer.captures.length, count + 1);
   }
   assert.equal(new Set(renderer.captures).size, 6);
   assert.equal(monitor.tiles.filter((t) => t.visible).length, 6);
   const before = renderer.captures.length;
-  monitor.update(86, live(), true);
+  // Zu früh für die nächste Aufnahme (Abstand) und für die älteste Kachel (180 ms)
+  monitor.update(5 * 34 + 20, live(), true);
+  assert.equal(renderer.captures.length, before);
+  monitor.update(179, live(), true);
   assert.equal(renderer.captures.length, before);
   monitor.update(10000, live(), false);
   assert.equal(renderer.captures.length, before);
@@ -195,13 +199,13 @@ test('overview tiles fit on the monitor without overlap and selected scheduling 
 
 test('display power reset invalidates every old camera frame before the next boot', () => {
   const { monitor } = fixture();
-  for (let i = 0; i < 6; i++) monitor.update(i * 17, live(), true);
+  for (let i = 0; i < 6; i++) monitor.update(i * 34, live(), true);
   assert.equal(monitor.tiles.filter((t) => t.visible).length, 6);
   monitor.reset();
   assert.equal(monitor.powered, false);
   assert.ok(monitor.tiles.every((t) => !t.visible));
   assert.ok(monitor.last.every((t) => !Number.isFinite(t)));
-  monitor.update(200, live(), true);
+  monitor.update(400, live(), true);
   assert.equal(monitor.tiles.filter((t) => t.visible).length, 1);
   monitor.dispose();
 });

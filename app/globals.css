@@ -1124,3 +1124,54 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+/* Diagnose (F3) */
+.perf-overlay {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 6;
+  width: 290px;
+  padding: 10px 12px;
+  background: #080c0ce8;
+  border: 1px solid #4a5a48;
+  color: #d8e6cc;
+  font: 11px var(--mono);
+  pointer-events: none;
+}
+.perf-overlay strong {
+  display: block;
+  margin-bottom: 6px;
+  letter-spacing: 0.12em;
+  color: #98ff53;
+}
+.perf-overlay dl {
+  margin: 0;
+  display: grid;
+  gap: 2px;
+}
+.perf-overlay dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.perf-overlay dt {
+  color: #9fb08f;
+}
+.perf-overlay dd {
+  margin: 0;
+  text-align: right;
+}
+.perf-overlay em {
+  color: #efbd68;
+  font-style: normal;
+}
+.perf-overlay .perf-n dd {
+  color: #7d8a74;
+}
+.perf-overlay p {
+  margin: 6px 0 0;
+  color: #7d8a74;
+  font-size: 10px;
+  line-height: 1.35;
+}

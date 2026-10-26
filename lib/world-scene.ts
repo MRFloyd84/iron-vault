@@ -989,6 +989,17 @@ export class DesertWorld {
     tilt.add(wreck);
     this.root.add(holder);
     holder.updateMatrixWorld(true);
+    // Die vielen Einzelteile des Modells zu je einem Netz pro Material zusammenfassen
+    // (statt rund 80 Zeichenaufrufen für ein fernes Wrack nur noch eine Handvoll).
+    const inv = holder.matrixWorld.clone().invert();
+    const batch = new Batch();
+    wreck.traverse((o) => {
+      if (o instanceof THREE.Mesh && o.visible)
+        batch.add(o.geometry, o.material as THREE.Material, inv.clone().multiply(o.matrixWorld));
+    });
+    tilt.removeFromParent();
+    this.disposables.push(...batch.build(holder, 'IV-01 wreck'));
+    holder.updateMatrixWorld(true);
   }
 
   private flame(x: number, y: number, z: number) {

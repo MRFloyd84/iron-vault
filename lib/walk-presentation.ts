@@ -12,6 +12,8 @@ type Sample = { time: number; pose: WalkPose };
 // pulse), and never predict past a wall or an emergency stop.
 export class WalkPresentation {
   readonly delay = 100;
+  /** Bilder, für die noch kein neuerer Simulationsstand vorlag (Darstellung stand still) */
+  starved = 0;
   private samples: Sample[] = [];
   private lastFrame = -Infinity;
   sample(source: WalkPose, simAt: number, now: number, out: WalkPose) {
@@ -34,6 +36,8 @@ export class WalkPresentation {
       a = b;
     }
     const t = a === b ? 0 : Math.max(0, Math.min(1, (target - a.time) / (b.time - a.time)));
+    if (target > b.time && Math.abs(source.speed) + Math.abs(source.turnRate) > 0.01)
+      this.starved++;
     for (const field of fields) out[field] = a.pose[field] + (b.pose[field] - a.pose[field]) * t;
     return out;
   }

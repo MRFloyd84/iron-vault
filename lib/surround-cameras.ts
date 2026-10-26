@@ -20,8 +20,15 @@ export const cameraTile = (i: number) => ({
   w: 292,
   h: 220,
 });
+/**
+ * Bildtakt der Monitorkameras: Übersicht je Kachel alle 180 ms (≈ 5,5 Bilder/s, wie alte
+ * Überwachungsmonitore), gewählte Einzelkamera alle 40 ms. Insgesamt höchstens eine
+ * Aufnahme alle 33 ms – sonst rendert der kleine Monitor die ganze Welt ein zweites Mal
+ * in jedem Bild.
+ */
+export const CAPTURE = { grid: 180, selected: 40, spacing: 33 } as const;
 export function nextCamera(last: number[], now: number, selected: number) {
-  const interval = selected < 0 ? 90 : 40;
+  const interval = selected < 0 ? CAPTURE.grid : CAPTURE.selected;
   if (selected >= 0) return now - last[selected] >= interval ? selected : -1;
   let index = 0;
   for (let i = 1; i < last.length; i++) if (last[i] < last[index]) index = i;
@@ -197,9 +204,11 @@ void main(){gl_FragColor=vec4(ACESFilmicToneMapping(texture2D(image,vUv).rgb),1.
     this.powered = power;
     if (changed) this.last.fill(-Infinity);
     if (!visible && !changed) return;
-    // At most one world capture per animation frame and 60 captures/s overall.
+    // Höchstens eine Weltaufnahme pro Bild und rund 30 pro Sekunde insgesamt.
     const index =
-      power && now - this.lastCapture >= 16 ? nextCamera(this.last, now, this.selected) : -1;
+      power && now - this.lastCapture >= CAPTURE.spacing
+        ? nextCamera(this.last, now, this.selected)
+        : -1;
     if (index < 0 && !changed && this.lastCapture !== -Infinity) return;
     const r = this.renderer,
       oldTarget = r.getRenderTarget(),

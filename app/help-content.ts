@@ -143,6 +143,7 @@ export const HELP: Record<Lang, Help> = {
     notes: [
       'Der obere linke Monitor zeigt die erweiterte Kaltstart-Checkliste und den nächsten Schritt. Links außen bedienst du Kühlung und Stromversorgung und siehst Druck und Temperatur, rechts außen den Systemtest. Meldungen stehen im unteren Kommunikationsdisplay.',
       'Beim Senken des Hydraulikdrucks hörst du die Druckentlastung. Der Hauptantrieb ist ab Reaktorstart hörbar; nach der Steuerfreigabe verändert der linke Leistungshebel Leistung und Maschinenklang. Bei gelöster Parkverriegelung begrenzt der Hebel das Gehtempo. Im verriegelten Zustand bleibt der stationäre Lasttest verfügbar.',
+      'F3 blendet eine Diagnoseanzeige ein: Bilder pro Sekunde, Bildzeit, 1 %-Low, CPU-Zeit je Abschnitt, Zeichenaufrufe, Dreiecke, GPU-Zeit (wenn der Browser sie misst), Speicher, Objekte, Shader und Audioquellen. Geschätzte und nicht verfügbare Werte sind gekennzeichnet.',
       'Prototyp: Anzeigen simulieren die Bordsysteme. Die Startlogik ist für diesen Mech entworfen. Overhead und beschriftete Seitenregler sind bedienbar; weitere kleine Tasten bleiben Dekoration.',
     ],
   },
@@ -283,6 +284,7 @@ export const HELP: Record<Lang, Help> = {
     notes: [
       'The upper left monitor shows the extended cold-start checklist and the next step. On the far left you operate cooling and power supply and see pressure and temperature, on the far right the system test. Messages appear on the lower communication display.',
       'When lowering hydraulic pressure you hear the pressure release. The main drive is audible from the reactor start; after control clearance the left power lever changes power and engine sound. With the parking lock released the lever limits walking speed. With it engaged the stationary load test remains available.',
+      'F3 shows a diagnostics overlay: frames per second, frame time, 1 % low, CPU time per stage, draw calls, triangles, GPU time (if the browser measures it), memory, objects, shaders and audio sources. Estimated and unavailable values are marked.',
       'Prototype: the displays simulate the on-board systems. The start-up logic is designed for this mech. The overhead and labelled side controls can be operated; other small buttons are decoration.',
     ],
   },

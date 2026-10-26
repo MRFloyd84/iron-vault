@@ -40,6 +40,8 @@ export function batchStaticCockpit(
   scene: THREE.Object3D,
   moving: ReadonlySet<THREE.Object3D>,
   retainColliders = false,
+  /** Zellgröße (m) der Gruppen: klein in der Kanzel (genaues Ausblenden), groß draußen */
+  cell = { x: 4, y: 3, z: 4 },
 ) {
   scene.updateMatrixWorld(true);
   const picking: THREE.Mesh[] = [],
@@ -67,9 +69,9 @@ export function batchStaticCockpit(
       object.material.uuid,
       object.castShadow,
       object.receiveShadow,
-      Math.floor(center.x / 4),
-      Math.floor(center.y / 3),
-      Math.floor(center.z / 4),
+      Math.floor(center.x / cell.x),
+      Math.floor(center.y / cell.y),
+      Math.floor(center.z / cell.z),
       attributes,
     ].join('|');
     const group = groups.get(key) ?? [];

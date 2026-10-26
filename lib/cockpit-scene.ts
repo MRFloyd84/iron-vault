@@ -68,6 +68,7 @@ import {
 import { DroneFeed, DroneRig, LASER_LAYER, TargetMarker } from './drone-model';
 import { DesertWorld } from './world-scene';
 import { WorldTargets } from './world-targets';
+import { PerfMonitor } from './perf-monitor';
 import { MissionDirector } from './mission-director';
 import { mission as missionById } from './missions';
 import { STRUCTURES, TARGETS, structureTop } from './world-layout';
@@ -128,12 +129,15 @@ export class CockpitScene {
   cabin = new THREE.Group();
   camera = new THREE.PerspectiveCamera(60, 1, 0.08, 2600);
   world: DesertWorld | null = null;
+  /** Leistungsmessung (Diagnosemodus F3) */
+  perf: PerfMonitor;
   worldTargets: WorldTargets | null = null;
   /** Explosion: Entfernung zur Kamera (m) und Größe – für den Ton. */
   onExplosion: ((distance: number, size: number) => void) | null = null;
   /** Ziel zerstört (Missionen). */
   onTargetDestroyed: ((id: string) => void) | null = null;
   missions = new MissionDirector();
+  private tacticalAt = -1;
   private droneForward = new THREE.Vector3();
   private droneEye = new THREE.Vector3();
   /** Radarechos: Bauwerke (ohne Leitungen) */
@@ -333,6 +337,7 @@ export class CockpitScene {
     this.renderer.toneMappingExposure = 0.94;
     this.renderer.setClearColor(0x080c0b);
     host.appendChild(this.renderer.domElement);
+    this.perf = new PerfMonitor(this.renderer);
     this.scene.fog = new THREE.FogExp2(0x39444a, 0.0025);
     this.camera.position.set(0, 1.6, 3.85);
     this.camera.rotation.order = 'YXZ';
@@ -378,7 +383,13 @@ export class CockpitScene {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.loadYardSky(manager);
-    const worldBatches = batchStaticCockpit(this.scene, new Set(this.gateLeaves));
+    // Halle und Testgelände: große Zellen (24 m) – deutlich weniger Zeichenaufrufe;
+    // die Kanzel unten behält feine Zellen fürs genaue Ausblenden.
+    const worldBatches = batchStaticCockpit(this.scene, new Set(this.gateLeaves), false, {
+      x: 24,
+      y: 12,
+      z: 24,
+    });
     const worldObjects = new Set(this.scene.children);
     worldObjects.delete(this.screenSpill);
     this.buildShell();
@@ -619,6 +630,13 @@ export class CockpitScene {
     c.addEventListener('wheel', wheel, { passive: false });
     c.addEventListener('contextmenu', context);
     c.addEventListener('webglcontextlost', lost);
+    // three.js baut nach der Wiederherstellung alles neu auf; Displays neu zeichnen
+    const restored = () => {
+      for (const screen of this.screens) screen.lastDraw = -Infinity;
+      this.surround?.reset();
+      this.hover(null);
+    };
+    c.addEventListener('webglcontextrestored', restored);
     this.cleanup.push(() => {
       c.removeEventListener('pointermove', move);
       c.removeEventListener('pointerdown', down);
@@ -629,6 +647,7 @@ export class CockpitScene {
       c.removeEventListener('wheel', wheel);
       c.removeEventListener('contextmenu', context);
       c.removeEventListener('webglcontextlost', lost);
+      c.removeEventListener('webglcontextrestored', restored);
     });
     this.animate(0);
   }
@@ -1288,7 +1307,10 @@ export class CockpitScene {
       { airborne, position: this.droneEye, forward: this.droneForward, signal: this.drone.signal },
       (id) => targets?.destroyed(id) ?? false,
     );
-    void time;
+    // Lagebild fürs Taktik-Display: das Display zeichnet höchstens 8× pro Sekunde neu,
+    // daher reicht eine Aktualisierung alle 100 ms (spart Speicherbelegung pro Bild).
+    if (time - this.tacticalAt < 0.1) return;
+    this.tacticalAt = time;
     const info = this.missions.info(walk.x, walk.z);
     const objectiveIds = new Set(
       info.active
@@ -1323,6 +1345,53 @@ export class CockpitScene {
         : null,
       mission: info.active?.title ?? null,
     };
+  }
+  /**
+   * Alle Shader vorab übersetzen (hinter dem Ladebildschirm), damit der erste Blick nach
+   * draußen, auf den Kameramonitor oder die erste Explosion nicht ruckelt. Drei Durchgänge,
+   * weil die Zahl der Lichter je Ansicht verschieden ist (Kanzel / außen / Monitor).
+   */
+  async precompile() {
+    await new Promise((r) => setTimeout(r, 0));
+    const pass = (skip: THREE.Object3D | null) => {
+      const hidden: THREE.Object3D[] = [];
+      this.scene.traverse((o) => {
+        if (o.visible) return;
+        for (let a: THREE.Object3D | null = o; a; a = a.parent) if (a === skip) return;
+        // Keine Lichter einschalten: ihre Zahl gehört zum Shader (sonst falsche Variante)
+        let light = false;
+        o.traverse((c) => (light ||= (c as THREE.Light).isLight === true));
+        if (light) return;
+        hidden.push(o);
+        o.visible = true;
+      });
+      try {
+        // Der synchrone Teil erzeugt die Programme; Sichtbarkeit sofort zurücksetzen
+        return this.renderer.compileAsync(this.scene, this.camera);
+      } finally {
+        for (const o of hidden) o.visible = false;
+      }
+    };
+    const jobs: Promise<unknown>[] = [];
+    try {
+      jobs.push(pass(null));
+      setCockpitInterior(this.cabin, this.interior, false);
+      jobs.push(pass(this.interior));
+      setCockpitInterior(this.cabin, this.interior, true);
+      const cabinVisible = this.cabin.visible;
+      this.cabin.visible = false;
+      jobs.push(pass(this.cabin));
+      this.cabin.visible = cabinVisible;
+      await Promise.all(jobs);
+    } catch (e) {
+      console.warn('[IRON VAULT] Shader-Vorübersetzung unvollständig', e);
+    } finally {
+      setCockpitInterior(
+        this.cabin,
+        this.interior,
+        !(this.inMech || this.inHangar || this.inYard || this.inDrone),
+      );
+    }
   }
   /** Einsatz beginnen (Ziele werden wieder aufgebaut). */
   startMission(id: string) {
@@ -1612,6 +1681,7 @@ export class CockpitScene {
     }
     const dt = Math.min((ms - this.lastTime) / 1000, 0.1) || 0.016;
     this.lastTime = ms;
+    this.perf.frame(ms);
     const s = this.getState(),
       time = ms / 1000;
     const damp = 1 - Math.exp(-dt * 10);
@@ -1854,6 +1924,7 @@ export class CockpitScene {
         this.camera.matrixWorldInverse,
       ),
     );
+    this.perf.section('update');
     const cameraScreen = this.screens.find((sc) => sc.kind === 'cameras');
     const ready = this.displayBoot.phase === 'ready';
     const feed = ready && droneAirborne(this.drone) && !this.surround?.systems && this.droneFeed;
@@ -1883,6 +1954,7 @@ export class CockpitScene {
         );
       }
     }
+    this.perf.section('monitors');
     const display =
       outside || this.displayBoot.phase === 'off'
         ? undefined
@@ -1897,8 +1969,14 @@ export class CockpitScene {
       this.drawScreen(display, s, time);
       display.lastDraw = ms;
     }
+    this.perf.section('displays');
     cabinWear.uCabinInv.value.copy(this.cabin.matrixWorld).invert();
+    this.perf.gpuBegin();
     this.renderer.render(this.scene, this.camera);
+    this.perf.gpuEnd();
+    this.perf.section('render');
+    this.perf.endFrame();
+    this.perf.starved = this.walkPresentation.starved;
     if (this.pendingPointer && !this.drag && ms - this.lastHover >= 50) {
       const e = this.pendingPointer;
       this.pendingPointer = null;
