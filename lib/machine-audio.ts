@@ -354,6 +354,50 @@ export class MachineAudio {
     o.start();
     o.stop(c.currentTime + 0.18);
   }
+  /**
+   * Autopilot-Signal: "off" = Trennwarnung (fallende Tonfolge, zweimal), "on" = kurzer
+   * Bestätigungston, "arrive" = zwei weiche steigende Töne am Ziel.
+   */
+  apChime(kind: 'on' | 'off' | 'arrive') {
+    if (!this.ctx || !this.master) return;
+    const c = this.ctx,
+      t0 = c.currentTime;
+    const notes: [number, number, number][] =
+      kind === 'off'
+        ? [0, 0.42].flatMap((r) => [
+            [988, t0 + r, 0.12] as [number, number, number],
+            [784, t0 + r + 0.13, 0.12] as [number, number, number],
+            [659, t0 + r + 0.26, 0.14] as [number, number, number],
+          ])
+        : kind === 'arrive'
+          ? [
+              [659, t0, 0.22],
+              [880, t0 + 0.24, 0.32],
+            ]
+          : [[1175, t0, 0.09]];
+    for (const [freq, at, length] of notes) {
+      const o = c.createOscillator(),
+        f = c.createBiquadFilter(),
+        g = c.createGain();
+      o.type = kind === 'off' ? 'square' : 'triangle';
+      o.frequency.setValueAtTime(freq, at);
+      f.type = 'lowpass';
+      f.frequency.value = 2400;
+      g.gain.setValueAtTime(0, at);
+      g.gain.linearRampToValueAtTime(kind === 'off' ? 0.035 : 0.06, at + 0.01);
+      g.gain.setValueAtTime(kind === 'off' ? 0.035 : 0.06, at + length * 0.6);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + length);
+      o.connect(f);
+      f.connect(g);
+      g.connect(this.master);
+      o.onended = () => {
+        f.disconnect();
+        g.disconnect();
+      };
+      o.start(at);
+      o.stop(at + length + 0.02);
+    }
+  }
   dispose() {
     this.disposed = true;
     if (this.ctx) this.ctx.onstatechange = null;

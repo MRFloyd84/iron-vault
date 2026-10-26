@@ -33,6 +33,16 @@ import {
 } from '../lib/machine';
 import { walkInput, idleInput, walkSetting, walkingStopped, walkGear } from '../lib/walking';
 import { hangarCommand } from '../lib/hangar';
+import {
+  MAP_ACTION,
+  ROUTE_RADIUS,
+  disengage,
+  fmsCommand,
+  isMcduAction,
+  logMessage,
+  type FmsState,
+} from '../lib/autopilot';
+import { walkGrid } from '../lib/route-planner';
 import { mobilityCommand, restraintLabel } from '../lib/mobility';
 import { serviceWarning, electricalReadings, sourceLabel } from '../lib/service-systems';
 import { MachineAudio, type AudioStatus } from '../lib/machine-audio';
@@ -168,9 +178,20 @@ export default function Cockpit() {
     setCameraView(view);
     setHover(null);
   };
-  const apply = (next: MachineState) => {
+  const apply = (incoming: MachineState) => {
     const previous = stateRef.current;
+    const next = incoming.message !== previous.message ? logMessage(incoming) : incoming;
     stateRef.current = next;
+    // Autopilot: Signaltöne beim Ein- und Ausschalten, MCDU sofort neu zeichnen
+    const pf = previous.fms,
+      nf = next.fms;
+    if (pf.ap === 'off' && nf.ap !== 'off') audio.current?.apChime('on');
+    if (pf.ap !== 'off' && nf.ap === 'off')
+      audio.current?.apChime(
+        next.error ? 'off' : /Ziel erreicht/.test(next.message) ? 'arrive' : 'off',
+      );
+    if (mcduChanged(pf, nf) || previous.message !== next.message)
+      scene.current?.refreshScreen('comm');
     audio.current?.update(next);
     if (
       (next.thermalWarning && !previous.thermalWarning) ||
@@ -179,6 +200,7 @@ export default function Cockpit() {
       audio.current?.beep(true);
     // Telemetry goes straight to the instruments. React only needs chrome/status changes.
     if (
+      previous.fms.ap !== next.fms.ap ||
       previous.walk.z < -35 !== next.walk.z < -35 ||
       previous.hangar.gate !== next.hangar.gate ||
       previous.mobility.restraints !== next.mobility.restraints ||
@@ -218,6 +240,18 @@ export default function Cockpit() {
     )
       return;
     void audio.current?.enable().catch(() => {});
+    if (isMcduAction(index)) {
+      void audio.current?.playSwitch().catch(() => {});
+      if (index === MAP_ACTION) {
+        setMissionOpen(true);
+        return;
+      }
+      const previous = stateRef.current,
+        next = fmsCommand(previous, index);
+      apply(next);
+      if (next.error && next !== previous) audio.current?.beep(true);
+      return;
+    }
     if (index >= 100 && index <= 107) {
       scene.current?.cameraAction(index);
       void audio.current?.playSwitch().catch(() => {});
@@ -358,6 +392,8 @@ export default function Cockpit() {
           const sc = scene.current;
           void sc.ready
             .then(() => sc.precompile())
+            // Begehbarkeitsraster für den Autopiloten hinter dem Ladebildschirm vorbereiten
+            .then(() => void walkGrid(ROUTE_RADIUS))
             .then(() => {
               if (!stopped) setLoaded(true);
             })
@@ -427,6 +463,22 @@ export default function Cockpit() {
         return;
       }
       scene.current?.setDroneInput({ forward: 0, strafe: 0, climb: 0, turn: 0 });
+      // Lenken, Gas oder Bremse des Piloten trennt den Autopiloten sofort
+      if (
+        stateRef.current.fms.ap !== 'off' &&
+        ['KeyW', 'KeyS', 'KeyA', 'KeyD', 'Space'].some((c) => keys.has(c))
+      )
+        apply(disengage(stateRef.current, 'Autopilot aus – Steuerung übernommen.'));
+      else if (stateRef.current.fms.ap !== 'off') {
+        apply(
+          jointInput(stateRef.current, {
+            ...neutralJoints(),
+            torso: Number(keys.has('KeyQ')) - Number(keys.has('KeyE')),
+            pitch: Number(keys.has('PitchUp')) - Number(keys.has('PitchDown')),
+          }),
+        );
+        return;
+      }
       apply(
         walkInput(stateRef.current, {
           forward: Number(keys.has('KeyW')) - Number(keys.has('KeyS')),
@@ -688,6 +740,15 @@ export default function Cockpit() {
         trackKey.current = key;
         setTrack(t);
       }
+      // Nächstes Einsatzziel als Ziel für DIR im MCDU
+      const nx = a?.status === 'active' ? a.next : null;
+      const want = nx ? { id: 'mission', name: nx.label, x: nx.x, z: nx.z } : null;
+      const have = stateRef.current.fms.mission;
+      if (
+        (want === null) !== (have === null) ||
+        (want && have && (want.name !== have.name || want.x !== have.x || want.z !== have.z))
+      )
+        apply({ ...stateRef.current, fms: { ...stateRef.current.fms, mission: want } });
       const notice = sc.missions.notices.shift();
       if (notice) {
         apply({ ...stateRef.current, message: notice.text, error: false });
@@ -821,7 +882,12 @@ export default function Cockpit() {
                       ? 'HALLENKAMERA · WARTUNGSBEREICH'
                       : 'PILOTENSICHT · ' +
                         restraintLabel(state) +
-                        (state.walk.gear === 2 ? ' · STUFE 2' : ''),
+                        (state.walk.gear === 2 ? ' · STUFE 2' : '') +
+                        (state.fms.ap === 'nav'
+                          ? ' · AP NAV'
+                          : state.fms.ap === 'hold'
+                            ? ' · AP HOLD'
+                            : ''),
             )}
           </div>
           {track?.active && track.active.status === 'active' && (
@@ -1106,6 +1172,38 @@ export default function Cockpit() {
           }}
           abort={() => scene.current?.abortMission()}
           close={() => setMissionOpen(false)}
+          nav={() => {
+            const f = stateRef.current.fms,
+              plan = f.tmpy ?? f.plan,
+              w = stateRef.current.walk;
+            return {
+              route: plan
+                ? {
+                    points:
+                      !f.tmpy && f.ap !== 'off'
+                        ? [{ x: w.x, z: w.z }, ...plan.points.slice(f.leg)]
+                        : plan.points,
+                    tmpy: !!f.tmpy,
+                  }
+                : null,
+              mapPoint: f.mapPoint,
+            };
+          }}
+          pick={(x, z) => {
+            const s = stateRef.current;
+            apply({
+              ...s,
+              fms: {
+                ...s.fms,
+                mapPoint: { id: 'map', name: 'KARTENPUNKT ' + sectorName(x, z), x, z },
+                page: 'dir',
+                scroll: 0,
+              },
+              message: 'Kartenpunkt gesetzt (' + sectorName(x, z) + '). Im MCDU unter DIR wählen.',
+              error: false,
+            });
+            void audio.current?.playSwitch().catch(() => {});
+          }}
         />
       )}
       {jointsOpen && !help && (
@@ -1151,5 +1249,24 @@ export default function Cockpit() {
         {tr(state.message)}
       </p>
     </main>
+  );
+}
+
+/** Hat sich am MCDU etwas Sichtbares geändert (ohne Uhr und Fortschrittskontrolle)? */
+function mcduChanged(a: FmsState, b: FmsState) {
+  return (
+    a.page !== b.page ||
+    a.scroll !== b.scroll ||
+    a.plan !== b.plan ||
+    a.tmpy !== b.tmpy ||
+    a.leg !== b.leg ||
+    a.ap !== b.ap ||
+    a.gear !== b.gear ||
+    a.preferRoads !== b.preferRoads ||
+    a.stopDistance !== b.stopDistance ||
+    a.brightness !== b.brightness ||
+    a.log !== b.log ||
+    a.mission !== b.mission ||
+    a.mapPoint !== b.mapPoint
   );
 }

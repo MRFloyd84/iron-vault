@@ -5,6 +5,7 @@ import {
   type Articulation,
 } from './articulation';
 import { advanceHydraulics } from './hydraulics';
+import { autopilotStep, initialFms, type FmsState } from './autopilot';
 import {
   initialWalk,
   advanceWalking,
@@ -47,6 +48,8 @@ export const actuatorMoving = (s: MachineState) =>
   s.hydraulicPressure === 210 &&
   Math.abs(s.actualPressure - 210) <= 5;
 export type MachineState = {
+  /** Navigationsrechner und Marschautopilot (MCDU) */
+  fms: FmsState;
   articulation: Articulation;
   walk: WalkState;
   hangar: HangarState;
@@ -87,6 +90,7 @@ export type MachineState = {
 };
 export function initialState(): MachineState {
   return {
+    fms: initialFms(),
     articulation: initialArticulation(),
     walk: initialWalk(),
     hangar: initialHangar(),
@@ -358,7 +362,8 @@ export function tick(state: MachineState, now: number): MachineState {
           : nextStartInstruction(s);
     }
   }
-  s = advanceArticulation(advanceWalking(advanceMobility(advanceShutdown(s, dt), dt), dt), dt);
+  s = advanceMobility(advanceShutdown(s, dt), dt);
+  s = advanceArticulation(advanceWalking(autopilotStep(s, dt), dt), dt);
   if (!testRunning(s)) return s;
   if (s.stage < 5 || s.throttle > 0 || s.service.hydraulicFault || s.service.sensorFault)
     return {

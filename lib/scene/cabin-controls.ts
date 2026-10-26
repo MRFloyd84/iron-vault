@@ -5,6 +5,7 @@ import { MOBILITY_CONTROLS } from '../mobility';
 import { SERVICE_CONTROLS } from '../service-systems';
 import * as THREE from 'three';
 import { STEPS } from '../machine';
+import { LSK_ACTION, MCDU_KEYS, MCDU_KEY_ACTION, MCDU_KEY_HINT } from '../autopilot';
 import type { CockpitScene } from '../cockpit-scene';
 
 export function screen(
@@ -25,7 +26,8 @@ export function screen(
   cs.box(g, 0, 0, 0.03, w + 0.14, h + 0.15, 0.14, cs.displayFrameMat, 0.035);
   cs.box(g, 0, 0, 0.11, w + 0.035, h + 0.035, 0.04, cs.darkMat, 0.015);
   const canvas = document.createElement('canvas');
-  canvas.width = 960;
+  // MCDU: breiteres Bild (2:1 wie der Bildschirm) für scharfe Schrift
+  canvas.width = kind === 'comm' ? 1440 : 960;
   canvas.height = 720;
   const ctx = canvas.getContext('2d')!;
   const texture = new THREE.CanvasTexture(canvas);
@@ -76,6 +78,19 @@ export function screen(
       cs.labelMat,
       0.006,
     );
+    if (kind === 'comm') {
+      cs.target(button, LSK_ACTION + i, 'MCDU · Zeilentaste ' + (i + 1));
+      cs.label(
+        g,
+        String(i + 1),
+        -w * 0.38 + i * w * 0.152,
+        -h / 2 - 0.06,
+        0.149,
+        0.033,
+        0.028,
+        '#102015',
+      );
+    }
     if (kind === 'cameras') {
       cs.target(button, 100 + i, 'Kamera ' + (i + 1) + ' · ' + SURROUND_VIEWS[i].label);
       cs.label(
@@ -88,6 +103,30 @@ export function screen(
         0.028,
         '#102015',
       );
+    }
+  }
+  if (kind === 'comm') {
+    // Zeilen direkt antippen (vergrößerte Ansicht): gleiche Wirkung wie die Zeilentasten
+    const touchMat = new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+    });
+    cs.materials.push(touchMat);
+    for (let i = 0; i < 6; i++) {
+      const touch = cs.plane(
+        g,
+        0,
+        ((360 - (143 + i * 88)) / 720) * h,
+        0.146,
+        w * 0.96,
+        (84 / 720) * h,
+        touchMat,
+      );
+      cs.target(touch, LSK_ACTION + i, 'MCDU · Zeile ' + (i + 1));
+      touch.userData.displayControl = true;
+      // Nur in der vergrößerten Ansicht – sonst vergrößert ein Klick den Bildschirm
+      touch.userData.zoomOnly = true;
     }
   }
   if (kind === 'cameras') {
@@ -144,9 +183,12 @@ export function buildConsole(cs: CockpitScene) {
   for (let i = 0; i < 6; i++) cs.addSwitch(control, -1.4 + i * 0.56, 0.005, i, STEPS[i].label);
   const lower = cs.panel(main, 0, -1.05, 0.07, 1.8, 0.53);
   cs.label(lower, 'COMM / NAVIGATION', 0, 0.18, 0.07, 1.24, 0.06);
+  // MCDU-Tastenfeld: Seiten, Blättern, CLR, Autopilot, Stufe, Helligkeit
   for (let y = 0; y < 3; y++)
     for (let x = 0; x < 6; x++) {
-      cs.box(
+      const i = x + y * 6,
+        name = MCDU_KEYS[i];
+      const key = cs.box(
         lower,
         -0.7 + x * 0.15,
         0.065 - y * 0.09,
@@ -154,21 +196,22 @@ export function buildConsole(cs: CockpitScene) {
         0.115,
         0.064,
         0.039,
-        cs.darkMat,
+        name === 'AP' ? cs.edgeMat : cs.darkMat,
         0.008,
       );
+      cs.target(key, MCDU_KEY_ACTION + i, 'MCDU · ' + MCDU_KEY_HINT[name]);
       cs.label(
         lower,
-        String(1 + x + y * 6),
+        name,
         -0.7 + x * 0.15,
         0.065 - y * 0.09,
         0.108,
-        0.08,
+        0.1,
         0.045,
-        '#d4caba',
+        name === 'AP' ? '#f2d58a' : '#d4caba',
       );
     }
-  cs.screen(lower, 0.54, -0.03, 0.09, 0.46, 0.23, 'comm', 'UPLINK');
+  cs.screen(lower, 0.54, -0.03, 0.09, 0.46, 0.23, 'comm', 'MCDU / NAV');
   cs.addGauge(main, -1.43, -1.03, 0.12, 0.19, 0, 'BUS VOLT');
   cs.addGauge(main, 1.4, -1.03, 0.12, 0.19, 1, 'PRESSURE');
   cs.label(main, 'IRON VAULT / MK. IV', 0, 0.95, 0.05, 1.7, 0.085, '#c4cbd2');

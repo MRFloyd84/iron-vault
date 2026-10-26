@@ -14,6 +14,7 @@ import {
   type MachineState,
 } from './machine';
 import { tr } from './i18n';
+import { renderMcdu } from './mcdu-instruments';
 import { assetUrl } from './asset-url';
 export type TelemetrySample = { pressure: number; temperature: number };
 /** Lagebild für das Taktik-Display (Welt in Metern, Norden = −z). */
@@ -34,6 +35,8 @@ export type Tactical = {
     distance: number;
   } | null;
   mission: string | null;
+  /** Autopilot-Route ab Mech (aktiv: magenta, nur geplant: gestrichelt) */
+  route: { points: { x: number; z: number }[]; active: boolean } | null;
 };
 export type InstrumentAssets = { structureAtlas?: CanvasImageSource; tactical?: Tactical };
 export const STRUCTURE_ATLAS = assetUrl('instruments/mech-structure-atlas.png');
@@ -59,6 +62,10 @@ export function renderInstrument(
 ) {
   if (kind === 'electrical') {
     renderElectrical(ctx, s);
+    return;
+  }
+  if (kind === 'comm') {
+    renderMcdu(ctx, s, time);
     return;
   }
   const c = ctx,
@@ -342,6 +349,23 @@ export function renderInstrument(
           road.forEach(([wx, wz], i) => (i ? c.lineTo(px(wx), py(wz)) : c.moveTo(px(wx), py(wz))));
           c.stroke();
         }
+        // Autopilot-Route
+        if (tac.route) {
+          c.strokeStyle = '#ff78f4';
+          c.lineWidth = tac.route.active ? 4 : 3;
+          if (!tac.route.active) c.setLineDash([12, 10]);
+          c.beginPath();
+          tac.route.points.forEach((p, i) =>
+            i ? c.lineTo(px(p.x), py(p.z)) : c.moveTo(px(p.x), py(p.z)),
+          );
+          c.stroke();
+          c.setLineDash([]);
+          for (const p of tac.route.points.slice(1)) {
+            c.beginPath();
+            c.arc(px(p.x), py(p.z), 5, 0, Math.PI * 2);
+            c.stroke();
+          }
+        }
         // Bauwerke als Radarechos
         for (const b of tac.blips) rect(px(b.x) - 3, py(b.z) - 3, 6, 6, C.muted, 1);
         // Ziele: Raute; zerstört: Kreuz
@@ -547,9 +571,6 @@ export function renderInstrument(
       text(label, 57, y + 5, 30, C.muted);
       text(value, i === 5 ? 575 : 650, y + 5, i === 5 ? 25 : 32, i === 5 ? C.amber : C.text);
     });
-  } else if (kind === 'comm') {
-    badge(s.error ? 'WARNUNG' : 'SYSTEM', 36, 135, s.error ? C.amber : C.accent);
-    wrap(s.message, 42, 236, 869, 47, s.error ? C.amber : C.text, 5);
   } else if (kind === 'power') {
     text('Hydraulikdruck', 36, 132, 29, C.muted);
     mono(Math.round(s.actualPressure).toString(), 39, 250, 101, C.text);

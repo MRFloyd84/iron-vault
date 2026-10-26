@@ -8,7 +8,7 @@ import {
   objectiveVisible,
   startMission,
 } from '../lib/missions';
-import { drawMap } from '../lib/map-render';
+import { drawMap, fromMap, type MapOverlay } from '../lib/map-render';
 import { sectorName } from '../lib/terrain';
 import type { CockpitScene } from '../lib/cockpit-scene';
 
@@ -20,11 +20,17 @@ export default function MissionPanel({
   start,
   abort,
   close,
+  nav,
+  pick,
 }: {
   read: () => Info | null;
   start: (id: string) => void;
   abort: () => void;
   close: () => void;
+  /** Autopilot-Route und Kartenpunkt für die Karte */
+  nav: () => Pick<MapOverlay, 'route' | 'mapPoint'>;
+  /** Klick auf die Karte: Kartenpunkt für den Autopiloten setzen */
+  pick: (x: number, z: number) => void;
 }) {
   useLang();
   const [info, setInfo] = useState<Info | null>(read);
@@ -58,6 +64,7 @@ export default function MissionPanel({
         drone: info.drone,
         destroyed: info.destroyed,
         objectives,
+        ...nav(),
       },
       performance.now() / 1000,
     );
@@ -91,7 +98,21 @@ export default function MissionPanel({
             );
           })}
         </ul>
-        <canvas className="mission-map" ref={canvas} width={600} height={600} />
+        <canvas
+          className="mission-map"
+          ref={canvas}
+          width={600}
+          height={600}
+          title={tr('Klick: Kartenpunkt für den Autopiloten')}
+          onClick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            const w = fromMap(
+              ((e.clientX - r.left) / r.width) * 600,
+              ((e.clientY - r.top) / r.height) * 600,
+            );
+            pick(w.x, w.z);
+          }}
+        />
         <div className="mission-brief">
           <span className="mission-type">{tr(m.type)}</span>
           <h3>{tr(m.title)}</h3>
@@ -127,6 +148,11 @@ export default function MissionPanel({
           <p className="mission-hint">
             {tr(
               'Karte: Norden oben, Planquadrate 250 m. Rote Punkte: Ziele, gestrichelter Kreis: Suchgebiet.',
+            )}
+          </p>
+          <p className="mission-hint">
+            {tr(
+              'Autopilot: Klick auf die Karte setzt einen Kartenpunkt, im MCDU unter DIR wählbar. Magenta: aktive Route.',
             )}
           </p>
         </div>

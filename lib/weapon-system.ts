@@ -399,7 +399,12 @@ export class WeaponSystem {
         const seed = Math.floor(time * 997) + n;
         this.spawnSparks(hit.point, hit.normal, hit.kind === 'ground' ? 10 : 22, time, seed);
         this.mark(hit, time);
-        events.push({ kind: hit.kind, point: hit.point.clone(), plate: hit.plate, target: hit.target });
+        events.push({
+          kind: hit.kind,
+          point: hit.point.clone(),
+          plate: hit.plate,
+          target: hit.target,
+        });
         continue;
       }
       if (r.age > 2.2) {

@@ -67,7 +67,11 @@ export class DroneAudio {
   /** Wann der Hochlauf-Ton begann – die Schleife setzt erst gegen dessen Ende ein. */
   private spinupAt = -1;
   private disposed = false;
-  constructor(ctx: AudioContext, output: AudioNode, bytes: Map<string, Promise<ArrayBuffer | null>>) {
+  constructor(
+    ctx: AudioContext,
+    output: AudioNode,
+    bytes: Map<string, Promise<ArrayBuffer | null>>,
+  ) {
     this.ctx = ctx;
     this.out = ctx.createGain();
     this.out.gain.value = 0;

@@ -225,8 +225,8 @@ export class CabinClutter {
     stick(screen('cameras'), tape('DEFEKT?', 0.38), 0.55, -1.08, -0.06);
     // Prüfplakette (abgelaufen) unter dem Einsatzprüfungs-Display
     stick(screen('preflight'), paper(plaqueTexture(), 0.26, 0.13), -0.55, -1.2, 0.0);
-    // Altes Foto in die Ecke des Kommunikationsdisplays geklemmt
-    stick(screen('comm'), paper(photoTexture(), 0.14, 0.19), -1.06, 0.55, 0.22);
+    // Altes Foto an den Rahmen des Navigationsrechners geklemmt (lässt die Zeilen frei)
+    stick(screen('comm'), paper(photoTexture(), 0.14, 0.19), -1.42, 0.5, 0.22);
     // Ersatzrahmen aus einem anderen Mech: Grundierungsrot statt Grün, Schablonenschrift
     const cam = screen('cameras');
     if (cam) {

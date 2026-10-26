@@ -7,6 +7,11 @@ import { tr } from './i18n';
 const SIZE = 600;
 let relief: HTMLCanvasElement | null = null;
 
+/** Kartenpixel → Weltkoordinate */
+export const fromMap = (px: number, py: number, size = SIZE) => ({
+  x: MAP.minX + (px / size) * MAP_SIZE,
+  z: MAP.minZ + (py / size) * MAP_SIZE,
+});
 /** Weltkoordinate → Kartenpixel */
 export const toMap = (x: number, z: number, size = SIZE) => ({
   x: ((x - MAP.minX) / MAP_SIZE) * size,
@@ -95,6 +100,9 @@ function buildRelief() {
 }
 
 export type MapOverlay = {
+  /** Autopilot: Route (ab aktivem Wegpunkt) und Kartenpunkt */
+  route?: { points: { x: number; z: number }[]; tmpy: boolean } | null;
+  mapPoint?: { x: number; z: number } | null;
   x: number;
   z: number;
   yaw: number;
@@ -149,6 +157,44 @@ export function drawMap(c: CanvasRenderingContext2D, o: MapOverlay, time: number
     c.arc(p.x, p.y, r + (ob.exact ? Math.sin(time * 4) * 2 : 0), 0, Math.PI * 2);
     c.stroke();
     c.setLineDash([]);
+  }
+  // Autopilot-Route: magenta, vorläufig gelb gestrichelt
+  if (o.route && o.route.points.length > 1) {
+    c.strokeStyle = o.route.tmpy ? '#b59a00' : '#c02fb4';
+    c.lineWidth = 2.5 * k;
+    c.setLineDash(o.route.tmpy ? [6 * k, 5 * k] : []);
+    c.beginPath();
+    o.route.points.forEach((pt, i) => {
+      const q = at(pt.x, pt.z);
+      if (i) c.lineTo(q.x, q.y);
+      else c.moveTo(q.x, q.y);
+    });
+    c.stroke();
+    c.setLineDash([]);
+    const end = at(o.route.points.at(-1)!.x, o.route.points.at(-1)!.z);
+    c.fillStyle = c.strokeStyle;
+    c.beginPath();
+    c.moveTo(end.x, end.y - 7 * k);
+    c.lineTo(end.x + 7 * k, end.y);
+    c.lineTo(end.x, end.y + 7 * k);
+    c.lineTo(end.x - 7 * k, end.y);
+    c.closePath();
+    c.fill();
+  }
+  // Kartenpunkt für den Autopiloten
+  if (o.mapPoint) {
+    const q = at(o.mapPoint.x, o.mapPoint.z);
+    c.strokeStyle = '#0d6f8f';
+    c.lineWidth = 3 * k;
+    c.beginPath();
+    c.moveTo(q.x - 8 * k, q.y);
+    c.lineTo(q.x + 8 * k, q.y);
+    c.moveTo(q.x, q.y - 8 * k);
+    c.lineTo(q.x, q.y + 8 * k);
+    c.stroke();
+    c.beginPath();
+    c.arc(q.x, q.y, 11 * k, 0, Math.PI * 2);
+    c.stroke();
   }
   // Drohne
   if (o.drone) {

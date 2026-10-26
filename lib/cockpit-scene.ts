@@ -1049,6 +1049,7 @@ export class CockpitScene {
         )
           continue;
       }
+      if (hit.object.userData.zoomOnly && this.targetFov > 30) continue;
       if (
         hit.object.userData.servicePage &&
         hit.object.userData.servicePage !== this.getState().service.page
@@ -1363,6 +1364,17 @@ export class CockpitScene {
           }
         : null,
       mission: info.active?.title ?? null,
+      route: (() => {
+        const f = this.getState().fms;
+        if (!f.plan) return null;
+        const active = f.ap !== 'off';
+        return {
+          points: active
+            ? [{ x: walk.x, z: walk.z }, ...f.plan.points.slice(f.leg)]
+            : f.plan.points,
+          active,
+        };
+      })(),
     };
   }
   /**
@@ -1713,6 +1725,10 @@ export class CockpitScene {
     }
     this.camera.position.y = Math.max(this.camera.position.y, MECH.floor + 0.55 + w.height);
     this.camera.lookAt(target);
+  }
+  /** Bildschirm beim nächsten Bild neu zeichnen (z. B. nach einem MCDU-Tastendruck). */
+  refreshScreen(kind: string) {
+    for (const screen of this.screens) if (screen.kind === kind) screen.lastDraw = -Infinity;
   }
   cameraAction(action: number) {
     if (!this.surround || this.displayBoot.phase !== 'ready') return;
