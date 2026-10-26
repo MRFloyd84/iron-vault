@@ -1,7 +1,7 @@
 # IRON VAULT – Quellprojekt, Version 59
 
-Stand: 26.10.2026. v46: Aufräumen und neue Oberfläche, v47: Röhren-Look der Displays, v48: Außenhülle, Scheinwerfer, Tag/Nacht, v49: Rundumleuchte am Rücken, v50: Schatten, Schrittgewicht, Regen, v51: Regen-/Donneraufnahmen, Gewitter, v52: Armkanonen, Laser, Schießstand, v53: gealterte Kanzel, giftgrüne Displays, v54: Schwesterschiff IV-02, v55: Füße fest am Boden, Hydraulik an den Beinen, v56: Hydraulikgeräusche, v57: Desktop-App (AppImage), v58: automatische Updates über GitHub, v59: Englisch und Sprachmenü, v59.1: Lizenzbereinigung (IV-02 optional), v59.2: Rundumleuchte sitzt fest, v59.3: keine Risse an Schultern und Ellbogen, v60: Aufklärungsdrohne mit Zielmarkierung, v60.1: eigenes Drohnenmodell und Drohnengeräusche, v61: Wüste (1,5 km), Industrieanlagen und Einsätze, v61.1: Eilmarsch, Oberkörper neigen (X/Y), Regen auf Z, v62: Performance-Audit, Diagnosemodus (F3).
-Was sich geändert hat, steht in `AENDERUNGEN_v46.md` bis `AENDERUNGEN_v62.md`.
+Stand: 26.10.2026. v46: Aufräumen und neue Oberfläche, v47: Röhren-Look der Displays, v48: Außenhülle, Scheinwerfer, Tag/Nacht, v49: Rundumleuchte am Rücken, v50: Schatten, Schrittgewicht, Regen, v51: Regen-/Donneraufnahmen, Gewitter, v52: Armkanonen, Laser, Schießstand, v53: gealterte Kanzel, giftgrüne Displays, v54: Schwesterschiff IV-02, v55: Füße fest am Boden, Hydraulik an den Beinen, v56: Hydraulikgeräusche, v57: Desktop-App (AppImage), v58: automatische Updates über GitHub, v59: Englisch und Sprachmenü, v59.1: Lizenzbereinigung (IV-02 optional), v59.2: Rundumleuchte sitzt fest, v59.3: keine Risse an Schultern und Ellbogen, v60: Aufklärungsdrohne mit Zielmarkierung, v60.1: eigenes Drohnenmodell und Drohnengeräusche, v61: Wüste (1,5 km), Industrieanlagen und Einsätze, v61.1: Eilmarsch, Oberkörper neigen (X/Y), Regen auf Z, v62: Performance-Audit, Diagnosemodus (F3), v63: Grafikeinstellungen.
+Was sich geändert hat, steht in `AENDERUNGEN_v46.md` bis `AENDERUNGEN_v63.md`.
 
 Das ist eine Three.js-/React-Browsersimulation. Seit v46 ist sie ein reines
 **Vite-Projekt** ohne Server-Anteil: `npm run build` erzeugt einen statischen Ordner
@@ -13,7 +13,7 @@ Voraussetzung: Node.js 22.13 oder neuer (Node 24 passt) und npm. Für die erste
 Installation braucht es Internet.
 
 ```sh
-cd IRON_VAULT_v62
+cd IRON_VAULT_v63
 npm ci
 npm run dev
 ```

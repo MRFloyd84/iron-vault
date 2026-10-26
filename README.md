@@ -107,6 +107,7 @@ The **?** button (top right) explains everything. In short:
 | C, Tab | launch/recall the drone, drone view |
 | I | mission control and map |
 | F3 | diagnostics overlay (FPS, frame time, draw calls, memory) |
+| slider icon, top right | graphics settings (High/Medium/Low, resolution, shadows, view distance) |
 | N, Z, L | day/night, rain, cabin light |
 | X / Y | tilt the torso up / down |
 | Shift | speed gear 1 / 2 |

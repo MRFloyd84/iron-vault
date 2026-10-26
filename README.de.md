@@ -111,6 +111,7 @@ Der **?**-Knopf oben rechts erklärt alles. Kurz:
 | C, Tab | Drohne starten/zurückrufen, Drohnensicht |
 | I | Einsatzleitung und Karte |
 | F3 | Diagnoseanzeige (FPS, Bildzeit, Zeichenaufrufe, Speicher) |
+| Regler-Symbol oben rechts | Grafikeinstellungen (Hoch/Mittel/Niedrig, Auflösung, Schatten, Sichtweite) |
 | N, Z, L | Tag/Nacht, Regen, Kabinenlicht |
 | X / Y | Oberkörper nach oben / unten neigen |
 | Umschalt | Geschwindigkeitsstufe 1 / 2 |

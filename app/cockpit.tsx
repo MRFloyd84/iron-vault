@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import LanguageMenu, { useLang } from './language-menu';
+import GraphicsMenu from './graphics-menu';
 import { HELP } from './help-content';
 import { tr } from '../lib/i18n';
 import ArticulationPanel from './articulation-panel';
@@ -749,6 +750,7 @@ export default function Cockpit() {
             {tr(statusText(state))}
           </div>
           <div className="toolbar">
+            <GraphicsMenu />
             <LanguageMenu />
             <button
               className="icon-button"

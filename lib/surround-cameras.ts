@@ -26,7 +26,7 @@ export const cameraTile = (i: number) => ({
  * Aufnahme alle 33 ms – sonst rendert der kleine Monitor die ganze Welt ein zweites Mal
  * in jedem Bild.
  */
-export const CAPTURE = { grid: 180, selected: 40, spacing: 33 } as const;
+export const CAPTURE = { grid: 180, selected: 40, spacing: 33 };
 export function nextCamera(last: number[], now: number, selected: number) {
   const interval = selected < 0 ? CAPTURE.grid : CAPTURE.selected;
   if (selected >= 0) return now - last[selected] >= interval ? selected : -1;

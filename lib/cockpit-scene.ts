@@ -48,7 +48,7 @@ import { STRUCTURE_ATLAS, type InstrumentAssets, type TelemetrySample } from './
 import { actuatorMoving, dcPowerAvailable, overheadOn, type MachineState } from './machine';
 import { MechExterior, MECH, applyMechBodyPose } from './mech-exterior';
 import { serviceWarning, electricalReadings } from './service-systems';
-import { SurroundCameras } from './surround-cameras';
+import { CAPTURE, SurroundCameras } from './surround-cameras';
 import { WalkPresentation } from './walk-presentation';
 import { WALK, groundHeight } from './walking';
 import { onLangChange, tr } from './i18n';
@@ -96,6 +96,16 @@ import {
   addGauge as addGaugeImpl,
 } from './scene/cabin-controls';
 import { assetUrl } from './asset-url';
+import {
+  FAR_PLANE,
+  FULL_FAR,
+  MONITOR_INTERVAL,
+  getGraphics,
+  minFogDensity,
+  onGraphicsChange,
+  shadowMapSize,
+  type Graphics,
+} from './graphics-settings';
 export type Hover = { text: string; x: number; y: number } | null;
 export type Screen = {
   canvas: HTMLCanvasElement;
@@ -149,6 +159,9 @@ export class CockpitScene {
   frame = 0;
   disposed = false;
   resizeObserver: ResizeObserver;
+  /** Grafikeinstellungen (Menü oben rechts) */
+  graphics: Graphics = getGraphics();
+  private resizeView = () => {};
   getState: () => MachineState;
   onAction: (i: number) => void;
   hover: (h: Hover) => void;
@@ -527,12 +540,18 @@ export class CockpitScene {
     const resize = () => {
       const w = Math.max(1, host.clientWidth),
         h = Math.max(1, host.clientHeight);
-      this.renderer.setPixelRatio(cockpitPixelRatio(w, h, window.devicePixelRatio));
+      this.renderer.setPixelRatio(
+        cockpitPixelRatio(w, h, window.devicePixelRatio) * this.graphics.resolution,
+      );
       this.renderer.setSize(w, h);
       this.camera.aspect = w / h;
       this.camera.updateProjectionMatrix();
     };
+    this.resizeView = resize;
     resize();
+    this.applyGraphics(this.graphics, true);
+    const offGraphics = onGraphicsChange((g) => this.applyGraphics(g));
+    this.cleanup.push(offGraphics);
     this.resizeObserver = new ResizeObserver(resize);
     this.resizeObserver.observe(host);
     const c = this.renderer.domElement;
@@ -1351,6 +1370,54 @@ export class CockpitScene {
    * draußen, auf den Kameramonitor oder die erste Explosion nicht ruckelt. Drei Durchgänge,
    * weil die Zahl der Lichter je Ansicht verschieden ist (Kanzel / außen / Monitor).
    */
+  /** Grafikeinstellungen übernehmen (beim Start und bei jeder Änderung im Menü). */
+  applyGraphics(g: Graphics, initial = false) {
+    const old = this.graphics;
+    this.graphics = g;
+    if (initial || old.resolution !== g.resolution) this.resizeView();
+    // Schatten: Auflösung der Schattenkarten, ganz aus nur auf ausdrücklichen Wunsch
+    if (initial || old.shadows !== g.shadows) {
+      const enabled = g.shadows !== 'off';
+      const lights: [THREE.DirectionalLight | THREE.SpotLight, number][] = [[this.sun, 2048]];
+      for (const f of this.floodlights) if (f.light.castShadow) lights.push([f.light, 1024]);
+      for (const [light, base] of lights) {
+        const size = shadowMapSize(g.shadows, base);
+        if (light.shadow.mapSize.x !== size) {
+          light.shadow.mapSize.set(size, size);
+          light.shadow.map?.dispose();
+          light.shadow.map = null;
+        }
+        light.shadow.needsUpdate = true;
+      }
+      if (this.renderer.shadowMap.enabled !== enabled) {
+        this.renderer.shadowMap.enabled = enabled;
+        // Materialien mit/ohne Schattenempfang neu übersetzen (einmalig beim Umschalten)
+        this.scene.traverse((o) => {
+          const m = (o as THREE.Mesh).material;
+          if (m) for (const mat of [m].flat()) mat.needsUpdate = true;
+        });
+      }
+      this.renderer.shadowMap.needsUpdate = true;
+    }
+    if (initial || old.distance !== g.distance) {
+      const ratio = FAR_PLANE[g.distance] / FULL_FAR;
+      this.camera.far = FAR_PLANE[g.distance];
+      this.camera.updateProjectionMatrix();
+      for (const c of this.surround?.cameras ?? []) {
+        c.far = 1200 * ratio;
+        c.updateProjectionMatrix();
+      }
+      if (this.droneRig) {
+        this.droneRig.camera.far = 1600 * ratio;
+        this.droneRig.camera.updateProjectionMatrix();
+      }
+      // Dunstdichte hängt an der Sichtweite: Licht/Nebel sofort neu setzen
+      if (!initial) this.applyDayNight();
+    }
+    CAPTURE.grid = MONITOR_INTERVAL[g.monitors].grid;
+    CAPTURE.selected = MONITOR_INTERVAL[g.monitors].selected;
+  }
+
   async precompile() {
     await new Promise((r) => setTimeout(r, 0));
     const pass = (skip: THREE.Object3D | null) => {
@@ -1607,7 +1674,10 @@ export class CockpitScene {
       this.scene.fog.color
         .copy(p.fogColor)
         .lerp(new THREE.Color(0x4a5054).multiplyScalar(1 - 0.8 * p.n), w.fogGrey);
-      this.scene.fog.density = this.baseFogDensity * p.fogScale * w.fogDensity;
+      this.scene.fog.density = Math.max(
+        this.baseFogDensity * p.fogScale * w.fogDensity,
+        minFogDensity(this.graphics.distance),
+      );
     }
     for (const m of this.yardMaterials) if (m.envMap) m.envMapIntensity = p.yardEnv;
     this.scene.environmentIntensity = this.baseEnvIntensity * p.envScale;
