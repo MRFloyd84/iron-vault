@@ -4,7 +4,7 @@
 // die sonst von W/A/D kommt. Anfahren, Bremsen, Wenden, Hang und Kollision bleiben exakt
 // wie beim Pilotenbetrieb – der Mech bleibt schwer.
 //
-// Bedienung wie ein Airbus-MCDU: Seitentasten (DIR, PROG, PERF, F-PLN, MSG), sechs
+// Bedienung wie ein Airbus-MCDU: Seitentasten (DIR, PROG, PERF, M-PLN, MSG), sechs
 // Zeilentasten unter dem Bildschirm, CLR, AP, HOLD, SPD 1/2. Ein neues Ziel erscheint als
 // vorläufiger Plan (TMPY, gelb) und wird erst mit *INSERT übernommen.
 import type { MachineState } from './machine';
@@ -13,16 +13,16 @@ import { WALK, fastAllowed, idleInput, walkBlock, type WalkInput } from './walki
 import { armsExtended } from './articulation';
 import { NAV_MIN_Z, learnBlocked, planRoute, type Point } from './route-planner';
 
-export type FmsPage = 'dir' | 'fpln' | 'prog' | 'perf' | 'msg';
+export type FmsPage = 'dir' | 'mpln' | 'prog' | 'perf' | 'msg';
 export type Destination = { id: string; name: string; x: number; z: number };
-export type FlightPlan = { dest: Destination; points: Point[]; length: number };
+export type MarchPlan = { dest: Destination; points: Point[]; length: number };
 export type ApMode = 'off' | 'nav' | 'hold';
 export type FmsState = {
   page: FmsPage;
-  /** Erste angezeigte Zeile bzw. Seite (DIR, F-PLN, MSG) */
+  /** Erste angezeigte Zeile bzw. Seite (DIR, M-PLN, MSG) */
   scroll: number;
-  plan: FlightPlan | null;
-  tmpy: FlightPlan | null;
+  plan: MarchPlan | null;
+  tmpy: MarchPlan | null;
   /** Index des aktiven Wegpunkts (TO) in plan.points */
   leg: number;
   ap: ApMode;
@@ -48,7 +48,7 @@ export const MCDU_KEYS = [
   'DIR',
   'PROG',
   'PERF',
-  'F-PLN',
+  'M-PLN',
   'MSG',
   'MAP',
   '◄',
@@ -69,7 +69,7 @@ export const MCDU_KEY_HINT: Record<(typeof MCDU_KEYS)[number], string> = {
   DIR: 'DIR: Direktziel wählen',
   PROG: 'PROG: Fortschritt',
   PERF: 'PERF: Autopilot-Einstellungen',
-  'F-PLN': 'F-PLN: Flugplan',
+  'M-PLN': 'M-PLN: Marschplan',
   MSG: 'MSG: Meldungen',
   MAP: 'MAP: Einsatzkarte',
   '◄': 'Vorherige Seite',
@@ -195,14 +195,14 @@ export function disengage(s: MachineState, message: string, error = false): Mach
   );
 }
 
-function plan(s: MachineState, dest: Destination): FlightPlan | null {
+function plan(s: MachineState, dest: Destination): MarchPlan | null {
   const r = planRoute({ x: s.walk.x, z: s.walk.z }, dest, ROUTE_RADIUS, s.fms.preferRoads);
   return r ? { dest, points: r.points, length: r.length } : null;
 }
 
 function engage(s: MachineState): MachineState {
   const f = s.fms;
-  if (!f.plan) return say(s, 'Autopilot: kein Flugplan. Ziel mit DIR wählen.', true);
+  if (!f.plan) return say(s, 'Autopilot: kein Marschplan. Ziel mit DIR wählen.', true);
   if (s.walk.z > NAV_MIN_Z - 2)
     return say(s, 'Autopilot erst außerhalb der Halle. Durchs Tor auf den Hof gehen.', true);
   const block = walkBlock(s);
@@ -240,8 +240,8 @@ export function fmsCommand(s: MachineState, action: number): MachineState {
       return page('prog');
     case 'PERF':
       return page('perf');
-    case 'F-PLN':
-      return page('fpln');
+    case 'M-PLN':
+      return page('mpln');
     case 'MSG':
       return page('msg');
     case 'MAP':
@@ -258,7 +258,7 @@ export function fmsCommand(s: MachineState, action: number): MachineState {
     case 'RTB': {
       const tmpy = plan(s, HANGAR_APRON);
       if (!tmpy) return say(s, 'Keine begehbare Route zur Halle.', true);
-      return withFms(s, { tmpy, page: 'fpln', scroll: 0 });
+      return withFms(s, { tmpy, page: 'mpln', scroll: 0 });
     }
     case 'AP':
       if (f.ap === 'off') return engage(s);
@@ -287,7 +287,7 @@ export function fmsCommand(s: MachineState, action: number): MachineState {
 
 function scrollLimit(f: FmsState) {
   if (f.page === 'dir') return Math.max(0, Math.ceil(destinations(f).length / DIR_PAGE) - 1);
-  if (f.page === 'fpln') {
+  if (f.page === 'mpln') {
     const n = (f.tmpy ?? f.plan)?.points.length ?? 0;
     return Math.max(0, n - FPLN_ROWS);
   }
@@ -304,14 +304,14 @@ function lineSelect(s: MachineState, line: number): MachineState {
     if (!dest) return s;
     const tmpy = plan(s, dest);
     if (!tmpy) return say(s, 'Keine begehbare Route nach ' + dest.name + '.', true);
-    return withFms(s, { tmpy, page: 'fpln', scroll: 0 });
+    return withFms(s, { tmpy, page: 'mpln', scroll: 0 });
   }
-  if (f.page === 'fpln' && line === 5) {
+  if (f.page === 'mpln' && line === 5) {
     if (!f.tmpy) return s;
     // *INSERT: vorläufigen Plan übernehmen; ein laufender Autopilot folgt sofort dem neuen
     const next = withFms(s, { plan: f.tmpy, tmpy: null, leg: 1, replans: 0 });
     return f.ap === 'off'
-      ? say(next, 'Flugplan nach ' + f.tmpy.dest.name + ' übernommen. AP zum Starten.')
+      ? say(next, 'Marschplan nach ' + f.tmpy.dest.name + ' übernommen. AP zum Starten.')
       : engage(withFms(next, { ap: 'off' }));
   }
   if (f.page === 'perf') {

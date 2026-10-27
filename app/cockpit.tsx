@@ -161,6 +161,17 @@ export default function Cockpit() {
     else void audio.current?.playSwitch().catch(() => {});
     if (sc.inDrone && !sc.droneInfo().airborne) changeView('front');
   };
+  const toggleFollow = () => {
+    const sc = scene.current;
+    if (!sc) return;
+    const result = sc.droneFollow(stateRef.current);
+    if (!result) return;
+    apply({ ...stateRef.current, message: result.message, error: result.error });
+    if (result.error) audio.current?.beep(true);
+    else void audio.current?.playSwitch().catch(() => {});
+    // Steuertasten wechseln zwischen Drohne und Mech: gedrückte Tasten neu zuordnen
+    updateInputRef.current();
+  };
   const held = useRef(new Set<string>()),
     helpRef = useRef(false);
   helpRef.current = help;
@@ -568,6 +579,12 @@ export default function Cockpit() {
         toggleDrone();
         return;
       }
+      // 7: Drohne begleitet den Mech (startet angedockt selbstständig) / Handsteuerung
+      if (e.key === '7' && !helpRef.current) {
+        e.preventDefault();
+        toggleFollow();
+        return;
+      }
       if (helpRef.current) return;
       if (e.code === 'KeyI') {
         stopInput();
@@ -685,7 +702,7 @@ export default function Cockpit() {
       if (!sc) return;
       const info = sc.droneInfo();
       // Anzeige nur bei sichtbaren Änderungen neu zeichnen
-      const show = info.phase === 'docked' && info.rotor < 0.01 ? null : info;
+      const show = info.phase === 'docked' && info.rotor < 0.01 && !info.follow ? null : info;
       const droneKey = show
         ? [
             show.phase,
@@ -696,6 +713,7 @@ export default function Cockpit() {
             show.marked,
             show.rtbReason,
             show.airborne,
+            show.follow,
           ].join('|')
         : '';
       if (droneKey !== droneKeyRef.current) {
@@ -987,6 +1005,15 @@ export default function Cockpit() {
           >
             {tr(drone && drone.phase !== 'docked' ? 'DROHNE ZURÜCK [C]' : 'DROHNE [C]')}
           </button>
+          <button
+            aria-pressed={!!drone?.follow}
+            title={tr(
+              'Begleitmodus: Drohne startet selbstständig, folgt dem Mech und lädt zwischendurch. Die Steuertasten bleiben beim Mech.',
+            )}
+            onClick={toggleFollow}
+          >
+            {tr('BEGLEITEN [7]')}
+          </button>
           {drone?.airborne && (
             <button
               className="group-end"
@@ -1096,7 +1123,9 @@ export default function Cockpit() {
                     ? 'LANDUNG'
                     : drone?.phase === 'flying'
                       ? 'FLUG'
-                      : 'START',
+                      : drone?.phase === 'follow'
+                        ? 'BEGLEITEN'
+                        : 'START',
               )}
             </span>
             <span>{tr(`HÖHE ${Math.round(drone?.altitude ?? 0)} m`)}</span>
@@ -1111,12 +1140,19 @@ export default function Cockpit() {
             {drone?.rtbReason === 'battery' && (
               <span className="warn">{tr('AKKU LEER – AUTOMATISCHE RÜCKKEHR')}</span>
             )}
+            {drone?.rtbReason === 'hall' && drone?.follow && (
+              <span className="warn">{tr('MECH IN DER HALLE – DROHNE WARTET')}</span>
+            )}
             {drone?.rtbReason === 'signal' && (
               <span className="warn">{tr('FUNK VERLOREN – AUTOMATISCHE RÜCKKEHR')}</span>
             )}
           </div>
           <div className="drone-hint">
-            {tr('W A S D: fliegen · Q / E: drehen · Leertaste / Umschalt: steigen / sinken')}
+            {tr(
+              drone?.phase === 'follow'
+                ? 'Begleitmodus: W A S D steuern den Mech · 7: Drohne von Hand fliegen'
+                : 'W A S D: fliegen · Q / E: drehen · Leertaste / Umschalt: steigen / sinken · 7: Begleitmodus',
+            )}
             <br />
             {tr(
               'Linksklick: Ziel markieren · Rechte Maustaste: Kamera schwenken · Tab: Cockpit · C: Rückkehr',

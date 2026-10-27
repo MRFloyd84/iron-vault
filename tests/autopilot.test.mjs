@@ -81,7 +81,7 @@ test('Routenplaner: jede Anlage erreichbar, Strecken frei von Hindernissen und n
 
 test('Autopilot: DIR → vorläufiger Plan (TMPY) → INSERT → AP; CLR verwirft den Entwurf', () => {
   let s = dirTo(ready(), 'checkpoint');
-  assert.equal(s.fms.page, 'fpln');
+  assert.equal(s.fms.page, 'mpln');
   assert.ok(s.fms.tmpy && !s.fms.plan, 'erst vorläufig');
   assert.equal(key(s, 'CLR').fms.tmpy, null, 'CLR verwirft');
   s = lsk(s, 6);
@@ -129,7 +129,7 @@ test('Autopilot: Eingabe des Piloten trennt sofort, HOLD hält an und setzt fort
 });
 
 test('Autopilot: verweigert ohne Plan, in der Halle und ohne Laufbereitschaft', () => {
-  assert.match(key(ready(), 'AP').message, /kein Flugplan/);
+  assert.match(key(ready(), 'AP').message, /kein Marschplan/);
   const planned = lsk(dirTo(ready(), 'mine'), 6);
   assert.match(
     key({ ...planned, walk: { ...planned.walk, z: -20 } }, 'AP').message,

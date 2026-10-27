@@ -109,9 +109,10 @@ Der **?**-Knopf oben rechts erklärt alles. Kurz:
 | V / H / U | Mech-Außenansicht / Hallenkamera / Testgelände |
 | M, P, J | Waffen, Laser, Scheinwerfer |
 | C, Tab | Drohne starten/zurückrufen, Drohnensicht |
+| 7 | Drohne: Begleitmodus (startet selbst, folgt dem Mech) / Handsteuerung |
 | I | Einsatzleitung und Karte |
 | F3 | Diagnoseanzeige (FPS, Bildzeit, Zeichenaufrufe, Speicher) |
-| MCDU (Tastenfeld unten in der Konsole) | Navigationsrechner und Marschautopilot: DIR, F-PLN, PROG, PERF, AP, HOLD, SPD 1/2, RTB |
+| MCDU (Tastenfeld unten in der Konsole) | Navigationsrechner und Marschautopilot: DIR, M-PLN, PROG, PERF, AP, HOLD, SPD 1/2, RTB |
 | Regler-Symbol oben rechts | Grafikeinstellungen (Hoch/Mittel/Niedrig, Auflösung, Schatten, Sichtweite) |
 | N, Z, L | Tag/Nacht, Regen, Kabinenlicht |
 | X / Y | Oberkörper nach oben / unten neigen |

@@ -19,6 +19,31 @@ export const EN: Record<string, string> = {
   Sprache: 'Language',
   'Sprache wählen': 'Choose language',
   Grafikeinstellungen: 'Graphics settings',
+  // ---------------------------------------------------------------- Drohne: Begleitmodus
+  'BEGLEITEN [7]': 'ESCORT [7]',
+  BEGLEITEN: 'ESCORT',
+  'Begleitmodus: Drohne startet selbstständig, folgt dem Mech und lädt zwischendurch. Die Steuertasten bleiben beim Mech.':
+    'Escort mode: the drone launches by itself, follows the mech and recharges in between. The controls stay with the mech.',
+  'MECH IN DER HALLE – DROHNE WARTET': 'MECH IN THE HANGAR – DRONE WAITING',
+  'Begleitmodus: W A S D steuern den Mech · 7: Drohne von Hand fliegen':
+    'Escort mode: W A S D steer the mech · 7: fly the drone by hand',
+  'W A S D: fliegen · Q / E: drehen · Leertaste / Umschalt: steigen / sinken · 7: Begleitmodus':
+    'W A S D: fly · Q / E: turn · Space / Shift: climb / descend · 7: escort mode',
+  'Begleitmodus: Akku schwach – Drohne landet zum Laden und startet danach wieder.':
+    'Escort mode: battery low – the drone lands to recharge and takes off again afterwards.',
+  'Begleitmodus: Mech in der Halle – Drohne landet und wartet.':
+    'Escort mode: mech in the hangar – the drone lands and waits.',
+  'Begleitmodus: Funk schwach – Drohne kehrt zurück.':
+    'Escort mode: weak signal – drone returning.',
+  'Begleitmodus: Drohne startet und folgt dem Mech.':
+    'Escort mode: drone launching to follow the mech.',
+  'Begleitmodus: Drohne folgt dem Mech.': 'Escort mode: drone following the mech.',
+  'Begleitmodus: Drohne startet selbstständig.': 'Escort mode: drone launching by itself.',
+  'Drohne: Handsteuerung. W A S D fliegen die Drohne.':
+    'Drone: manual control. W A S D fly the drone.',
+  'Begleitmodus vorgemerkt.': 'Escort mode armed.',
+  'Begleitmodus vorgemerkt: {0}': 'Escort mode armed: {0}',
+  'Begleitmodus aus.': 'Escort mode off.',
   // ---------------------------------------------------------------- MCDU / Autopilot
   'MCDU / NAV': 'MCDU / NAV',
   'MCDU · {0}': 'MCDU · {0}',
@@ -27,7 +52,7 @@ export const EN: Record<string, string> = {
   'DIR: Direktziel wählen': 'DIR: direct-to destination',
   'PROG: Fortschritt': 'PROG: progress',
   'PERF: Autopilot-Einstellungen': 'PERF: autopilot settings',
-  'F-PLN: Flugplan': 'F-PLN: flight plan',
+  'M-PLN: Marschplan': 'M-PLN: march plan',
   'MSG: Meldungen': 'MSG: messages',
   'MAP: Einsatzkarte': 'MAP: mission map',
   'Vorherige Seite': 'Previous page',
@@ -54,9 +79,9 @@ export const EN: Record<string, string> = {
   'KURS   ABSCHN': 'CRS    LEG',
   'WEITERE›': 'MORE›',
   WEITERE: 'MORE',
-  'KEIN FLUGPLAN': 'NO FLIGHT PLAN',
+  'KEIN MARSCHPLAN': 'NO MARCH PLAN',
   'DIR ODER RTB DRÜCKEN': 'PRESS DIR OR RTB',
-  '---- ENDE F-PLN ----': '---- END OF F-PLN ----',
+  '---- ENDE M-PLN ----': '---- END OF M-PLN ----',
   ZIEL: 'DEST',
   'DIST    ZEIT': 'DIST    TIME',
   'REST    ZEIT': 'REMAIN  TIME',
@@ -87,8 +112,8 @@ export const EN: Record<string, string> = {
   'AP AUS · STUFE {0}': 'AP OFF · GEAR {0}',
   'AP NAV · {0}': 'AP NAV · {0}',
   'AP HOLD · {0}': 'AP HOLD · {0}',
-  'Autopilot: kein Flugplan. Ziel mit DIR wählen.':
-    'Autopilot: no flight plan. Select a destination with DIR.',
+  'Autopilot: kein Marschplan. Ziel mit DIR wählen.':
+    'Autopilot: no march plan. Select a destination with DIR.',
   'Autopilot erst außerhalb der Halle. Durchs Tor auf den Hof gehen.':
     'Autopilot only outside the hangar. Walk through the gate into the yard.',
   'Autopilot nicht verfügbar: {0}': 'Autopilot unavailable: {0}',
@@ -105,7 +130,7 @@ export const EN: Record<string, string> = {
   'Autopilot: HOLD, Mech hält an.': 'Autopilot: HOLD, mech stopping.',
   'Autopilot-Stufe 2: Eilmarsch.': 'Autopilot gear 2: forced march.',
   'Autopilot-Stufe 1: Schritt.': 'Autopilot gear 1: walk.',
-  'Flugplan nach {0} übernommen. AP zum Starten.':
+  'Marschplan nach {0} übernommen. AP zum Starten.':
     'Flight plan to {0} inserted. Press AP to start.',
   'Autopilot getrennt: {0}': 'Autopilot disconnected: {0}',
   'Autopilot getrennt: Weg blockiert ({0}).': 'Autopilot disconnected: path blocked ({0}).',

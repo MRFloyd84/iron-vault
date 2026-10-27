@@ -10,6 +10,9 @@ import {
   droneCanLand,
   droneMark,
   droneLook,
+  droneFollowToggle,
+  droneHasControls,
+  followRelaunchDue,
 } from '../lib/drone.ts';
 import { initialState } from '../lib/machine.ts';
 
@@ -148,4 +151,86 @@ test('Drohnengeräusche: Start, Abheben, Landung, Abbruch und Markierung', async
   // Start ohne Strom abgebrochen: nichts setzt auf, Motoren laufen nur aus.
   assert.deepEqual(droneSoundEvents(at('spinup'), at('docked')), ['spindown']);
   assert.deepEqual(droneSoundEvents(at('flying', 2), at('flying', 3)), ['mark']);
+});
+
+// ---------------------------------------------------------------- Begleitmodus
+/** Mech läuft geradeaus nach Süden (−z) mit 4 m/s; Halterung reist auf seinem Rücken mit. */
+function escortRun(d, seconds, { speed = 4, yaw = 0, hall = false } = {}) {
+  const dt = 1 / 30;
+  let mx = 0,
+    mz = -80,
+    worst = 0;
+  for (let i = 0; i < seconds * 30; i++) {
+    mx += -Math.sin(yaw) * speed * dt;
+    mz += -Math.cos(yaw) * speed * dt;
+    const w = world({
+      dock: { x: mx, y: 6.4, z: mz },
+      dockYaw: yaw,
+      mech: { x: mx, z: mz, yaw, speed, inHall: hall },
+      time: i * dt,
+    });
+    d = stepDrone(d, idleDroneInput(), dt, w, true);
+    if (d.phase === 'follow' && i > 30 * 15)
+      worst = Math.max(worst, Math.hypot(d.pos.x - mx, d.pos.z - mz));
+  }
+  return { d, worst, mx, mz };
+}
+
+test('Begleitmodus: startet selbstständig und folgt dem gehenden Mech, Tasten bleiben beim Mech', () => {
+  let d = droneFollowToggle(initialDrone(), powered());
+  assert.equal(d.phase, 'spinup');
+  assert.ok(d.follow);
+  const r = escortRun(d, 60);
+  d = r.d;
+  assert.equal(d.phase, 'follow');
+  assert.equal(droneHasControls(d), false, 'W A S D steuern weiter den Mech');
+  assert.ok(r.worst < 40, 'bleibt in der Nähe: ' + r.worst.toFixed(1));
+  // Hinter dem Mech (Mech läuft nach −z, Drohne liegt auf der +z-Seite) und über dem Boden
+  assert.ok(d.pos.z > r.mz, 'hinter dem Mech');
+  assert.ok(d.pos.y > -2.6 + 8, 'in Begleithöhe');
+  // Blick zum Mech
+  const toMech = Math.atan2(-(r.mx - d.pos.x), -(r.mz - d.pos.z));
+  assert.ok(Math.abs(Math.atan2(Math.sin(toMech - d.yaw), Math.cos(toMech - d.yaw))) < 0.3);
+});
+
+test('Begleitmodus: steht der Mech, kreist die Drohne langsam um ihn', () => {
+  let d = escortRun(droneFollowToggle(initialDrone(), powered()), 20).d;
+  const a = escortRun(d, 30, { speed: 0 });
+  const b = escortRun(a.d, 20, { speed: 0 });
+  const r = Math.hypot(b.d.pos.x, b.d.pos.z + 80);
+  assert.ok(Math.abs(r - DRONE.escort.orbitRadius) < 6, 'Kreisradius ' + r.toFixed(1));
+  assert.notEqual(Math.round(a.d.orbit * 10), Math.round(b.d.orbit * 10), 'kreist weiter');
+});
+
+test('Begleitmodus: Handsteuerung und zurück, Rückruf mit C beendet das Begleiten', () => {
+  let d = escortRun(droneFollowToggle(initialDrone(), powered()), 10).d;
+  d = droneFollowToggle(d, powered());
+  assert.equal(d.phase, 'flying');
+  assert.ok(droneHasControls(d));
+  d = droneFollowToggle(d, powered());
+  assert.equal(d.phase, 'follow');
+  d = droneToggle(d, powered());
+  assert.equal(d.phase, 'rtb');
+  assert.equal(d.follow, false);
+});
+
+test('Begleitmodus: bei schwachem Akku landen, laden, danach wieder startbereit', () => {
+  let d = escortRun(droneFollowToggle(initialDrone(), powered()), 10).d;
+  d = { ...d, battery: DRONE.lowBattery * 0.55 };
+  d = escortRun(d, 0.2, { speed: 0 }).d;
+  assert.equal(d.phase, 'rtb');
+  assert.equal(d.rtbReason, 'battery');
+  assert.ok(d.follow, 'Begleitwunsch bleibt');
+  d = escortRun(d, 30, { speed: 0 }).d;
+  assert.equal(d.phase, 'docked');
+  assert.equal(followRelaunchDue(d), false, 'erst laden');
+  d = escortRun({ ...d, battery: DRONE.relaunch }, 0.1, { speed: 0 }).d;
+  assert.ok(followRelaunchDue(d));
+});
+
+test('Begleitmodus: geht der Mech in die Halle, landet die Drohne', () => {
+  const d = escortRun(droneFollowToggle(initialDrone(), powered()), 10).d;
+  const h = escortRun(d, 0.2, { speed: 0, hall: true }).d;
+  assert.equal(h.phase, 'rtb');
+  assert.equal(h.rtbReason, 'hall');
 });

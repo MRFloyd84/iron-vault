@@ -12,7 +12,7 @@ import {
   cruiseSpeed,
   destinations,
   remaining,
-  type FlightPlan,
+  type MarchPlan,
 } from './autopilot';
 import { sectorName } from './terrain';
 import { tr } from './i18n';
@@ -39,7 +39,7 @@ const clock = (s: number) => {
   const m = Math.floor(s / 60);
   return String(m).padStart(2, '0') + ':' + String(Math.round(s % 60)).padStart(2, '0');
 };
-const waypointName = (p: FlightPlan, i: number) =>
+const waypointName = (p: MarchPlan, i: number) =>
   i === 0 ? 'POS' : i === p.points.length - 1 ? p.dest.name : 'WP' + String(i).padStart(2, '0');
 
 export function renderMcdu(c: CanvasRenderingContext2D, s: MachineState, time: number) {
@@ -88,12 +88,12 @@ export function renderMcdu(c: CanvasRenderingContext2D, s: MachineState, time: n
     }));
     while (rows.length < DIR_PAGE) rows.push({});
     if (pages > 1) rows.push({ dataR: { text: 'WEITERE›', color: COL.cyan } });
-  } else if (f.page === 'fpln') {
-    title = tmpy ? 'TMPY F-PLN' : 'F-PLN';
+  } else if (f.page === 'mpln') {
+    title = tmpy ? 'TMPY M-PLN' : 'M-PLN';
     titleColor = tmpy ? COL.yellow : COL.white;
     if (!plan) {
       rows = [
-        { labelL: 'KEIN FLUGPLAN', dataL: { text: 'DIR ODER RTB DRÜCKEN', color: COL.amber } },
+        { labelL: 'KEIN MARSCHPLAN', dataL: { text: 'DIR ODER RTB DRÜCKEN', color: COL.amber } },
       ];
     } else {
       const n = plan.points.length;
@@ -101,7 +101,7 @@ export function renderMcdu(c: CanvasRenderingContext2D, s: MachineState, time: n
       for (let r = 0; r < FPLN_ROWS; r++) {
         const i = f.scroll + r;
         if (i >= n) {
-          rows.push(i === n ? { dataL: { text: '---- ENDE F-PLN ----', color: COL.white } } : {});
+          rows.push(i === n ? { dataL: { text: '---- ENDE M-PLN ----', color: COL.white } } : {});
           continue;
         }
         const active = !tmpy && f.ap !== 'off' && i === f.leg;

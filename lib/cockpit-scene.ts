@@ -57,6 +57,9 @@ import {
   idleDroneInput,
   stepDrone,
   droneToggle as toggleDrone,
+  droneFollowToggle,
+  followRelaunchDue,
+  droneOnStation,
   droneBlock,
   droneAirborne,
   droneHasControls,
@@ -118,6 +121,9 @@ export type Screen = {
 };
 export type CameraView =
   'front' | 'overhead' | 'left' | 'right' | 'panel' | 'hangar' | 'yard' | 'mech' | 'drone';
+
+/** Hallentor (z): dahinter fliegt die Drohne im Begleitmodus nicht mit. */
+const DRONE_HALL_Z = -36;
 
 export class CockpitScene {
   walkPose = {
@@ -1271,21 +1277,45 @@ export class CockpitScene {
     this.dockForward.set(0, 0, 1).transformDirection(dock.anchor.matrixWorld);
     const dockYaw = Math.atan2(-this.dockForward.x, -this.dockForward.z);
     const prev = this.drone.phase;
-    this.drone = stepDrone(
-      this.drone,
-      droneHasControls(this.drone) ? this.droneInput : idleDroneInput(),
-      Math.min(dt, 0.1),
-      {
-        dock: { x: this.dockWorld.x, y: this.dockWorld.y, z: this.dockWorld.z },
-        dockYaw,
-        // Boden oder Dach: über Gebäuden hält die Drohne Abstand zur Oberkante
-        ground: (x, z) => MECH.floor + Math.max(groundHeight(x, z), structureTop(x, z)),
-        gate: s.hangar.position,
-        wind: insideShelter(this.drone.pos.x, this.drone.pos.z) ? 0 : this.rainAmount,
-        time,
-      },
-      camerasPowered(s),
-    );
+    const wp = this.walkPose;
+    // Mech in der Halle: dort fliegt die Drohne nicht mit (Begleitmodus landet bzw. wartet)
+    const mechInHall = wp.z > DRONE_HALL_Z;
+    // Begleitmodus: nach dem Laden selbstständig wieder starten
+    if (
+      followRelaunchDue(this.drone) &&
+      !mechInHall &&
+      !droneBlock(s, this.drone) &&
+      camerasPowered(s)
+    ) {
+      this.drone = { ...this.drone, phase: 'spinup', t: 0 };
+      this.droneNotice = 'Begleitmodus: Drohne startet selbstständig.';
+    }
+    // In Teilschritten von höchstens 50 ms (stabil auch bei langsamen Bildern)
+    const steps = Math.max(1, Math.ceil(dt / 0.05));
+    for (let i = 0; i < steps; i++)
+      this.drone = stepDrone(
+        this.drone,
+        droneHasControls(this.drone) ? this.droneInput : idleDroneInput(),
+        dt / steps,
+        {
+          dock: { x: this.dockWorld.x, y: this.dockWorld.y, z: this.dockWorld.z },
+          dockYaw,
+          // Boden oder Dach: über Gebäuden hält die Drohne Abstand zur Oberkante
+          ground: (x, z) => MECH.floor + Math.max(groundHeight(x, z), structureTop(x, z)),
+          gate: s.hangar.position,
+          wind: insideShelter(this.drone.pos.x, this.drone.pos.z) ? 0 : this.rainAmount,
+          time,
+          mech: { x: wp.x, z: wp.z, yaw: wp.yaw, speed: wp.speed, inHall: mechInHall },
+        },
+        camerasPowered(s),
+      );
+    if (prev === 'follow' && this.drone.phase === 'rtb')
+      this.droneNotice =
+        this.drone.rtbReason === 'battery'
+          ? 'Begleitmodus: Akku schwach – Drohne landet zum Laden und startet danach wieder.'
+          : this.drone.rtbReason === 'hall'
+            ? 'Begleitmodus: Mech in der Halle – Drohne landet und wartet.'
+            : 'Begleitmodus: Funk schwach – Drohne kehrt zurück.';
     // Gelandet: zurück ins Cockpit, falls die Vollbildsicht aktiv war.
     if (prev !== 'docked' && this.drone.phase === 'docked' && this.inDrone) {
       this.view('front');
@@ -1314,7 +1344,7 @@ export class CockpitScene {
   private updateMissions(dt: number, time: number) {
     const walk = this.walkPose,
       rig = this.droneRig;
-    const airborne = droneAirborne(this.drone) && this.drone.phase === 'flying';
+    const airborne = droneOnStation(this.drone);
     if (rig) {
       rig.camera.getWorldPosition(this.droneEye);
       rig.camera.getWorldDirection(this.droneForward);
@@ -1523,6 +1553,30 @@ export class CockpitScene {
       return { message: 'Drohne kehrt zurück und landet auf der Halterung.', error: false };
     return null;
   }
+  /** Taste: Begleitmodus an/aus (startet angedockt selbstständig). */
+  droneFollow(s: MachineState): { message: string; error: boolean } | null {
+    if (!this.exterior?.dockReady) return { message: 'Drohne noch nicht bereit.', error: true };
+    const before = this.drone;
+    this.drone = droneFollowToggle(before, s);
+    const d = this.drone;
+    if (before.phase === 'docked' && d.phase === 'spinup')
+      return { message: 'Begleitmodus: Drohne startet und folgt dem Mech.', error: false };
+    if (d.phase === 'follow')
+      return { message: 'Begleitmodus: Drohne folgt dem Mech.', error: false };
+    if (before.phase === 'follow' && d.phase === 'flying')
+      return { message: 'Drohne: Handsteuerung. W A S D fliegen die Drohne.', error: false };
+    if (d.phase === 'docked' && d.follow) {
+      const block = droneBlock(s, d);
+      return {
+        message: 'Begleitmodus vorgemerkt' + (block ? ': ' + block : '.'),
+        error: false,
+      };
+    }
+    return {
+      message: d.follow ? 'Begleitmodus vorgemerkt.' : 'Begleitmodus aus.',
+      error: false,
+    };
+  }
   setDroneInput(input: DroneInput) {
     this.droneInput = input;
   }
@@ -1543,6 +1597,7 @@ export class CockpitScene {
       distance: Math.hypot(d.pos.x - this.dockWorld.x, d.pos.z - this.dockWorld.z),
       marked: !!d.mark,
       rtbReason: d.rtbReason,
+      follow: d.follow,
       rotor: d.rotor,
       marks: this.droneMarks,
       speed: Math.hypot(d.vel.x, d.vel.y, d.vel.z),
@@ -1766,6 +1821,9 @@ export class CockpitScene {
       return;
     }
     const dt = Math.min((ms - this.lastTime) / 1000, 0.1) || 0.016;
+    // Drohnenflug in echter Zeit (bis 0,5 s wie die Laufsimulation), damit sie bei
+    // langsamen Bildern nicht hinter dem gehenden Mech zurückbleibt
+    const flightDt = Math.min((ms - this.lastTime) / 1000, 0.5) || 0.016;
     this.lastTime = ms;
     this.perf.frame(ms);
     const s = this.getState(),
@@ -1845,7 +1903,7 @@ export class CockpitScene {
       this.jointPose,
       droneAirborne(this.drone),
     );
-    this.updateDrone(s, dt, time);
+    this.updateDrone(s, flightDt, time);
     this.world?.update(time, dt);
     this.worldTargets?.update(
       dt,

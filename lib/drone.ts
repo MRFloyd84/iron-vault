@@ -1,12 +1,14 @@
 // Aufklärungsdrohne von IV-04: sitzt in einer Halterung auf dem Rücken, startet auf Knopfdruck,
 // wird mit Tastatur und Maus geflogen und kehrt bei leerem Akku oder Funkverlust selbst zurück.
+// Begleitmodus: startet selbstständig, folgt dem Mech schräg hinten oben, landet bei schwachem
+// Akku zum Laden und startet danach wieder – die Steuertasten bleiben beim Mech.
 // Reine Logik ohne three.js (Weltkoordinaten in Metern, y nach oben), damit sie testbar ist.
 import { MAP } from './terrain';
 import type { MachineState } from './machine';
 import { mainPowerAvailable } from './machine';
 import { SHELTER } from './weather';
 
-export type DronePhase = 'docked' | 'spinup' | 'launch' | 'flying' | 'rtb' | 'landing';
+export type DronePhase = 'docked' | 'spinup' | 'launch' | 'flying' | 'follow' | 'rtb' | 'landing';
 export type Vec = { x: number; y: number; z: number };
 /** Steuerbefehle −1…1: vor/zurück, seitlich, steigen/sinken, drehen. */
 export type DroneInput = { forward: number; strafe: number; climb: number; turn: number };
@@ -29,8 +31,14 @@ export type DroneState = {
   /** Markiertes Ziel für die Armkanonen */
   mark: Vec | null;
   /** Grund der automatischen Rückkehr (für die Anzeige) */
-  rtbReason: 'battery' | 'signal' | 'manual' | null;
+  rtbReason: 'battery' | 'signal' | 'manual' | 'hall' | null;
+  /** Begleitmodus gewünscht: nach dem Start (und nach dem Laden) dem Mech folgen */
+  follow: boolean;
+  /** Kreisflug um den stehenden Mech (rad) */
+  orbit: number;
 };
+/** Mech für den Begleitmodus (Welt, Meter). */
+export type DroneEscort = { x: number; z: number; yaw: number; speed: number; inHall: boolean };
 /** Umgebung je Bild: Halterung am Mech, Boden, Hangartor, Wind. */
 export type DroneWorld = {
   dock: Vec;
@@ -41,6 +49,8 @@ export type DroneWorld = {
   /** Wind/Böen 0…1 (Regen, Gewitter) */
   wind: number;
   time: number;
+  /** Mech, dem im Begleitmodus gefolgt wird */
+  mech?: DroneEscort;
 };
 
 export const DRONE = {
@@ -62,6 +72,10 @@ export const DRONE = {
   launchHeight: 3,
   maxAltitude: 60,
   minClearance: 0.6,
+  /** Begleitmodus: Abstand hinter dem Mech, seitlicher Versatz, Höhe über Grund */
+  escort: { behind: 24, side: 7, height: 14, orbitRadius: 26, orbitRate: 0.1 },
+  /** Begleitmodus: nach dem Laden wieder starten ab diesem Akkustand */
+  relaunch: 0.9,
   /** Landen von Hand: so nah über der Halterung */
   landRadius: 3,
   landHeight: 5,
@@ -88,6 +102,8 @@ export const initialDrone = (): DroneState => ({
   rotor: 0,
   mark: null,
   rtbReason: null,
+  follow: false,
+  orbit: 0,
 });
 export const idleDroneInput = (): DroneInput => ({ forward: 0, strafe: 0, climb: 0, turn: 0 });
 
@@ -100,8 +116,13 @@ export function droneBlock(s: MachineState, d: DroneState): string | null {
   return null;
 }
 export const droneAirborne = (d: DroneState) => d.phase !== 'docked';
-/** Nimmt die Drohne die Steuertasten (Mech steht dann still)? */
+/** Nimmt die Drohne die Steuertasten (Mech steht dann still)? Im Begleitmodus nicht. */
 export const droneHasControls = (d: DroneState) => d.phase === 'flying';
+/** Fliegt frei (von Hand oder begleitend) – z. B. zum Erfassen von Zielen. */
+export const droneOnStation = (d: DroneState) => d.phase === 'flying' || d.phase === 'follow';
+/** Begleitmodus: geladen und bereit zum selbstständigen Wiederstart? */
+export const followRelaunchDue = (d: DroneState) =>
+  d.phase === 'docked' && d.follow && d.battery >= DRONE.relaunch;
 
 const dist = (a: Vec, b: Vec) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -126,11 +147,29 @@ function hallBlocks(from: Vec, to: Vec, gate: number) {
   return !throughDoor;
 }
 
-/** Start, wenn angedockt; sonst Rückkehr anfordern. */
+/** Start (von Hand), wenn angedockt; sonst Rückkehr anfordern (beendet auch das Begleiten). */
 export function droneToggle(d: DroneState, s: MachineState): DroneState {
-  if (d.phase === 'docked') return droneBlock(s, d) ? d : { ...d, phase: 'spinup', t: 0 };
-  if (d.phase === 'flying') return { ...d, phase: 'rtb', t: 0, rtbReason: 'manual' };
+  if (d.phase === 'docked')
+    return droneBlock(s, d) ? d : { ...d, phase: 'spinup', t: 0, follow: false };
+  if (d.phase === 'flying' || d.phase === 'follow')
+    return { ...d, phase: 'rtb', t: 0, rtbReason: 'manual', follow: false };
+  if (d.follow) return { ...d, follow: false };
   return d;
+}
+/**
+ * Begleitmodus umschalten. Angedockt: selbstständig starten und folgen. In der Luft:
+ * zwischen Begleiten und Handsteuerung wechseln. Bei Rückkehr/Landung nur den Wunsch merken.
+ */
+export function droneFollowToggle(d: DroneState, s: MachineState): DroneState {
+  if (d.phase === 'docked') {
+    if (d.follow) return { ...d, follow: false };
+    return droneBlock(s, d)
+      ? { ...d, follow: true }
+      : { ...d, phase: 'spinup', t: 0, follow: true };
+  }
+  if (d.phase === 'flying') return { ...d, phase: 'follow', t: 0, follow: true, rtbReason: null };
+  if (d.phase === 'follow') return { ...d, phase: 'flying', t: 0, follow: false };
+  return { ...d, follow: !d.follow };
 }
 /** Landen von Hand: nur dicht über der Halterung. */
 export function droneCanLand(d: DroneState, w: DroneWorld) {
@@ -182,7 +221,7 @@ export function stepDrone(
       n.pos = { x: w.dock.x, y: w.dock.y + DRONE.launchHeight * k * k * (3 - 2 * k), z: w.dock.z };
       n.yaw = w.dockYaw;
       n.battery = Math.max(0, n.battery - dt / DRONE.endurance);
-      if (n.t >= DRONE.launch) return { ...n, phase: 'flying', t: 0 };
+      if (n.t >= DRONE.launch) return { ...n, phase: n.follow ? 'follow' : 'flying', t: 0 };
       return n;
     }
     case 'landing': {
@@ -220,6 +259,13 @@ export function stepDrone(
     };
     if (flat > 1) n.yaw += wrap(Math.atan2(-dx, -dz) - n.yaw) * Math.min(1, dt * 2);
     if (flat < 0.6 && Math.abs(dy) < 0.6) return { ...n, phase: 'landing', t: 0 };
+  } else if (n.phase === 'follow') {
+    if (n.battery <= DRONE.lowBattery * 0.6)
+      return { ...n, phase: 'rtb', t: 0, rtbReason: 'battery' };
+    if (n.signal <= 0.2) return { ...n, phase: 'rtb', t: 0, rtbReason: 'signal' };
+    const m = w.mech;
+    if (!m || m.inHall) return { ...n, phase: 'rtb', t: 0, rtbReason: 'hall' };
+    want = escortVelocity(n, m, w, dt);
   } else {
     n.yaw = wrap(n.yaw - input.turn * DRONE.turnRate * dt);
     const f = clamp(input.forward, -1, 1) * DRONE.maxSpeed,
@@ -261,6 +307,51 @@ export function stepDrone(
     if (inHall(n.pos)) n.pos.y = Math.min(n.pos.y, DRONE.hall.ceiling);
   } else n.pos = next;
   return n;
+}
+
+/**
+ * Begleitflug: Sollpunkt schräg hinter dem Mech (in Laufrichtung versetzt), beim stehenden
+ * Mech langsam kreisend. Blick und Kamera auf den Mech. Liefert die Sollgeschwindigkeit.
+ */
+function escortVelocity(n: DroneState, m: DroneEscort, w: DroneWorld, dt: number): Vec {
+  const E = DRONE.escort;
+  const sin = Math.sin(m.yaw),
+    cos = Math.cos(m.yaw);
+  let tx: number, tz: number;
+  if (Math.abs(m.speed) > 0.3) {
+    // Hinter dem Mech (Vorwärts = −sin, −cos) und etwas rechts versetzt
+    tx = m.x + sin * E.behind + cos * E.side;
+    tz = m.z + cos * E.behind - sin * E.side;
+    // Kreis dort fortsetzen, wo die Drohne gerade steht (kein Sprung beim Anhalten)
+    n.orbit = Math.atan2(n.pos.x - m.x, n.pos.z - m.z);
+  } else {
+    n.orbit += E.orbitRate * dt;
+    tx = m.x + Math.sin(n.orbit) * E.orbitRadius;
+    tz = m.z + Math.cos(n.orbit) * E.orbitRadius;
+  }
+  // Höhe über dem höheren Boden (Sollpunkt oder aktuelle Lage), Dächer eingeschlossen
+  const ty = Math.max(w.ground(tx, tz), w.ground(n.pos.x, n.pos.z)) + E.height;
+  const dx = tx - n.pos.x,
+    dz = tz - n.pos.z,
+    flat = Math.hypot(dx, dz);
+  // Proportional anfliegen, mit Vorhalt für den gehenden Mech
+  const lead = { x: -sin * m.speed, z: -cos * m.speed };
+  const speed = Math.min(DRONE.maxSpeed, flat * 0.7);
+  const vx = (flat > 0.01 ? (dx / flat) * speed : 0) + lead.x,
+    vz = (flat > 0.01 ? (dz / flat) * speed : 0) + lead.z;
+  const k = Math.min(DRONE.maxSpeed, Math.hypot(vx, vz)) / (Math.hypot(vx, vz) || 1);
+  // Blick zum Mech, Kamera leicht auf ihn geneigt
+  const mx = m.x - n.pos.x,
+    mz = m.z - n.pos.z;
+  n.yaw += wrap(Math.atan2(-mx, -mz) - n.yaw) * Math.min(1, dt * 1.5);
+  const drop = n.pos.y - (w.ground(m.x, m.z) + 4);
+  n.camPitch +=
+    (clamp(-Math.atan2(drop, Math.hypot(mx, mz)), -1.2, 0.1) - n.camPitch) * Math.min(1, dt * 2);
+  return {
+    x: vx * k,
+    y: clamp((ty - n.pos.y) * 0.8, -DRONE.climbSpeed, DRONE.climbSpeed),
+    z: vz * k,
+  };
 }
 
 /** Ziel markieren (Punkt aus dem Kamerastrahl der Drohne) oder Markierung löschen. */
