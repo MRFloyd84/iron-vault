@@ -18,6 +18,7 @@ selbst prüfen.
 | Rain and thunder | `public/audio/rain-loop.ogg`, `thunder-*.ogg`, `assets-src/audio/rain-original.mp3`, `thunder-original.mp3` | Generated with ElevenLabs Sound Effects (paid plan) |
 | Hydraulic sounds | `public/audio/hyd-*.ogg`, `assets-src/audio/hydraulics/` | Generated with ElevenLabs Sound Effects, paid plan (`public/audio/hydraulic-sources.json`) |
 | Recon drone | `public/models/iv-04-drone.glb` | Drone model generated with Tripo by Rene, merged into one textured part with `scripts/prepare-drone-model.mjs` (rotor blades are built in code) |
+| Drone sensor head | `public/models/iv-04-drone-head.glb` | Sensor head generated with Tripo by Rene, texture reduced to 1024 px and oriented with `scripts/prepare-drone-head.mjs`; mounted on the camera gimbal |
 | Drone sounds | `public/audio/drone-*.ogg`, `assets-src/audio/drone/` | Generated with ElevenLabs Sound Effects, paid plan (`public/audio/drone-sources.json`) |
 
 Sounds synthesised in code (Web Audio: weapons, rain noise, beeps, warning tones) and all canvas-drawn

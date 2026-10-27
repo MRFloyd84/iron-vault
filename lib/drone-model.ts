@@ -18,6 +18,8 @@ const DOCK_SCALE = 1.8;
 /** Ebene des Markierlasers; nur Außenkameras schalten sie ein. */
 export const LASER_LAYER = 2;
 export const DRONE_ASSET = assetUrl('models/iv-04-drone.glb');
+/** Sensorkopf (Objektive, Wärmebildfenster, Laseröffnung) am Gimbal unter dem Rumpf */
+export const DRONE_HEAD_ASSET = assetUrl('models/iv-04-drone-head.glb');
 /**
  * Maße des Modells (Meter, Ursprung = Unterseite der Kufen, vorn = −z), aufbereitet aus
  * Renes Tripo-Modell: ein Teil, Texturatlas. Die Rotorblätter fehlen im Modell absichtlich –
@@ -92,14 +94,31 @@ export class DroneRig {
     this.gimbal.position.set(0, GIMBAL.y, GIMBAL.z);
     this.root.add(this.gimbal);
     this.gimbal.add(this.camera);
-    this.camera.position.set(0, 0, -0.07);
-    // Suchscheinwerfer am Gimbal (für Nachtflüge)
+    // Kamera vorn zwischen den Objektiven des Sensorkopfs (Kopf liegt hinter der Nahebene)
+    this.camera.position.set(0, 0.01, -0.13);
+    // Suchscheinwerfer am Gimbal (für Nachtflüge), aus der Öffnung unter den Objektiven
     this.light = new THREE.SpotLight(0xfff1d6, 0, 70, 0.42, 0.55, 1.6);
-    this.light.position.set(0, -0.02, -0.06);
+    this.light.position.set(0, -0.05, -0.13);
     this.light.target.position.set(0, 0, -5);
     this.gimbal.add(this.light, this.light.target);
     scene.add(this.root);
-    this.ready = new GLTFLoader(manager).loadAsync(DRONE_ASSET).then((gltf) => {
+    const loader = new GLTFLoader(manager);
+    // Sensorkopf schwenkt mit dem Gimbal (Kameraneigung); umschließt die alte Kamerakugel
+    const head = loader.loadAsync(DRONE_HEAD_ASSET).then((gltf) => {
+      gltf.scene.traverse((o) => {
+        if (!(o instanceof THREE.Mesh)) return;
+        o.castShadow = true;
+        o.receiveShadow = true;
+        const m = o.material as THREE.MeshStandardMaterial;
+        // Dunkles Metall wie die Rotoren, statt ganz matt
+        m.metalness = 0.45;
+        m.roughness = 0.55;
+        this.disposables.push(o.geometry, m);
+        if (m.map) this.disposables.push(m.map);
+      });
+      this.gimbal.add(gltf.scene);
+    });
+    this.ready = Promise.all([head, loader.loadAsync(DRONE_ASSET)]).then(([, gltf]) => {
       gltf.scene.traverse((o) => {
         if (!(o instanceof THREE.Mesh)) return;
         o.castShadow = true;
