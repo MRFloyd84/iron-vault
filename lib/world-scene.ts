@@ -77,6 +77,14 @@ class Batch {
   }
 }
 
+/** Temperatur der intakten Ziele im Wärmebild (0 = kalt, 1 = heiß) */
+const TARGET_HEAT: Record<Target['kind'], number> = {
+  truck: 0.72,
+  radar: 0.58,
+  mast: 0.4,
+  tank: 0.48,
+  valve: 0.52,
+};
 export type TargetVisual = {
   target: Target;
   group: THREE.Group;
@@ -859,6 +867,9 @@ export class DesertWorld {
     this.disposables.push(...b.build(group, t.id));
     group.position.copy(base);
     group.updateMatrixWorld(true);
+    // Wärmebild der Drohne: Motoren, Elektronik und Tankinhalt sind wärmer als der Sand
+    group.userData.heat = TARGET_HEAT[t.kind];
+    group.userData.heatIntact = TARGET_HEAT[t.kind];
     this.targets.set(t.id, { target: t, group, moving, base });
   }
 

@@ -181,8 +181,9 @@ export function buildConsole(cs: CockpitScene) {
   }
   const control = cs.panel(main, 0, -0.55, 0.1, 3.38, 0.43);
   for (let i = 0; i < 6; i++) cs.addSwitch(control, -1.4 + i * 0.56, 0.005, i, STEPS[i].label);
-  const lower = cs.panel(main, 0, -1.05, 0.07, 1.8, 0.53);
-  cs.label(lower, 'COMM / NAVIGATION', 0, 0.18, 0.07, 1.24, 0.06);
+  // Breiter und höher als früher: Platz für den großen MCDU-Bildschirm (2:1)
+  const lower = cs.panel(main, 0, -1.08, 0.07, 2.3, 0.6);
+  cs.label(lower, 'COMM / NAVIGATION', -0.6, 0.235, 0.07, 0.9, 0.055);
   // MCDU-Tastenfeld: Seiten, Blättern, CLR, Autopilot, Stufe, Helligkeit
   for (let y = 0; y < 3; y++)
     for (let x = 0; x < 6; x++) {
@@ -190,11 +191,11 @@ export function buildConsole(cs: CockpitScene) {
         name = MCDU_KEYS[i];
       const key = cs.box(
         lower,
-        -0.7 + x * 0.15,
-        0.065 - y * 0.09,
+        -0.99 + x * 0.155,
+        0.075 - y * 0.105,
         0.082,
-        0.115,
-        0.064,
+        0.13,
+        0.078,
         0.039,
         name === 'AP' ? cs.edgeMat : cs.darkMat,
         0.008,
@@ -203,15 +204,15 @@ export function buildConsole(cs: CockpitScene) {
       cs.label(
         lower,
         name,
-        -0.7 + x * 0.15,
-        0.065 - y * 0.09,
+        -0.99 + x * 0.155,
+        0.075 - y * 0.105,
         0.108,
-        0.1,
-        0.045,
+        0.112,
+        0.05,
         name === 'AP' ? '#f2d58a' : '#d4caba',
       );
     }
-  cs.screen(lower, 0.54, -0.03, 0.09, 0.46, 0.23, 'comm', 'MCDU / NAV');
+  cs.screen(lower, 0.64, 0, 0.09, 0.74, 0.37, 'comm', 'MCDU / NAV');
   cs.addGauge(main, -1.43, -1.03, 0.12, 0.19, 0, 'BUS VOLT');
   cs.addGauge(main, 1.4, -1.03, 0.12, 0.19, 1, 'PRESSURE');
   cs.label(main, 'IRON VAULT / MK. IV', 0, 0.95, 0.05, 1.7, 0.085, '#c4cbd2');

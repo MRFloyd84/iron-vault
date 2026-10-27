@@ -11,6 +11,7 @@ import {
   droneMark,
   droneLook,
   droneFollowToggle,
+  droneScoutToggle,
   droneHasControls,
   followRelaunchDue,
 } from '../lib/drone.ts';
@@ -155,7 +156,7 @@ test('Drohnengeräusche: Start, Abheben, Landung, Abbruch und Markierung', async
 
 // ---------------------------------------------------------------- Begleitmodus
 /** Mech läuft geradeaus nach Süden (−z) mit 4 m/s; Halterung reist auf seinem Rücken mit. */
-function escortRun(d, seconds, { speed = 4, yaw = 0, hall = false } = {}) {
+function escortRun(d, seconds, { speed = 4, yaw = 0, hall = false, ahead = 0 } = {}) {
   const dt = 1 / 30;
   let mx = 0,
     mz = -80,
@@ -166,7 +167,14 @@ function escortRun(d, seconds, { speed = 4, yaw = 0, hall = false } = {}) {
     const w = world({
       dock: { x: mx, y: 6.4, z: mz },
       dockYaw: yaw,
-      mech: { x: mx, z: mz, yaw, speed, inHall: hall },
+      mech: {
+        x: mx,
+        z: mz,
+        yaw,
+        speed,
+        inHall: hall,
+        ahead: ahead ? { x: mx - Math.sin(yaw) * ahead, z: mz - Math.cos(yaw) * ahead } : undefined,
+      },
       time: i * dt,
     });
     d = stepDrone(d, idleDroneInput(), dt, w, true);
@@ -233,4 +241,35 @@ test('Begleitmodus: geht der Mech in die Halle, landet die Drohne', () => {
   const h = escortRun(d, 0.2, { speed: 0, hall: true }).d;
   assert.equal(h.phase, 'rtb');
   assert.equal(h.rtbReason, 'hall');
+});
+
+test('Vorausaufklärung: startet selbst, fliegt 150 m voraus und schaut in Marschrichtung', () => {
+  let d = droneScoutToggle(initialDrone(), powered());
+  assert.equal(d.phase, 'spinup');
+  assert.ok(d.follow && d.scout);
+  const r = escortRun(d, 90, { ahead: DRONE.scout.ahead });
+  d = r.d;
+  assert.equal(d.phase, 'follow');
+  assert.equal(droneHasControls(d), false);
+  // Voraus heißt: in Laufrichtung (−z) vor dem Mech, nahe am Aufklärungspunkt
+  const ahead = r.mz - DRONE.scout.ahead;
+  assert.ok(d.pos.z < r.mz - 80, 'vor dem Mech: ' + (r.mz - d.pos.z).toFixed(0) + ' m');
+  assert.ok(Math.abs(d.pos.z - ahead) < 45, 'am Aufklärungspunkt');
+  assert.ok(d.pos.y > -2.6 + 18, 'höher als beim Begleiten');
+  assert.ok(Math.abs(Math.atan2(Math.sin(d.yaw), Math.cos(d.yaw))) < 0.4, 'Blick nach vorn');
+  assert.ok(d.camPitch < -0.35, 'Kamera nach unten geneigt');
+});
+
+test('Vorausaufklärung: 9 wechselt zwischen Begleiten und Aufklären, 7 beendet Aufklären', () => {
+  let d = escortRun(droneFollowToggle(initialDrone(), powered()), 10).d;
+  d = droneScoutToggle(d, powered());
+  assert.ok(d.scout && d.phase === 'follow');
+  d = droneScoutToggle(d, powered());
+  assert.ok(!d.scout && d.phase === 'follow');
+  d = droneFollowToggle(droneScoutToggle(d, powered()), powered());
+  assert.ok(!d.scout && d.phase === 'follow', '7 aus der Aufklärung → Begleiten');
+  // Aus der Handsteuerung direkt in die Aufklärung
+  d = droneScoutToggle(droneFollowToggle(d, powered()), powered());
+  assert.ok(d.scout && d.phase === 'follow');
+  assert.equal(droneToggle(d, powered()).scout, false, 'C beendet alles');
 });

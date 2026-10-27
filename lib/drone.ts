@@ -36,9 +36,19 @@ export type DroneState = {
   follow: boolean;
   /** Kreisflug um den stehenden Mech (rad) */
   orbit: number;
+  /** Vorausaufklärung: statt hinter dem Mech voraus auf seinem Weg fliegen */
+  scout: boolean;
 };
 /** Mech für den Begleitmodus (Welt, Meter). */
-export type DroneEscort = { x: number; z: number; yaw: number; speed: number; inHall: boolean };
+export type DroneEscort = {
+  x: number;
+  z: number;
+  yaw: number;
+  speed: number;
+  inHall: boolean;
+  /** Punkt voraus auf dem Weg des Mechs (Marschplan oder Blickrichtung), für die Aufklärung */
+  ahead?: { x: number; z: number };
+};
 /** Umgebung je Bild: Halterung am Mech, Boden, Hangartor, Wind. */
 export type DroneWorld = {
   dock: Vec;
@@ -74,6 +84,8 @@ export const DRONE = {
   minClearance: 0.6,
   /** Begleitmodus: Abstand hinter dem Mech, seitlicher Versatz, Höhe über Grund */
   escort: { behind: 24, side: 7, height: 14, orbitRadius: 26, orbitRate: 0.1 },
+  /** Vorausaufklärung: so weit voraus (m), Höhe über Grund, Kreis um den Punkt */
+  scout: { ahead: 150, height: 26, circle: 18 },
   /** Begleitmodus: nach dem Laden wieder starten ab diesem Akkustand */
   relaunch: 0.9,
   /** Landen von Hand: so nah über der Halterung */
@@ -104,6 +116,7 @@ export const initialDrone = (): DroneState => ({
   rtbReason: null,
   follow: false,
   orbit: 0,
+  scout: false,
 });
 export const idleDroneInput = (): DroneInput => ({ forward: 0, strafe: 0, climb: 0, turn: 0 });
 
@@ -152,7 +165,7 @@ export function droneToggle(d: DroneState, s: MachineState): DroneState {
   if (d.phase === 'docked')
     return droneBlock(s, d) ? d : { ...d, phase: 'spinup', t: 0, follow: false };
   if (d.phase === 'flying' || d.phase === 'follow')
-    return { ...d, phase: 'rtb', t: 0, rtbReason: 'manual', follow: false };
+    return { ...d, phase: 'rtb', t: 0, rtbReason: 'manual', follow: false, scout: false };
   if (d.follow) return { ...d, follow: false };
   return d;
 }
@@ -162,14 +175,32 @@ export function droneToggle(d: DroneState, s: MachineState): DroneState {
  */
 export function droneFollowToggle(d: DroneState, s: MachineState): DroneState {
   if (d.phase === 'docked') {
-    if (d.follow) return { ...d, follow: false };
+    if (d.follow && !d.scout) return { ...d, follow: false };
     return droneBlock(s, d)
-      ? { ...d, follow: true }
-      : { ...d, phase: 'spinup', t: 0, follow: true };
+      ? { ...d, follow: true, scout: false }
+      : { ...d, phase: 'spinup', t: 0, follow: true, scout: false };
   }
-  if (d.phase === 'flying') return { ...d, phase: 'follow', t: 0, follow: true, rtbReason: null };
+  if (d.phase === 'flying')
+    return { ...d, phase: 'follow', t: 0, follow: true, scout: false, rtbReason: null };
+  // Aus der Aufklärung zurück in den Begleitflug, sonst in die Handsteuerung
+  if (d.phase === 'follow' && d.scout) return { ...d, scout: false };
   if (d.phase === 'follow') return { ...d, phase: 'flying', t: 0, follow: false };
-  return { ...d, follow: !d.follow };
+  return { ...d, follow: !d.follow, scout: false };
+}
+/**
+ * Vorausaufklärung umschalten. Angedockt: selbstständig starten und vorausfliegen. Im
+ * Begleitflug zwischen Begleiten und Aufklären wechseln, aus der Handsteuerung übernehmen.
+ */
+export function droneScoutToggle(d: DroneState, s: MachineState): DroneState {
+  if (d.phase === 'docked') {
+    if (d.follow && d.scout) return { ...d, follow: false, scout: false };
+    const armed = { ...d, follow: true, scout: true };
+    return droneBlock(s, d) ? armed : { ...armed, phase: 'spinup', t: 0 };
+  }
+  if (d.phase === 'flying')
+    return { ...d, phase: 'follow', t: 0, follow: true, scout: true, rtbReason: null };
+  if (d.phase === 'follow') return { ...d, scout: !d.scout };
+  return { ...d, follow: true, scout: !d.scout };
 }
 /** Landen von Hand: nur dicht über der Halterung. */
 export function droneCanLand(d: DroneState, w: DroneWorld) {
@@ -318,6 +349,28 @@ function escortVelocity(n: DroneState, m: DroneEscort, w: DroneWorld, dt: number
   const sin = Math.sin(m.yaw),
     cos = Math.cos(m.yaw);
   let tx: number, tz: number;
+  if (n.scout && m.ahead) {
+    // Voraus auf dem Weg: langsamer Kreis um den Aufklärungspunkt, Blick nach vorn unten
+    n.orbit += 0.12 * dt;
+    tx = m.ahead.x + Math.sin(n.orbit) * DRONE.scout.circle;
+    tz = m.ahead.z + Math.cos(n.orbit) * DRONE.scout.circle;
+    const ty = Math.max(w.ground(tx, tz), w.ground(n.pos.x, n.pos.z)) + DRONE.scout.height;
+    const dx = tx - n.pos.x,
+      dz = tz - n.pos.z,
+      flat = Math.hypot(dx, dz);
+    const speed = Math.min(DRONE.maxSpeed, flat * 0.6);
+    // Blick in Marschrichtung (dorthin, wo der Mech gleich hinläuft)
+    const ax = m.ahead.x - m.x,
+      az = m.ahead.z - m.z;
+    const look = Math.hypot(ax, az) > 1 ? Math.atan2(-ax, -az) : n.yaw;
+    n.yaw += wrap(look - n.yaw) * Math.min(1, dt * 1.2);
+    n.camPitch += (-0.5 - n.camPitch) * Math.min(1, dt * 2);
+    return {
+      x: flat > 0.01 ? (dx / flat) * speed : 0,
+      y: clamp((ty - n.pos.y) * 0.8, -DRONE.climbSpeed, DRONE.climbSpeed),
+      z: flat > 0.01 ? (dz / flat) * speed : 0,
+    };
+  }
   if (Math.abs(m.speed) > 0.3) {
     // Hinter dem Mech (Vorwärts = −sin, −cos) und etwas rechts versetzt
     tx = m.x + sin * E.behind + cos * E.side;

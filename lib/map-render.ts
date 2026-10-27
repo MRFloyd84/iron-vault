@@ -103,6 +103,8 @@ export type MapOverlay = {
   /** Autopilot: Route (ab aktivem Wegpunkt) und Kartenpunkt */
   route?: { points: { x: number; z: number }[]; tmpy: boolean } | null;
   mapPoint?: { x: number; z: number } | null;
+  /** Aufgeklärte Ziele (Drohne oder Mech-Nähe); fehlt die Liste, werden alle gezeigt */
+  known?: string[];
   x: number;
   z: number;
   yaw: number;
@@ -140,8 +142,9 @@ export function drawMap(c: CanvasRenderingContext2D, o: MapOverlay, time: number
   }
   // Ziele
   for (const t of TARGETS) {
-    const p = at(t.x, t.z);
     const gone = o.destroyed.includes(t.id);
+    if (o.known && !gone && !o.known.includes(t.id)) continue;
+    const p = at(t.x, t.z);
     c.fillStyle = gone ? 'rgba(40,40,40,0.8)' : 'rgba(150,40,20,0.9)';
     c.fillRect(p.x - 3, p.y - 3, 6, 6);
   }

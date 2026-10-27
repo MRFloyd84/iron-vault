@@ -373,7 +373,9 @@ void main(){
           : d.phase === 'spinup' || d.phase === 'launch'
             ? 'START'
             : d.phase === 'follow'
-              ? 'BEGLEITEN'
+              ? d.scout
+                ? 'AUFKLÄRUNG'
+                : 'BEGLEITEN'
               : 'FLUG';
     text(status, 760, 44, 26, d.phase === 'rtb' ? '#efbd68' : '#98ff53');
     // Fadenkreuz

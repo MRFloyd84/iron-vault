@@ -37,6 +37,8 @@ export type FmsState = {
   /** Aktuelles Einsatzziel und Kartenpunkt (von der Oberfläche gesetzt) */
   mission: Destination | null;
   mapPoint: Destination | null;
+  /** Lasermarke der Drohne (Entfernungsmesser im Sensorkopf) */
+  markPoint: Destination | null;
   /** Fortschrittskontrolle gegen Hängenbleiben */
   watch: { remaining: number; time: number };
   replans: number;
@@ -115,6 +117,7 @@ export const initialFms = (): FmsState => ({
   log: [],
   mission: null,
   mapPoint: null,
+  markPoint: null,
   watch: { remaining: Infinity, time: 0 },
   replans: 0,
   clock: 0,
@@ -137,7 +140,12 @@ const FIXED: Destination[] = [
 
 /** Ziele für DIR TO: Einsatzziel und Kartenpunkt zuerst, dann die Anlagen. */
 export function destinations(f: FmsState): Destination[] {
-  return [...(f.mission ? [f.mission] : []), ...(f.mapPoint ? [f.mapPoint] : []), ...FIXED];
+  return [
+    ...(f.mission ? [f.mission] : []),
+    ...(f.markPoint ? [f.markPoint] : []),
+    ...(f.mapPoint ? [f.mapPoint] : []),
+    ...FIXED,
+  ];
 }
 
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));

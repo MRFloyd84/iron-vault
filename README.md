@@ -106,6 +106,8 @@ The **?** button (top right) explains everything. In short:
 | M, P, J | weapons, laser, headlights |
 | C, Tab | launch/recall the drone, drone view |
 | 7 | drone escort mode (launches itself, follows the mech) / manual control |
+| 8, 9 | drone sensor (TV / thermal / night vision), forward recon |
+| mouse wheel, + / − | drone view: zoom 1–8× |
 | I | mission control and map |
 | F3 | diagnostics overlay (FPS, frame time, draw calls, memory) |
 | MCDU (keypad at the bottom of the console) | navigation computer and march autopilot: DIR, M-PLN, PROG, PERF, AP, HOLD, SPD 1/2, RTB |

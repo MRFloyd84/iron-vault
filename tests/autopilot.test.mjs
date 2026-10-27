@@ -154,3 +154,18 @@ test('RTB plant zur Halle, Meldungen landen im Verlauf', () => {
     ['Zweite Meldung', 'Erste Meldung'],
   );
 });
+
+test('Lasermarke der Drohne steht im MCDU unter DIR (nach dem Einsatzziel)', () => {
+  const s = ready();
+  const f = {
+    ...s.fms,
+    mission: { id: 'mission', name: 'Wasserturm', x: 0, z: -700 },
+    markPoint: { id: 'mark', name: 'LASERMARKE C4', x: -100, z: -500 },
+  };
+  assert.deepEqual(
+    destinations(f)
+      .slice(0, 3)
+      .map((d) => d.id),
+    ['mission', 'mark', 'refinery'],
+  );
+});

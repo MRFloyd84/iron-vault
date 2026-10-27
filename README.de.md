@@ -110,6 +110,8 @@ Der **?**-Knopf oben rechts erklärt alles. Kurz:
 | M, P, J | Waffen, Laser, Scheinwerfer |
 | C, Tab | Drohne starten/zurückrufen, Drohnensicht |
 | 7 | Drohne: Begleitmodus (startet selbst, folgt dem Mech) / Handsteuerung |
+| 8, 9 | Drohne: Sensor (TV / Wärmebild / Nachtsicht), Vorausaufklärung |
+| Mausrad, + / − | Drohnensicht: Zoom 1–8× |
 | I | Einsatzleitung und Karte |
 | F3 | Diagnoseanzeige (FPS, Bildzeit, Zeichenaufrufe, Speicher) |
 | MCDU (Tastenfeld unten in der Konsole) | Navigationsrechner und Marschautopilot: DIR, M-PLN, PROG, PERF, AP, HOLD, SPD 1/2, RTB |

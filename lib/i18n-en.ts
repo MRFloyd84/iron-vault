@@ -19,6 +19,34 @@ export const EN: Record<string, string> = {
   Sprache: 'Language',
   'Sprache wählen': 'Choose language',
   Grafikeinstellungen: 'Graphics settings',
+  // ---------------------------------------------------------------- Drohne: Sensorkopf
+  WÄRMEBILD: 'THERMAL',
+  NACHTSICHT: 'NIGHT VISION',
+  'SENSOR {0}': 'SENSOR {0}',
+  'ZOOM {0}×': 'ZOOM {0}×',
+  'LASER {0} m · HÖHE {1} m · {2}': 'LASER {0} m · ALT {1} m · {2}',
+  'LASERMARKE {0}': 'LASER MARK {0}',
+  'Drohnensensor: {0}.': 'Drone sensor: {0}.',
+  'Ziel markiert: {0} m, Planquadrat {1}. Im MCDU unter DIR wählbar.':
+    'Target marked: {0} m, grid square {1}. Selectable in the MCDU under DIR.',
+  'Drohne: Ziel aufgeklärt – {0}.': 'Drone: target spotted – {0}.',
+  'Drohne: {0} Ziele aufgeklärt.': 'Drone: {0} targets spotted.',
+  'AUFKLÄREN [9]': 'RECON [9]',
+  'Vorausaufklärung: Drohne fliegt 150 m voraus auf dem Marschplan bzw. in Laufrichtung und klärt Ziele für die Karte auf.':
+    'Forward recon: the drone flies 150 m ahead along the march plan or the walking direction and spots targets for the map.',
+  'Vorausaufklärung: W A S D steuern den Mech · 9: zurück zum Begleiten':
+    'Forward recon: W A S D steer the mech · 9: back to escort',
+  'Begleitmodus: W A S D steuern den Mech · 7: Drohne von Hand fliegen · 9: Vorausaufklärung':
+    'Escort mode: W A S D steer the mech · 7: fly the drone by hand · 9: forward recon',
+  'Linksklick: Ziel markieren (Laser misst Entfernung) · Mausrad / + −: Zoom · 8: Sensor · 9: Vorausaufklärung · Rechte Maustaste: Kamera · Tab: Cockpit · C: Rückkehr':
+    'Left click: mark target (laser measures range) · Mouse wheel / + −: zoom · 8: sensor · 9: forward recon · Right mouse button: camera · Tab: cockpit · C: return',
+  'Karte: Norden oben, Planquadrate 250 m. Rote Punkte: aufgeklärte Ziele (Drohne oder in Mech-Nähe), gestrichelter Kreis: Suchgebiet.':
+    'Map: north up, grid squares 250 m. Red dots: spotted targets (drone or near the mech), dashed circle: search area.',
+  'Vorausaufklärung: Drohne startet und fliegt voraus.': 'Forward recon: drone launching to fly ahead.',
+  'Vorausaufklärung: Drohne fliegt {0} m voraus.': 'Forward recon: drone flying {0} m ahead.',
+  'Vorausaufklärung vorgemerkt.': 'Forward recon armed.',
+  'Vorausaufklärung vorgemerkt: {0}': 'Forward recon armed: {0}',
+  'Vorausaufklärung aus.': 'Forward recon off.',
   // ---------------------------------------------------------------- Drohne: Begleitmodus
   'BEGLEITEN [7]': 'ESCORT [7]',
   BEGLEITEN: 'ESCORT',

@@ -58,6 +58,8 @@ import {
   stepDrone,
   droneToggle as toggleDrone,
   droneFollowToggle,
+  droneScoutToggle,
+  DRONE,
   followRelaunchDue,
   droneOnStation,
   droneBlock,
@@ -69,13 +71,14 @@ import {
   type DroneState,
 } from './drone';
 import { DroneFeed, DroneRig, LASER_LAYER, TargetMarker } from './drone-model';
+import { DroneSensor } from './drone-sensor';
 import { DesertWorld } from './world-scene';
 import { WorldTargets } from './world-targets';
 import { PerfMonitor } from './perf-monitor';
 import { MissionDirector } from './mission-director';
 import { mission as missionById } from './missions';
 import { STRUCTURES, TARGETS, structureTop } from './world-layout';
-import { ROADS } from './terrain';
+import { ROADS, sectorName } from './terrain';
 import { camerasPowered } from './surround-cameras';
 import { buildYard, YARD } from './yard-scene';
 import { buildHangar as buildHangarImpl } from './scene/hangar-build';
@@ -241,6 +244,11 @@ export class CockpitScene {
   targetYaw = 0;
   targetPitch = -0.12;
   targetFov = 60;
+  /** Sensor im Drohnenkopf: TV, Wärmebild, Nachtsicht (Taste 8) */
+  droneSensor!: DroneSensor;
+  /** Bildwinkel der Drohnenkamera (Zoom 1–8× über das Mausrad bzw. + / −) */
+  droneFov = 70;
+  private sunDirection = new THREE.Vector3();
   lastTime = 0;
   throttle: THREE.Group | null = null;
   inHangar = false;
@@ -477,6 +485,8 @@ export class CockpitScene {
     this.camera.near = 0.08 * MECH.cabinScale;
     this.camera.updateProjectionMatrix();
     this.exterior = new MechExterior(this, manager);
+    // Wärmebild: Reaktor, Hydraulik und Antriebe – der Mech ist das wärmste Objekt im Gelände
+    this.exterior.root.userData.heat = 0.8;
     this.cabin.add(this.exterior.root);
     // Dynamische Weltobjekte erst nach dem Zusammenfassen der statischen Szene anlegen:
     // dort werden Matrizen eingefroren und neue Szenenkinder in die Kapsel verschoben.
@@ -516,6 +526,9 @@ export class CockpitScene {
     new SisterMech(this, this.wet);
     // Aufklärungsdrohne (Halterung am Rücken: mech-exterior.ts)
     this.droneRig = new DroneRig(this.scene, manager);
+    this.droneRig.root.userData.heat = 0.7;
+    this.droneSensor = new DroneSensor();
+    this.cleanup.push(() => this.droneSensor.dispose());
     this.droneRig.root.visible = false;
     this.droneFeed = new DroneFeed();
     this.targetMarker = new TargetMarker(this.scene);
@@ -635,6 +648,7 @@ export class CockpitScene {
           MECH.orbitMin,
           MECH.orbitMax,
         );
+      else if (this.inDrone) this.droneZoomBy(Math.exp(-delta * 0.0012));
       else this.targetFov = THREE.MathUtils.clamp(this.targetFov * Math.exp(delta * 0.001), 14, 70);
     };
     const context = (e: Event) => e.preventDefault();
@@ -1110,7 +1124,7 @@ export class CockpitScene {
       hangar: [0, 0.035, 70],
       yard: [0.16, -0.12, 65],
       mech: [0, 0, 55],
-      drone: [0, 0, 70],
+      drone: [0, 0, this.droneFov],
     };
     [this.targetYaw, this.targetPitch, this.targetFov] = presets[name];
     if (wasExterior !== outside || outside) {
@@ -1305,7 +1319,14 @@ export class CockpitScene {
           gate: s.hangar.position,
           wind: insideShelter(this.drone.pos.x, this.drone.pos.z) ? 0 : this.rainAmount,
           time,
-          mech: { x: wp.x, z: wp.z, yaw: wp.yaw, speed: wp.speed, inHall: mechInHall },
+          mech: {
+            x: wp.x,
+            z: wp.z,
+            yaw: wp.yaw,
+            speed: wp.speed,
+            inHall: mechInHall,
+            ahead: this.scoutPoint(s),
+          },
         },
         camerasPowered(s),
       );
@@ -1322,6 +1343,11 @@ export class CockpitScene {
       this.droneReturned = true;
     }
     rig.root.visible = true;
+    // Zoom gilt auch für das Bild auf dem Kameramonitor im Cockpit
+    if (rig.camera.fov !== this.droneFov) {
+      rig.camera.fov = this.droneFov;
+      rig.camera.updateProjectionMatrix();
+    }
     rig.update(this.drone, time, this.nightAmount, dt);
     this.targetMarker?.update(this.drone, time);
     this.camera.layers[this.inDrone ? 'disable' : 'enable'](LASER_LAYER);
@@ -1342,6 +1368,7 @@ export class CockpitScene {
   /** Ziel markieren: Strahl durch den Mauszeiger der Drohnensicht. Ins Leere = löschen. */
   /** Einsatz: Erfassen, Fortschritt, Lagebild für das Taktik-Display. */
   private updateMissions(dt: number, time: number) {
+    this.spotTargets(time);
     const walk = this.walkPose,
       rig = this.droneRig;
     const airborne = droneOnStation(this.drone);
@@ -1524,6 +1551,7 @@ export class CockpitScene {
       heading: ((((-yaw * 180) / Math.PI) % 360) + 360) % 360,
       drone: droneAirborne(this.drone) ? { x: this.drone.pos.x, z: this.drone.pos.z } : null,
       destroyed: TARGETS.filter((t) => this.worldTargets?.destroyed(t.id)).map((t) => t.id),
+      known: [...this.knownTargets],
     };
   }
   markFromDrone() {
@@ -1536,7 +1564,14 @@ export class CockpitScene {
     const hit = range.hitTest(origin, far);
     const point = hit ? hit.point : null;
     this.drone = droneMark(this.drone, point ? { x: point.x, y: point.y, z: point.z } : null);
-    this.droneNotice = point ? 'Ziel markiert.' : 'Zielmarkierung gelöscht.';
+    // Laser-Entfernungsmesser im Sensorkopf: Schrägentfernung von der Drohne zum Punkt
+    this.droneNotice = point
+      ? 'Ziel markiert: ' +
+        Math.round(point.distanceTo(this.droneEye)) +
+        ' m, Planquadrat ' +
+        sectorName(point.x, point.z) +
+        '. Im MCDU unter DIR wählbar.'
+      : 'Zielmarkierung gelöscht.';
     if (point) this.missions.markAt(point);
     if (point) this.droneMarks++;
   }
@@ -1552,6 +1587,87 @@ export class CockpitScene {
     if (this.drone.phase === 'rtb')
       return { message: 'Drohne kehrt zurück und landet auf der Halterung.', error: false };
     return null;
+  }
+  /**
+   * Aufklärungspunkt: 150 m voraus auf dem Marschplan (Autopilot) bzw. in Blickrichtung.
+   */
+  private scoutPoint(s: MachineState) {
+    const w = this.walkPose,
+      f = s.fms,
+      ahead = DRONE.scout.ahead;
+    if (f.plan && f.ap !== 'off') {
+      let left = ahead,
+        x = w.x,
+        z = w.z;
+      for (let i = Math.max(1, f.leg); i < f.plan.points.length; i++) {
+        const p = f.plan.points[i],
+          seg = Math.hypot(p.x - x, p.z - z);
+        if (seg >= left)
+          return { x: x + ((p.x - x) * left) / seg, z: z + ((p.z - z) * left) / seg };
+        left -= seg;
+        x = p.x;
+        z = p.z;
+      }
+      return { x, z };
+    }
+    return { x: w.x - Math.sin(w.yaw) * ahead, z: w.z - Math.cos(w.yaw) * ahead };
+  }
+  /** Von der Drohne oder in Mech-Nähe aufgeklärte Ziele (für die Einsatzkarte). */
+  knownTargets = new Set<string>();
+  private spotAt = 0;
+  /** Aufklärung alle 0,5 s: Ziele in Sensorreichweite der Drohne oder nahe am Mech. */
+  private spotTargets(time: number) {
+    if (time - this.spotAt < 0.5) return;
+    this.spotAt = time;
+    const d = this.drone,
+      w = this.walkPose,
+      flying = droneOnStation(d);
+    const found: string[] = [];
+    for (const t of TARGETS) {
+      if (this.knownTargets.has(t.id)) continue;
+      const byDrone = flying && Math.hypot(t.x - d.pos.x, t.z - d.pos.z) < 170;
+      if (byDrone || Math.hypot(t.x - w.x, t.z - w.z) < 220) {
+        this.knownTargets.add(t.id);
+        if (byDrone) found.push(t.label);
+      }
+    }
+    if (found.length)
+      this.droneNotice =
+        found.length === 1
+          ? 'Drohne: Ziel aufgeklärt – ' + found[0] + '.'
+          : 'Drohne: ' + found.length + ' Ziele aufgeklärt.';
+  }
+  /** Taste 9: Vorausaufklärung an/aus (startet angedockt selbstständig). */
+  droneScout(s: MachineState): { message: string; error: boolean } | null {
+    if (!this.exterior?.dockReady) return { message: 'Drohne noch nicht bereit.', error: true };
+    const before = this.drone;
+    this.drone = droneScoutToggle(before, s);
+    const d = this.drone;
+    if (before.phase === 'docked' && d.phase === 'spinup')
+      return { message: 'Vorausaufklärung: Drohne startet und fliegt voraus.', error: false };
+    if (d.phase === 'follow')
+      return {
+        message: d.scout
+          ? 'Vorausaufklärung: Drohne fliegt ' + DRONE.scout.ahead + ' m voraus.'
+          : 'Begleitmodus: Drohne folgt dem Mech.',
+        error: false,
+      };
+    if (d.phase === 'docked' && d.follow) {
+      const block = droneBlock(s, d);
+      return {
+        message: 'Vorausaufklärung vorgemerkt' + (block ? ': ' + block : '.'),
+        error: false,
+      };
+    }
+    return {
+      message: d.scout ? 'Vorausaufklärung vorgemerkt.' : 'Vorausaufklärung aus.',
+      error: false,
+    };
+  }
+  /** Zoom der Drohnenkamera (Faktor > 1 = näher), 1× bis 8×. */
+  droneZoomBy(factor: number) {
+    this.droneFov = THREE.MathUtils.clamp(this.droneFov / factor, 70 / 8, 70);
+    if (this.inDrone) this.targetFov = this.droneFov;
   }
   /** Taste: Begleitmodus an/aus (startet angedockt selbstständig). */
   droneFollow(s: MachineState): { message: string; error: boolean } | null {
@@ -1596,8 +1712,20 @@ export class CockpitScene {
       altitude: Math.max(0, d.pos.y - MECH.floor - groundHeight(d.pos.x, d.pos.z)),
       distance: Math.hypot(d.pos.x - this.dockWorld.x, d.pos.z - this.dockWorld.z),
       marked: !!d.mark,
+      /** Lasermarke: Weltposition, Schrägentfernung und Höhe über Grund */
+      mark: d.mark
+        ? {
+            x: d.mark.x,
+            z: d.mark.z,
+            range: Math.hypot(d.mark.x - d.pos.x, d.mark.y - d.pos.y, d.mark.z - d.pos.z),
+            height: d.mark.y - MECH.floor - groundHeight(d.mark.x, d.mark.z),
+          }
+        : null,
+      zoom: 70 / this.droneFov,
+      sensor: this.droneSensor?.mode ?? 'tv',
       rtbReason: d.rtbReason,
       follow: d.follow,
+      scout: d.scout,
       rotor: d.rotor,
       marks: this.droneMarks,
       speed: Math.hypot(d.vel.x, d.vel.y, d.vel.z),
@@ -2116,7 +2244,17 @@ export class CockpitScene {
     this.perf.section('displays');
     cabinWear.uCabinInv.value.copy(this.cabin.matrixWorld).invert();
     this.perf.gpuBegin();
-    this.renderer.render(this.scene, this.camera);
+    const sensed =
+      this.inDrone &&
+      this.droneSensor.render(
+        this.renderer,
+        this.scene,
+        this.camera,
+        time,
+        this.nightAmount,
+        this.sunDirection.subVectors(this.sun.position, this.sun.target.position),
+      );
+    if (!sensed) this.renderer.render(this.scene, this.camera);
     this.perf.gpuEnd();
     this.perf.section('render');
     this.perf.endFrame();

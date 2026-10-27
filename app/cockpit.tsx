@@ -43,6 +43,7 @@ import {
   type FmsState,
 } from '../lib/autopilot';
 import { walkGrid } from '../lib/route-planner';
+import { SENSOR_LABEL } from '../lib/drone-sensor';
 import { mobilityCommand, restraintLabel } from '../lib/mobility';
 import { serviceWarning, electricalReadings, sourceLabel } from '../lib/service-systems';
 import { MachineAudio, type AudioStatus } from '../lib/machine-audio';
@@ -170,6 +171,16 @@ export default function Cockpit() {
     if (result.error) audio.current?.beep(true);
     else void audio.current?.playSwitch().catch(() => {});
     // Steuertasten wechseln zwischen Drohne und Mech: gedrückte Tasten neu zuordnen
+    updateInputRef.current();
+  };
+  const toggleScout = () => {
+    const sc = scene.current;
+    if (!sc) return;
+    const result = sc.droneScout(stateRef.current);
+    if (!result) return;
+    apply({ ...stateRef.current, message: result.message, error: result.error });
+    if (result.error) audio.current?.beep(true);
+    else void audio.current?.playSwitch().catch(() => {});
     updateInputRef.current();
   };
   const held = useRef(new Set<string>()),
@@ -579,6 +590,30 @@ export default function Cockpit() {
         toggleDrone();
         return;
       }
+      // Drohnensicht: + / − zoomen (Mausrad ebenso)
+      if ((e.key === '+' || e.key === '-') && scene.current?.inDrone) {
+        e.preventDefault();
+        scene.current.droneZoomBy(e.key === '+' ? 1.25 : 0.8);
+        return;
+      }
+      // 8: Sensor im Drohnenkopf (TV → Wärmebild → Nachtsicht)
+      if (e.key === '8' && !helpRef.current && scene.current) {
+        e.preventDefault();
+        const mode = scene.current.droneSensor.cycle();
+        apply({
+          ...stateRef.current,
+          message: 'Drohnensensor: ' + SENSOR_LABEL[mode] + '.',
+          error: false,
+        });
+        void audio.current?.playSwitch().catch(() => {});
+        return;
+      }
+      // 9: Vorausaufklärung (Drohne fliegt dem Mech auf seinem Weg voraus)
+      if (e.key === '9' && !helpRef.current) {
+        e.preventDefault();
+        toggleScout();
+        return;
+      }
       // 7: Drohne begleitet den Mech (startet angedockt selbstständig) / Handsteuerung
       if (e.key === '7' && !helpRef.current) {
         e.preventDefault();
@@ -711,15 +746,35 @@ export default function Cockpit() {
             Math.round(show.altitude),
             Math.round(show.distance),
             show.marked,
+            Math.round(show.mark?.range ?? 0),
+            show.zoom.toFixed(1),
+            show.sensor,
             show.rtbReason,
             show.airborne,
             show.follow,
+            show.scout,
           ].join('|')
         : '';
       if (droneKey !== droneKeyRef.current) {
         droneKeyRef.current = droneKey;
         setDrone(show);
       }
+      // Lasermarke als Ziel für den Autopiloten (MCDU › DIR)
+      const mk = info.mark;
+      const known = stateRef.current.fms.markPoint;
+      if (
+        (mk === null) !== (known === null) ||
+        (mk && known && (mk.x !== known.x || mk.z !== known.z))
+      )
+        apply({
+          ...stateRef.current,
+          fms: {
+            ...stateRef.current.fms,
+            markPoint: mk
+              ? { id: 'mark', name: 'LASERMARKE ' + sectorName(mk.x, mk.z), x: mk.x, z: mk.z }
+              : null,
+          },
+        });
       if (info.controls !== droneControlsRef.current) {
         droneControlsRef.current = info.controls;
         updateInputRef.current();
@@ -1014,6 +1069,15 @@ export default function Cockpit() {
           >
             {tr('BEGLEITEN [7]')}
           </button>
+          <button
+            aria-pressed={!!drone?.follow && !!drone?.scout}
+            title={tr(
+              'Vorausaufklärung: Drohne fliegt 150 m voraus auf dem Marschplan bzw. in Laufrichtung und klärt Ziele für die Karte auf.',
+            )}
+            onClick={toggleScout}
+          >
+            {tr('AUFKLÄREN [9]')}
+          </button>
           {drone?.airborne && (
             <button
               className="group-end"
@@ -1124,7 +1188,9 @@ export default function Cockpit() {
                     : drone?.phase === 'flying'
                       ? 'FLUG'
                       : drone?.phase === 'follow'
-                        ? 'BEGLEITEN'
+                        ? drone.scout
+                          ? 'AUFKLÄRUNG'
+                          : 'BEGLEITEN'
                         : 'START',
               )}
             </span>
@@ -1136,7 +1202,17 @@ export default function Cockpit() {
             <span className={(drone?.signal ?? 1) < 0.4 ? 'warn' : ''}>
               {tr(`FUNK ${Math.round((drone?.signal ?? 1) * 100)} %`)}
             </span>
-            {drone?.marked && <span className="mark">{tr('ZIEL MARKIERT')}</span>}
+            <span>{tr(`ZOOM ${(drone?.zoom ?? 1).toFixed(1)}×`)}</span>
+            <span className={drone?.sensor !== 'tv' ? 'mark' : ''}>
+              {tr('SENSOR ' + SENSOR_LABEL[drone?.sensor ?? 'tv'])}
+            </span>
+            {drone?.mark && (
+              <span className="mark">
+                {tr(
+                  `LASER ${Math.round(drone.mark.range)} m · HÖHE ${Math.round(drone.mark.height)} m · ${sectorName(drone.mark.x, drone.mark.z)}`,
+                )}
+              </span>
+            )}
             {drone?.rtbReason === 'battery' && (
               <span className="warn">{tr('AKKU LEER – AUTOMATISCHE RÜCKKEHR')}</span>
             )}
@@ -1150,12 +1226,14 @@ export default function Cockpit() {
           <div className="drone-hint">
             {tr(
               drone?.phase === 'follow'
-                ? 'Begleitmodus: W A S D steuern den Mech · 7: Drohne von Hand fliegen'
+                ? drone.scout
+                  ? 'Vorausaufklärung: W A S D steuern den Mech · 9: zurück zum Begleiten'
+                  : 'Begleitmodus: W A S D steuern den Mech · 7: Drohne von Hand fliegen · 9: Vorausaufklärung'
                 : 'W A S D: fliegen · Q / E: drehen · Leertaste / Umschalt: steigen / sinken · 7: Begleitmodus',
             )}
             <br />
             {tr(
-              'Linksklick: Ziel markieren · Rechte Maustaste: Kamera schwenken · Tab: Cockpit · C: Rückkehr',
+              'Linksklick: Ziel markieren (Laser misst Entfernung) · Mausrad / + −: Zoom · 8: Sensor · 9: Vorausaufklärung · Rechte Maustaste: Kamera · Tab: Cockpit · C: Rückkehr',
             )}
           </div>
         </div>
@@ -1303,6 +1381,7 @@ function mcduChanged(a: FmsState, b: FmsState) {
     a.brightness !== b.brightness ||
     a.log !== b.log ||
     a.mission !== b.mission ||
-    a.mapPoint !== b.mapPoint
+    a.mapPoint !== b.mapPoint ||
+    a.markPoint !== b.markPoint
   );
 }

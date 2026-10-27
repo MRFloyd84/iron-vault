@@ -63,6 +63,7 @@ export default function MissionPanel({
         yaw: info.yaw,
         drone: info.drone,
         destroyed: info.destroyed,
+        known: info.known,
         objectives,
         ...nav(),
       },
@@ -147,7 +148,7 @@ export default function MissionPanel({
           </div>
           <p className="mission-hint">
             {tr(
-              'Karte: Norden oben, Planquadrate 250 m. Rote Punkte: Ziele, gestrichelter Kreis: Suchgebiet.',
+              'Karte: Norden oben, Planquadrate 250 m. Rote Punkte: aufgeklärte Ziele (Drohne oder in Mech-Nähe), gestrichelter Kreis: Suchgebiet.',
             )}
           </p>
           <p className="mission-hint">

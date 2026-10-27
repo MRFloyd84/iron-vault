@@ -75,6 +75,8 @@ export class WorldTargets {
 
   /** Aussehen nach der Zerstörung: verkohlt, eingesackt, umgestürzt. */
   private wreck(v: TargetVisual, time: number) {
+    // Brennende Trümmer leuchten im Wärmebild
+    v.group.userData.heat = 0.92;
     v.group.traverse((o) => {
       if (o instanceof THREE.Mesh) {
         o.userData.intact ??= o.material;
@@ -114,6 +116,7 @@ export class WorldTargets {
           o.visible = true;
         } else if (o instanceof THREE.Mesh) o.visible = true;
       });
+      v.group.userData.heat = v.group.userData.heatIntact;
       v.group.scale.set(1, 1, 1);
       v.group.rotation.set(0, 0, 0);
       v.group.position.copy(v.base);
