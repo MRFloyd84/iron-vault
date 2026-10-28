@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import sharp from 'sharp';
 
 const source = new URL('../public/models/iv-04-mech.glb', import.meta.url);
@@ -39,7 +40,7 @@ delete g.textures;
 delete g.images;
 g.buffers[0].uri = 'data:application/octet-stream;base64,' + binary.toString('base64');
 globalThis.ProgressEvent ??= class {};
-const { scene } = await new GLTFLoader().parseAsync(JSON.stringify(g), '');
+const { scene } = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(JSON.stringify(g), '');
 scene.updateMatrixWorld(true);
 const meshes = [],
   bounds = new THREE.Box3().setFromObject(scene);

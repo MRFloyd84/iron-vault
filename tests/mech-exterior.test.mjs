@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import {
   MECH,
   legCycle,
@@ -30,7 +31,7 @@ async function asset() {
   data.buffers[0].uri =
     'data:application/octet-stream;base64,' + b.subarray(28 + n).toString('base64');
   globalThis.ProgressEvent ??= class {};
-  const { scene } = await new GLTFLoader().parseAsync(JSON.stringify(data), '');
+  const { scene } = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(JSON.stringify(data), '');
   return { scene, g, bytes: b.length };
 }
 function rigPose(model, cabin, walk) {
@@ -200,10 +201,11 @@ test('actual GLB has rigid sections, unchanged PBR maps, bounded geometry and co
   root.rotation.y = Math.PI;
   cabin.add(root);
   root.add(model);
-  // Rumpf, Becken, 2 Füße (neu) + Beine und Arme (bisher): 12 Teile, je Teilesatz 3 Bilder
+  // Baukasten-Mech: 12 Teile aus 7 Tripo-Sätzen (Rumpf, Becken, Fuß, Oberschenkel,
+  // Schienbein, Oberarm, Kanone) mit je 3 Bildern; Geometrie meshopt-gepackt
   assert.equal(g.meshes.length, 12);
-  assert.equal(g.images.length, 12);
-  assert.ok(bytes < 14e6, 'Datei ' + bytes);
+  assert.equal(g.images.length, 21);
+  assert.ok(bytes < 11e6, 'Datei ' + bytes);
   let triangles = 0;
   model.traverse((o) => {
     if (o.isMesh) triangles += o.geometry.index.count / 3;

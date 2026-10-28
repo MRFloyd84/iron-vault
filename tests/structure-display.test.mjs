@@ -39,7 +39,7 @@ test('structure atlas is derived from the currently shipped GLB with distinct fr
     );
   const source = fs.readFileSync(new URL(meta.source, root));
   assert.equal(meta.sourceSha256, crypto.createHash('sha256').update(source).digest('hex'));
-  assert.equal(meta.triangleCount, 268489);
+  assert.equal(meta.triangleCount, 319680);
   assert.deepEqual(meta.columns, ['base', 'leftArm', 'rightArm', 'leftLeg', 'rightLeg']);
   const { data, info } = await sharp(new URL('instruments/mech-structure-atlas.png', root).pathname)
     .raw()

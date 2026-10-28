@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { ConvexHull } from 'three/examples/jsm/math/ConvexHull.js';
 import type { CockpitScene } from './cockpit-scene';
 import type { MachineState } from './machine';
@@ -513,7 +514,8 @@ export class MechExterior {
     this.root.scale.setScalar(MECH.modelScale / MECH.cabinScale);
     this.root.rotation.y = Math.PI;
     this.root.visible = false;
-    const loader = new GLTFLoader(manager);
+    // Mech-Geometrie ist mit EXT_meshopt_compression gepackt (assemble-mech.mjs)
+    const loader = new GLTFLoader(manager).setMeshoptDecoder(MeshoptDecoder);
     // Zylinderformen sind optional: fehlt die Datei, baut der Code einfache Zylinder.
     const shapes = loader
       .loadAsync(HYDRAULIC_ASSET)

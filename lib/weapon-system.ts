@@ -279,10 +279,12 @@ export class WeaponSystem {
       const muzzle = new THREE.Object3D();
       muzzle.name = name + ' muzzle';
       arm.updateWorldMatrix(true, false);
-      // Modellpunkt vorne am Lauf in Arm-Lokalkoordinaten umrechnen.
-      const local = arm.worldToLocal(
-        new THREE.Vector3(x, 0.36, 0.115).applyMatrix4(model.matrixWorld),
-      );
+      // Mündung aus dem Modell (assemble-mech.mjs legt sie als extras.muzzle in
+      // Unterarm-Koordinaten ab); sonst der Modellpunkt vorne am Lauf des ersten Modells.
+      const stored = arm.userData.muzzle as [number, number, number] | undefined;
+      const local = stored
+        ? new THREE.Vector3(...stored)
+        : arm.worldToLocal(new THREE.Vector3(x, 0.36, 0.115).applyMatrix4(model.matrixWorld));
       muzzle.position.copy(local);
       arm.add(muzzle);
       this.muzzles.push(muzzle);

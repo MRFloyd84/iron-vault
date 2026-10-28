@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import {
   MECH,
   prepareMechanicalRig,
@@ -20,7 +21,7 @@ delete g.images;
 delete g.textures;
 g.buffers[0].uri = 'data:application/octet-stream;base64,' + b.subarray(28 + n).toString('base64');
 globalThis.ProgressEvent ??= class {};
-const { scene: model } = await new GLTFLoader().parseAsync(JSON.stringify(g), '');
+const { scene: model } = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(JSON.stringify(g), '');
 prepareTorsoRig(model);
 const joints = { ...neutralJoints(), torso: 0.7, leftShoulder: 0.5, leftElbow: 0.7 };
 const legs = prepareMechanicalRig(model),
