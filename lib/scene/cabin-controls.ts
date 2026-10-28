@@ -710,18 +710,21 @@ export function buildSide(cs: CockpitScene, side: number) {
     cs.box(g, 0, -1.06 + i * 0.035, 0.07, 0.55, 0.014, 0.025, cs.darkMat, 0.001);
 }
 
-export function buildSeat(cs: CockpitScene) {
+/** Einfacher Sitz aus Grundformen (Ersatz, falls das Sitzmodell nicht lädt). */
+export function buildSeat(cs: CockpitScene, parent: THREE.Object3D = cs.scene) {
   const seatmat = cs.seatMat,
     red = cs.leatherMat;
-  cs.box(cs.scene, 0, -1.02, 3.15, 1.15, 0.32, 1.3, seatmat, 0.09);
-  cs.box(cs.scene, 0, -0.12, 3.96, 1.19, 1.7, 0.27, seatmat, 0.1);
+  cs.box(parent, 0, -1.02, 3.15, 1.15, 0.32, 1.3, seatmat, 0.09);
+  cs.box(parent, 0, -0.12, 3.96, 1.19, 1.7, 0.27, seatmat, 0.1);
   for (const s of [-1, 1]) {
-    cs.box(cs.scene, s * 0.51, -0.12, 3.74, 0.17, 1.43, 0.19, red, 0.05);
-    cs.box(cs.scene, s * 0.72, -0.68, 2.65, 0.22, 0.2, 1.2, red, 0.04);
+    cs.box(parent, s * 0.51, -0.12, 3.74, 0.17, 1.43, 0.19, red, 0.05);
+    cs.box(parent, s * 0.72, -0.68, 2.65, 0.22, 0.2, 1.2, red, 0.04);
   }
   for (let i = 0; i < 10; i++)
-    cs.box(cs.scene, 0, -0.84, 2.62 + i * 0.1, 0.98, 0.015, 0.018, cs.darkMat, 0.003);
+    cs.box(parent, 0, -0.84, 2.62 + i * 0.1, 0.98, 0.015, 0.018, cs.darkMat, 0.003);
 }
+/** Pilotensitz aus Renes Kanzelmodell: Lage in Kanzelkoordinaten (Blick nach −z). */
+export const SEAT = { scale: 2.6, x: 0.06, y: -1.18, z: 2.99 } as const;
 
 export function buildMechanicalDetails(cs: CockpitScene) {
   for (const side of [-1, 1]) {

@@ -62,13 +62,20 @@ function surfacePoint(segment: THREE.Object3D, mount: Mount, side: number, clear
   return { point: local.addScaledVector(out, clearance), seated: !!hit };
 }
 
+/**
+ * Formen aus Renes Hydraulikzylinder-Satz (iv-04-hydraulic.glb): Rohr mit Kopf, Lagerauge
+ * und Anschlüssen sowie Kolbenstange mit Endkappe, je entlang +Y auf Länge 1 und
+ * Durchmesser 1 normiert. Ohne sie baut der Code einfache Zylinder.
+ */
+export type HydraulicShapes = { barrel: THREE.BufferGeometry; rod: THREE.BufferGeometry };
+
 export class Hydraulics {
   readonly actuators: Actuator[] = [];
   private readonly geometries: THREE.BufferGeometry[] = [];
   readonly materials: THREE.MeshStandardMaterial[];
   private readonly scratch = new THREE.Vector3();
 
-  constructor(model: THREE.Object3D) {
+  constructor(model: THREE.Object3D, shapes?: HydraulicShapes) {
     const barrelMat = new THREE.MeshStandardMaterial({
       color: 0x4a4a40,
       metalness: 0.55,
@@ -114,20 +121,31 @@ export class Hydraulics {
           this.geometries.push(g);
           return g;
         };
-        // Zylinderrohr mit Kopf- und Bodenring, Lagerauge am Boden
-        pivot.add(new THREE.Mesh(cylinder(r, barrel, 0), barrelMat));
-        pivot.add(new THREE.Mesh(cylinder(r * 1.22, barrel * 0.08, barrel * 0.92), barrelMat));
-        pivot.add(new THREE.Mesh(cylinder(r * 1.22, barrel * 0.1, 0), barrelMat));
-        const eye = new THREE.Mesh(cylinder(r * 0.9, r * 2.4, -r * 1.2, 10), barrelMat);
-        eye.rotation.z = Math.PI / 2;
-        pivot.add(eye);
-        // Kolbenstange mit Lagerauge am Ende; ihre Lage setzt update().
-        const rod = new THREE.Mesh(cylinder(r * 0.52, stroke, 0, 10), rodMat);
-        const rodEye = new THREE.Mesh(cylinder(r * 0.8, r * 2.2, -r * 1.1, 10), barrelMat);
-        rodEye.rotation.z = Math.PI / 2;
-        rodEye.position.y = stroke;
-        rod.add(rodEye);
-        pivot.add(rod);
+        let rod: THREE.Mesh;
+        if (shapes) {
+          // Modellierter Zylinder: Rohr auf Länge und Durchmesser gestreckt
+          const tube = new THREE.Mesh(shapes.barrel, barrelMat);
+          tube.scale.set(r * 2.5, barrel, r * 2.5);
+          pivot.add(tube);
+          rod = new THREE.Mesh(shapes.rod, rodMat);
+          rod.scale.set(r * 1.15, stroke, r * 1.15);
+          pivot.add(rod);
+        } else {
+          // Zylinderrohr mit Kopf- und Bodenring, Lagerauge am Boden
+          pivot.add(new THREE.Mesh(cylinder(r, barrel, 0), barrelMat));
+          pivot.add(new THREE.Mesh(cylinder(r * 1.22, barrel * 0.08, barrel * 0.92), barrelMat));
+          pivot.add(new THREE.Mesh(cylinder(r * 1.22, barrel * 0.1, 0), barrelMat));
+          const eye = new THREE.Mesh(cylinder(r * 0.9, r * 2.4, -r * 1.2, 10), barrelMat);
+          eye.rotation.z = Math.PI / 2;
+          pivot.add(eye);
+          // Kolbenstange mit Lagerauge am Ende; ihre Lage setzt update().
+          rod = new THREE.Mesh(cylinder(r * 0.52, stroke, 0, 10), rodMat);
+          const rodEye = new THREE.Mesh(cylinder(r * 0.8, r * 2.2, -r * 1.1, 10), barrelMat);
+          rodEye.rotation.z = Math.PI / 2;
+          rodEye.position.y = stroke;
+          rod.add(rodEye);
+          pivot.add(rod);
+        }
         // Zwei Hydraulikleitungen außen am Rohr, vom Kopf zum Boden und zurück ins Segment.
         for (const angle of [0.75, -0.75]) {
           const dx = Math.cos(angle),

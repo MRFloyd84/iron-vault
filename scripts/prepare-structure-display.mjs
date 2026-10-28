@@ -6,19 +6,33 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import sharp from 'sharp';
 
-const source = new URL('../public/models/iron-vault-rigged.glb', import.meta.url);
+const source = new URL('../public/models/iv-04-mech.glb', import.meta.url);
 const output = new URL('../public/instruments/', import.meta.url);
 const file = fs.readFileSync(source),
   n = file.readUInt32LE(12),
   g = JSON.parse(file.subarray(20, 20 + n).toString());
 const binary = file.subarray(28 + n);
-const material = g.materials[0],
-  image = g.images[g.textures[material.pbrMetallicRoughness.baseColorTexture.index].source];
-const bv = g.bufferViews[image.bufferView];
-const albedo = await sharp(binary.subarray(bv.byteOffset, bv.byteOffset + bv.byteLength))
-  .removeAlpha()
-  .raw()
-  .toBuffer({ resolveWithObject: true });
+// Baukasten-Mech: jedes Teil hat eigene Texturen. Farbbild je Knotenname (Mesh-Name in three.js).
+const decoded = new Map();
+async function albedoOf(materialIndex) {
+  if (!decoded.has(materialIndex)) {
+    const material = g.materials[materialIndex],
+      image = g.images[g.textures[material.pbrMetallicRoughness.baseColorTexture.index].source];
+    const bv = g.bufferViews[image.bufferView];
+    decoded.set(
+      materialIndex,
+      await sharp(binary.subarray(bv.byteOffset ?? 0, (bv.byteOffset ?? 0) + bv.byteLength))
+        .removeAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true }),
+    );
+  }
+  return decoded.get(materialIndex);
+}
+const albedoByNode = new Map();
+for (const node of g.nodes)
+  if (node.mesh !== undefined)
+    albedoByNode.set(node.name, await albedoOf(g.meshes[node.mesh].primitives[0].material));
 for (const mesh of g.meshes) for (const p of mesh.primitives) delete p.material;
 delete g.materials;
 delete g.textures;
@@ -47,6 +61,7 @@ for (const sign of [1, -1]) {
   const normals = new Float32Array(size * size * 3),
     lamp = new THREE.Vector3(-sign * 0.35, 0.6, sign * 0.75).normalize();
   for (const mesh of meshes) {
+    const albedo = albedoByNode.get(mesh.name);
     const pos = mesh.geometry.attributes.position,
       norm = mesh.geometry.attributes.normal,
       uv = mesh.geometry.attributes.uv,
@@ -194,7 +209,7 @@ fs.writeFileSync(
   new URL('mech-structure-atlas.json', output),
   JSON.stringify(
     {
-      source: 'models/iron-vault-rigged.glb',
+      source: 'models/iv-04-mech.glb',
       sourceSha256: crypto.createHash('sha256').update(file).digest('hex'),
       triangleCount,
       tile,

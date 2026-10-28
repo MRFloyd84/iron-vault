@@ -6,7 +6,7 @@ import type { MachineState } from './machine';
 import { groundHeight, WALK } from './walking';
 import { neutralJoints, type JointPose } from './articulation';
 import { applyWear, bakeRestPositions, buildWaistRing, MechLights } from './mech-details';
-import { Hydraulics } from './mech-hydraulics';
+import { Hydraulics, type HydraulicShapes } from './mech-hydraulics';
 import { DroneDock } from './drone-model';
 import { assetUrl } from './asset-url';
 
@@ -21,7 +21,14 @@ export const MECH = {
   orbitMax: 27,
   orbitTargetY: 2.1,
 } as const;
-export const MECH_ASSET = assetUrl('models/iron-vault-rigged.glb');
+/**
+ * IV-04 aus Renes Tripo-Teilen (scripts/assemble-mech.mjs): Rumpf mit Drehkranz und
+ * Schulterringen, Antriebsblock als Becken, dreizehige Füße; Beine und Arme vorerst noch
+ * aus dem ersten Modell (assets-src/mech-parts/iron-vault-rigged.glb). Knotennamen und Gelenkpunkte sind gleich.
+ */
+export const MECH_ASSET = assetUrl('models/iv-04-mech.glb');
+/** Formen der Hydraulikzylinder (scripts/prepare-hydraulic.mjs) */
+export const HYDRAULIC_ASSET = assetUrl('models/iv-04-hydraulic.glb');
 /** Hüfthöhe im Modell (Modelleinheiten): Trennung Ober-/Unterkörper, Drehpunkt fürs Neigen. */
 export const WAIST_Y = 0.565;
 /** Hüfte in Kanzel-Koordinaten (Kanzel ist um cabinScale verkleinert). */
@@ -119,6 +126,20 @@ export function prepareTorsoRig(model: THREE.Object3D) {
   if (existing) return existing;
   const torso = model.getObjectByName('Torso');
   if (!(torso instanceof THREE.Mesh)) throw new Error('Torso mesh missing');
+  // Baukasten-Mech: Becken ist ein eigenes Teil, der Drehkranz gehört zum Rumpf.
+  const supplied = model.getObjectByName('Pelvis');
+  if (supplied) {
+    const pelvis = new THREE.Group();
+    pelvis.name = 'PelvisFrame';
+    model.add(pelvis);
+    pelvis.attach(supplied);
+    for (const name of ['L_Thigh', 'R_Thigh']) {
+      const leg = model.getObjectByName(name);
+      if (!leg) throw new Error('Hip missing');
+      pelvis.attach(leg);
+    }
+    return pelvis;
+  }
   const geometry: THREE.BufferGeometry = torso.geometry,
     positions = geometry.attributes.position,
     index = geometry.index;
@@ -460,6 +481,7 @@ export class MechExterior {
   /** Rückstoß der Armkanonen 0…1 (links, rechts), klingt in der Szene ab. */
   recoil: [number, number] = [0, 0];
   private wearMaterials: THREE.MeshStandardMaterial[] = [];
+  private hydraulicShapes: HydraulicShapes | undefined;
 
   /** Wo der Fuß `side` beim Aufsetzen den Boden berührt (Weltkoordinaten, Sohlenmitte). */
   footprint(walk: WalkPose, side: number) {
@@ -491,18 +513,31 @@ export class MechExterior {
     this.root.scale.setScalar(MECH.modelScale / MECH.cabinScale);
     this.root.rotation.y = Math.PI;
     this.root.visible = false;
-    this.ready = new GLTFLoader(manager).loadAsync(MECH_ASSET).then((gltf) => {
+    const loader = new GLTFLoader(manager);
+    // Zylinderformen sind optional: fehlt die Datei, baut der Code einfache Zylinder.
+    const shapes = loader
+      .loadAsync(HYDRAULIC_ASSET)
+      .then((g): HydraulicShapes | undefined => {
+        const barrel = g.scene.getObjectByName('Barrel'),
+          rod = g.scene.getObjectByName('Rod');
+        return barrel instanceof THREE.Mesh && rod instanceof THREE.Mesh
+          ? { barrel: barrel.geometry, rod: rod.geometry }
+          : undefined;
+      })
+      .catch(() => undefined);
+    this.ready = Promise.all([loader.loadAsync(MECH_ASSET), shapes]).then(([gltf, hydraulic]) => {
       if (this.disposed || host.disposed) {
         this.release(gltf.scene);
         return;
       }
+      this.hydraulicShapes = hydraulic;
       this.model = gltf.scene;
       this.model.name = 'Tripo military mech / mechanical rig';
       prepareTorsoRig(this.model);
       this.legs = prepareMechanicalRig(this.model);
       bakeRestPositions(this.model);
       // Nach bakeRestPositions: Die Zylinder bekommen keinen Verschleiß-Shader.
-      this.hydraulics = new Hydraulics(this.model);
+      this.hydraulics = new Hydraulics(this.model, this.hydraulicShapes);
       this.lights.attach(this.model.getObjectByName('Torso')!);
       this.droneDock.attach(this.model.getObjectByName('Torso') as THREE.Mesh);
       this.dockReady = true;

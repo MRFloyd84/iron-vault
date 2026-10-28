@@ -11,7 +11,7 @@ import {
 } from '../lib/mech-exterior.ts';
 import { neutralJoints } from '../lib/articulation.ts';
 import { WALK } from '../lib/walking.ts';
-const b = fs.readFileSync(new URL('../public/models/iron-vault-rigged.glb', import.meta.url));
+const b = fs.readFileSync(new URL('../public/models/iv-04-mech.glb', import.meta.url));
 const n = b.readUInt32LE(12),
   g = JSON.parse(b.subarray(20, 20 + n));
 for (const mesh of g.meshes) for (const p of mesh.primitives) delete p.material;

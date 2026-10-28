@@ -11,7 +11,9 @@ selbst prüfen.
 
 | Assets | Files | Source / Quelle |
 | --- | --- | --- |
-| Mech IV-04 | `public/models/iron-vault-rigged.glb`, `public/instruments/mech-structure-atlas.png` | Mech model generated with Tripo, simplified and re-rigged for this project |
+| Mech IV-04 | `public/models/iv-04-mech.glb`, `public/instruments/mech-structure-atlas.png`, `assets-src/mech-parts/` | Assembled with `scripts/assemble-mech.mjs`: torso, pelvis and feet generated with Tripo by Rene (simplified with `scripts/simplify-mech-part.mjs`); legs and arms still from the first Tripo model (`assets-src/mech-parts/iron-vault-rigged.glb`), simplified and re-rigged for this project |
+| Hydraulic cylinders | `public/models/iv-04-hydraulic.glb` | Cylinder generated with Tripo by Rene, reduced to barrel and rod shapes with `scripts/prepare-hydraulic.mjs` |
+| Pilot seat | `public/models/iv-04-seat.glb` | Cockpit model generated with Tripo by Rene; only the seat and side sticks are kept (`scripts/prepare-seat.mjs`) |
 | Mech IV-02 | `public/models/iv-02-sister.glb` – **not included** | “Juggernaut” by [Megalord](https://www.cgtrader.com/designers/megalord), CGTrader free model #907117, standard CGTrader licence (see below) |
 | Textures | `public/materials/` | Supplied texture sets, listed in `public/materials/sources.json` |
 | Sound recordings | `public/audio/*.ogg`, `*.mp3` | Third-party recordings (Pixabay Content License); names, cuts and processing in `public/audio/*-sources.json` |

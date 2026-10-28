@@ -1,7 +1,7 @@
 {
-  "source": "models/iron-vault-rigged.glb",
-  "sourceSha256": "d208a6c771796991577fca07713b8b8cb57e922ea40713a487b8d1a4a33e13d0",
-  "triangleCount": 159999,
+  "source": "models/iv-04-mech.glb",
+  "sourceSha256": "c6399343207d4860297a9cfd5229f56582238fd28b45e57964acb16fa5bf28da",
+  "triangleCount": 268489,
   "tile": 512,
   "columns": [
     "base",
@@ -16,16 +16,16 @@
   ],
   "maskCounts": [
     [
-      61282,
-      56188,
-      77477,
-      77712
+      57197,
+      52600,
+      73132,
+      73857
     ],
     [
-      65402,
-      58590,
-      77796,
-      77980
+      58621,
+      52589,
+      74211,
+      74408
     ]
   ]
 }

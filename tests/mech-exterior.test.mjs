@@ -19,7 +19,7 @@ import { WALK, groundHeight, turnStepFactor } from '../lib/walking.ts';
 import { CABIN } from '../lib/cockpit-envelope.ts';
 
 async function asset() {
-  const b = fs.readFileSync(new URL('../public/models/iron-vault-rigged.glb', import.meta.url));
+  const b = fs.readFileSync(new URL('../public/models/iv-04-mech.glb', import.meta.url));
   const n = b.readUInt32LE(12),
     g = JSON.parse(b.subarray(20, 20 + n).toString());
   const data = structuredClone(g);
@@ -36,15 +36,15 @@ async function asset() {
 function rigPose(model, cabin, walk) {
   applyMechBodyPose(cabin, walk);
 }
-test('waist separation preserves triangles; pelvis/feet stay aligned while cabin and arms articulate', async () => {
+test('separate pelvis part carries the hips; pelvis/feet stay aligned while cabin and arms articulate', async () => {
   const { scene: model } = await asset(),
     torso = model.getObjectByName('Torso');
   const original = torso.geometry.index.count,
     pelvis = prepareTorsoRig(model);
-  assert.equal(
-    torso.geometry.index.count + model.getObjectByName('Pelvis').geometry.index.count,
-    original,
-  );
+  // Baukasten-Mech: Rumpf bleibt ganz, das Becken ist ein eigenes Teil unter PelvisFrame
+  assert.equal(torso.geometry.index.count, original);
+  assert.equal(model.getObjectByName('Pelvis').parent, pelvis);
+  assert.equal(model.getObjectByName('L_Thigh').parent, pelvis);
   assert.equal(prepareTorsoRig(model), pelvis, 'idempotent setup');
   const legs = prepareMechanicalRig(model),
     cabin = new THREE.Group(),
@@ -200,11 +200,15 @@ test('actual GLB has rigid sections, unchanged PBR maps, bounded geometry and co
   root.rotation.y = Math.PI;
   cabin.add(root);
   root.add(model);
-  assert.equal(g.meshes.length, 11);
-  assert.equal(g.images.length, 3);
-  assert.ok(bytes < 8e6);
-  assert.ok(g.extras.ironVault.triangles <= 160000);
-  assert.ok(g.extras.ironVault.simplificationError < 0.001);
+  // Rumpf, Becken, 2 Füße (neu) + Beine und Arme (bisher): 12 Teile, je Teilesatz 3 Bilder
+  assert.equal(g.meshes.length, 12);
+  assert.equal(g.images.length, 12);
+  assert.ok(bytes < 14e6, 'Datei ' + bytes);
+  let triangles = 0;
+  model.traverse((o) => {
+    if (o.isMesh) triangles += o.geometry.index.count / 3;
+  });
+  assert.ok(triangles <= 400000, 'Dreiecke ' + triangles);
   assert.equal(
     model.getObjectByName('L_Upperarm').position.y,
     model.getObjectByName('R_Upperarm').position.y,

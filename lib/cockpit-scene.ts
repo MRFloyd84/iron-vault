@@ -98,10 +98,14 @@ import {
   buildSideMonitor as buildSideMonitorImpl,
   buildSide as buildSideImpl,
   buildSeat as buildSeatImpl,
+  SEAT,
   buildMechanicalDetails as buildMechanicalDetailsImpl,
   addGauge as addGaugeImpl,
 } from './scene/cabin-controls';
 import { assetUrl } from './asset-url';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+/** Pilotensitz (scripts/prepare-seat.mjs aus Renes Kanzelmodell) */
+const SEAT_ASSET = assetUrl('models/iv-04-seat.glb');
 import {
   FAR_PLANE,
   FULL_FAR,
@@ -425,7 +429,6 @@ export class CockpitScene {
     this.buildSide(1);
     this.buildTopMonitor(-1);
     this.buildTopMonitor(1);
-    this.buildSeat();
     this.buildMechanicalDetails();
     this.buildSideMonitor(-1);
     this.buildSideMonitor(1);
@@ -462,6 +465,32 @@ export class CockpitScene {
     this.cabin.add(this.interior, this.camera);
     // Gebrauchsspuren: Zettel, Band, Plakette, Ersatzrahmen, Kabelbündel, Foto, Anhänger.
     this.clutter = new CabinClutter(this, this.interior);
+    // Pilotensitz mit Seitenkonsolen und Steuerknüppeln (Tripo-Modell); ohne Datei der alte Sitz
+    new GLTFLoader(manager).load(
+      SEAT_ASSET,
+      (gltf) => {
+        if (this.disposed) return;
+        const seat = gltf.scene;
+        seat.name = 'Pilot seat';
+        seat.scale.setScalar(SEAT.scale);
+        seat.position.set(SEAT.x, SEAT.y, SEAT.z);
+        seat.traverse((o) => {
+          if (o instanceof THREE.Mesh) {
+            o.castShadow = o.receiveShadow = true;
+            const m = o.material as THREE.MeshStandardMaterial;
+            m.envMapIntensity = 0.5;
+            this.materials.push(m);
+            this.cleanup.push(() => o.geometry.dispose());
+            for (const t of [m.map, m.normalMap, m.roughnessMap, m.metalnessMap])
+              if (t) this.textures.push(t);
+          }
+        });
+        this.interior.add(seat);
+        seat.updateMatrixWorld(true);
+      },
+      undefined,
+      () => this.buildSeat(this.interior),
+    );
     this.cleanup.push(() => this.clutter?.dispose());
     // Regentropfen auf der Frontscheibe (nur Pilotensicht, liegt im Innenraum).
     if (this.glassRain.texture) {
@@ -1031,8 +1060,8 @@ export class CockpitScene {
   buildSide(side: number) {
     return buildSideImpl(this, side);
   }
-  buildSeat() {
-    return buildSeatImpl(this);
+  buildSeat(parent?: THREE.Object3D) {
+    return buildSeatImpl(this, parent);
   }
   buildMechanicalDetails() {
     return buildMechanicalDetailsImpl(this);

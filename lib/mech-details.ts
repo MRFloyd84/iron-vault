@@ -226,9 +226,10 @@ metalnessFactor *= 1.0 - 0.45 * ivMud - 0.15 * ivGrime;`,
 // ---------- Scheinwerfer und Rundumleuchte ----------
 
 /** Zwei Doppelscheinwerfer an den Flanken der Kanzel, leicht nach unten geneigt. */
+/** Scheinwerfer beiderseits unter der Sichtluke; die Tiefe sucht ein Strahl von vorn. */
 export const HEADLIGHT_MOUNTS = [
-  { x: -0.128, y: 0.705, z: 0.135 },
-  { x: 0.128, y: 0.705, z: 0.135 },
+  { x: -0.105, y: 0.73, z: 0.135 },
+  { x: 0.105, y: 0.73, z: 0.135 },
 ] as const;
 export const HEADLIGHT_TILT = 0.28; // rad nach unten: Lichtfleck ca. 20 m vor dem Mech
 /**
@@ -351,9 +352,18 @@ export class MechLights {
     beamGeo.translate(0, -length / 2, 0);
     beamGeo.rotateX(-Math.PI / 2);
     this.disposables.push(housing, box, bracket, lensGeo, ringGeo, beamGeo);
+    torso.updateMatrixWorld(true);
     for (const m of HEADLIGHT_MOUNTS) {
       const mount = new THREE.Group();
       mount.position.set(m.x, m.y, m.z);
+      // Auf die echte Panzerung setzen: Strahl von vorn (+z) auf den Rumpf
+      const hit = new THREE.Raycaster(
+        torso.localToWorld(new THREE.Vector3(m.x, m.y, 1)),
+        new THREE.Vector3(0, 0, -1).transformDirection(torso.matrixWorld),
+        0,
+        2,
+      ).intersectObject(torso, false)[0];
+      if (hit) mount.position.z = torso.worldToLocal(hit.point.clone()).z + 0.016;
       mount.rotation.x = HEADLIGHT_TILT;
       torso.add(mount);
       mount.add(new THREE.Mesh(box, housing));

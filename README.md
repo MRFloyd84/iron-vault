@@ -137,7 +137,7 @@ in [`docs/ENTWICKLUNG_BIS_v45.md`](docs/ENTWICKLUNG_BIS_v45.md).
 
 ## Assets and credits
 
-- **IV-04** is a simplified, re-rigged version of a mech model created with Tripo.
+- **IV-04** is assembled from Tripo parts: new torso, pelvis, feet, hydraulic cylinders and pilot seat; legs and arms are still from the first, simplified and re-rigged Tripo model.
 - **IV-02** is based on “Juggernaut” by Megalord (CGTrader, free model). The model is not
   included for licence reasons; `scripts/prepare-sister-mech.mjs` converts your own
   download (10 million → 273,000 triangles, painted by shader).
