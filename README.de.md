@@ -68,6 +68,11 @@ neue Version im Hintergrund und bietet einen Neustart an. Entfernen mit
 
 Ohne Installation: AppImage mit `chmod +x` ausführbar machen und starten.
 
+**Grafikkarte:** Auf Laptops mit Intel/AMD-Chip und NVIDIA-Karte nutzt die App automatisch
+die NVIDIA-Karte (PRIME Offload), sobald der NVIDIA-Treiber geladen ist. Welche Karte
+rendert, zeigt die Diagnose (F3) in der ersten Zeile. `IRON_VAULT_GPU=auto` schaltet das
+ab, `IRON_VAULT_GPU=nvidia` erzwingt es.
+
 ## Aus dem Quelltext starten
 
 Voraussetzung: Node.js 22.13 oder neuer und npm.

@@ -15,6 +15,8 @@ protocol.registerSchemesAsPrivileged([
     privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true },
   },
 ]);
+// Laptop mit Intel/AMD + NVIDIA: die NVIDIA-Karte nutzen (muss vor dem GPU-Prozess passieren).
+require('./gpu.cjs').preferDedicatedGpu();
 // Ton ohne vorherigen Klick erlauben; Wayland automatisch nutzen, wenn vorhanden.
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 app.commandLine.appendSwitch('ozone-platform-hint', 'auto');

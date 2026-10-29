@@ -1259,6 +1259,8 @@ export const EN: Record<string, string> = {
   Dreiecke: 'Triangles',
   'JS-Heap': 'JS heap',
   Grafikspeicher: 'Graphics memory',
+  Grafikkarte: 'Graphics card',
+  'ohne Grafikkarte!': 'no graphics card!',
   'Objekte / sichtbar': 'Objects / drawable',
   Lichter: 'Lights',
   Shader: 'Shaders',

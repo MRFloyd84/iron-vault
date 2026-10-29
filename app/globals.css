@@ -1251,6 +1251,10 @@ button:disabled {
 .perf-overlay .perf-n dd {
   color: #7d8a74;
 }
+.perf-overlay .perf-w dd,
+.perf-overlay .perf-w em {
+  color: #ff6a4d;
+}
 .perf-overlay p {
   margin: 6px 0 0;
   color: #7d8a74;
