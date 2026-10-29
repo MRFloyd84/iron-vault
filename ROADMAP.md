@@ -22,7 +22,7 @@ zwei Tage ab: **pro Lauf genau ein Punkt**, immer der oberste offene.
 ## Phase A – Sicherheitsnetz
 
 - [x] A1 `[auto]` PR-Prüfung als GitHub Action (`.github/workflows/check.yml`)
-- [ ] A2 `[auto]` Prettier-Abweichungen in den 9 Skripten beheben
+- [x] A2 `[auto]` Prettier-Abweichungen in den 9 Skripten beheben (PR #2)
 - [ ] A3 `[auto]` `START_HIER.md` (Überschrift „Version 59“) und Testanzahl in den READMEs aktualisieren
 
 ## Phase B – Tests für ungetestete Kernlogik

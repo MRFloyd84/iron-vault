@@ -17,3 +17,11 @@ Neueste Einträge oben.
 - Die Umgebungsvariable `IRON_VAULT_GPU` (auto, nvidia, integrated) hat Vorrang vor dem Menü.
 - Die Diagnose (F3) zeigt in der ersten Zeile, welche Grafikkarte rendert. Läuft das Spiel
   ohne Grafikkarte (Software-Rendering), steht dort rot „ohne Grafikkarte!“.
+
+## A2 – Einheitliche Formatierung (Prettier)
+
+- Für Spieler ändert sich nichts.
+- Neun Dateien wichen von der Prettier-Formatierung ab: sechs Hilfsskripte unter `scripts/`,
+  zwei Tests und die englische Übersetzung `lib/i18n-en.ts`. Sie sind jetzt mit
+  `npm run format` umformatiert, nur Zeilenumbrüche und Einrückung, kein Inhalt.
+- `npm run format:check` meldet damit keine Abweichungen mehr.
