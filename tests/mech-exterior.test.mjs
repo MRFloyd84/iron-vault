@@ -31,7 +31,9 @@ async function asset() {
   data.buffers[0].uri =
     'data:application/octet-stream;base64,' + b.subarray(28 + n).toString('base64');
   globalThis.ProgressEvent ??= class {};
-  const { scene } = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(JSON.stringify(data), '');
+  const { scene } = await new GLTFLoader()
+    .setMeshoptDecoder(MeshoptDecoder)
+    .parseAsync(JSON.stringify(data), '');
   return { scene, g, bytes: b.length };
 }
 function rigPose(model, cabin, walk) {

@@ -42,7 +42,8 @@ export const EN: Record<string, string> = {
     'Left click: mark target (laser measures range) · Mouse wheel / + −: zoom · 8: sensor · 9: forward recon · Right mouse button: camera · Tab: cockpit · C: return',
   'Karte: Norden oben, Planquadrate 250 m. Rote Punkte: aufgeklärte Ziele (Drohne oder in Mech-Nähe), gestrichelter Kreis: Suchgebiet.':
     'Map: north up, grid squares 250 m. Red dots: spotted targets (drone or near the mech), dashed circle: search area.',
-  'Vorausaufklärung: Drohne startet und fliegt voraus.': 'Forward recon: drone launching to fly ahead.',
+  'Vorausaufklärung: Drohne startet und fliegt voraus.':
+    'Forward recon: drone launching to fly ahead.',
   'Vorausaufklärung: Drohne fliegt {0} m voraus.': 'Forward recon: drone flying {0} m ahead.',
   'Vorausaufklärung vorgemerkt.': 'Forward recon armed.',
   'Vorausaufklärung vorgemerkt: {0}': 'Forward recon armed: {0}',

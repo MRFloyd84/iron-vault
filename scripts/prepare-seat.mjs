@@ -17,7 +17,8 @@ for (const n of doc.getRoot().listNodes())
   if (DROP.includes(Number(n.getName().replace('tripo_part_', '')))) n.dispose();
 await doc.transform(prune(), join({ keepNamed: false }), weld());
 let t = 0;
-for (const m of doc.getRoot().listMeshes()) for (const p of m.listPrimitives()) t += p.getIndices().getCount() / 3;
+for (const m of doc.getRoot().listMeshes())
+  for (const p of m.listPrimitives()) t += p.getIndices().getCount() / 3;
 await doc.transform(
   simplify({ simplifier: MeshoptSimplifier, ratio: 26000 / t, error: 0.05, lockBorder: false }),
   prune(),

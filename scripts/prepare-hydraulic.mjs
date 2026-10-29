@@ -5,14 +5,7 @@
 // Aufruf: node scripts/prepare-hydraulic.mjs hydraulic_cylinder_3d_model.glb aus.glb
 import { NodeIO, getBounds } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import {
-  join,
-  prune,
-  transformMesh,
-  weld,
-  flatten,
-  normals,
-} from '@gltf-transform/functions';
+import { join, prune, transformMesh, weld, flatten, normals } from '@gltf-transform/functions';
 import { MeshoptSimplifier } from 'meshoptimizer';
 
 const [input, output] = process.argv.slice(2);
@@ -65,7 +58,24 @@ for (const name of Object.keys(GROUPS)) {
   // x → y (Achse), y → −x; Fußpunkt auf 0, Länge 1, Durchmesser 1
   const kx = 1 / len,
     kr = 1 / dia;
-  transformMesh(mesh, [0, kx, 0, 0, -kr, 0, 0, 0, 0, 0, kr, 0, kr * cy, -b.min[0] * kx, -kr * cz, 1]);
+  transformMesh(mesh, [
+    0,
+    kx,
+    0,
+    0,
+    -kr,
+    0,
+    0,
+    0,
+    0,
+    0,
+    kr,
+    0,
+    kr * cy,
+    -b.min[0] * kx,
+    -kr * cz,
+    1,
+  ]);
   console.log(name, 'Länge', len.toFixed(3), 'Durchmesser', dia.toFixed(3));
 }
 for (const [name, g] of Object.entries(GROUPS)) {

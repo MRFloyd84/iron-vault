@@ -158,15 +158,26 @@ function cloneMesh(template, name) {
 const sub = (a, b) => a.map((v, i) => v - b[i]);
 const len = (a) => Math.hypot(...a);
 const mul3 = (m, v) => [0, 1, 2].map((r) => m[r][0] * v[0] + m[r][1] * v[1] + m[r][2] * v[2]);
-const mm3 = (a, b) => [0, 1, 2].map((r) => [0, 1, 2].map((c) => a[r][0] * b[0][c] + a[r][1] * b[1][c] + a[r][2] * b[2][c]));
-const diag = (x, y, z) => [[x, 0, 0], [0, y, 0], [0, 0, z]];
+const mm3 = (a, b) =>
+  [0, 1, 2].map((r) =>
+    [0, 1, 2].map((c) => a[r][0] * b[0][c] + a[r][1] * b[1][c] + a[r][2] * b[2][c]),
+  );
+const diag = (x, y, z) => [
+  [x, 0, 0],
+  [0, y, 0],
+  [0, 0, z],
+];
 /** Drehung, die Richtung a auf Richtung b legt (Rodrigues) */
 function align(a, b) {
   const u = a.map((v) => v / len(a)),
     w = b.map((v) => v / len(b));
   const c = u[0] * w[0] + u[1] * w[1] + u[2] * w[2];
   const k = [u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2], u[0] * w[1] - u[1] * w[0]];
-  const K = [[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]];
+  const K = [
+    [0, -k[2], k[1]],
+    [k[2], 0, -k[0]],
+    [-k[1], k[0], 0],
+  ];
   const K2 = mm3(K, K),
     f = 1 / (1 + c);
   return [0, 1, 2].map((r) => [0, 1, 2].map((q) => (r === q ? 1 : 0) + K[r][q] + K2[r][q] * f));
@@ -174,11 +185,32 @@ function align(a, b) {
 /** 3×3 + Verschiebung → spaltenweise 4×4 (Punkt p: M·(p − from) + to) */
 function affine(M, from, to) {
   const t = sub(to, mul3(M, from));
-  return [M[0][0], M[1][0], M[2][0], 0, M[0][1], M[1][1], M[2][1], 0, M[0][2], M[1][2], M[2][2], 0, t[0], t[1], t[2], 1];
+  return [
+    M[0][0],
+    M[1][0],
+    M[2][0],
+    0,
+    M[0][1],
+    M[1][1],
+    M[2][1],
+    0,
+    M[0][2],
+    M[1][2],
+    M[2][2],
+    0,
+    t[0],
+    t[1],
+    t[2],
+    1,
+  ];
 }
 const ROT_Y180 = diag(-1, 1, -1);
 /** Barrel entlang +x → +z (Drehung −90° um y) */
-const ROT_X_TO_Z = [[0, 0, -1], [0, 1, 0], [1, 0, 0]];
+const ROT_X_TO_Z = [
+  [0, 0, -1],
+  [0, 1, 0],
+  [1, 0, 0],
+];
 
 /**
  * Gelenkpunkte in Renes Tripo-Teilen (Teilkoordinaten, aus den Achsstummeln gemessen):
@@ -194,7 +226,13 @@ const JOINT = {
    *  die Trommel des Oberarms steckt darin. Der alte Gelenkpunkt (y 0,797) lag zu tief. */
   shoulderPivot: { x: 0.262, y: 0.905, z: -0.002 },
   // toeIn: Läufe leicht nach innen (Konvergenzpunkt vorn); hält den Mech im Kollisionskreis
-  forearm: { elbow: [-0.39, 0.224, 0], muzzle: [0.49, 0.184, 0], scale: 0.4, outward: 0, toeIn: 0.21 },
+  forearm: {
+    elbow: [-0.39, 0.224, 0],
+    muzzle: [0.49, 0.184, 0],
+    scale: 0.4,
+    outward: 0,
+    toeIn: 0.21,
+  },
 };
 
 // ---------- Beine: Oberschenkel und Schienbein zwischen den alten Gelenkpunkten ----------
