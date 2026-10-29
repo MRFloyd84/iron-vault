@@ -896,6 +896,22 @@ button:disabled {
   font: 600 11px/1 var(--mono, monospace);
   cursor: pointer;
 }
+.graphics-gpus {
+  margin: 6px 0 0;
+  font-size: 10px;
+  opacity: 0.7;
+}
+.graphics-restart {
+  width: 100%;
+  margin-top: 8px;
+  padding: 7px 6px;
+  background: rgba(239, 189, 104, 0.14);
+  border: 1px solid rgba(239, 189, 104, 0.6);
+  border-radius: 4px;
+  color: #efbd68;
+  font: 600 11px/1.2 var(--mono, monospace);
+  cursor: pointer;
+}
 .graphics-options button:hover,
 .graphics-options button:focus-visible {
   background: rgba(159, 224, 58, 0.14);

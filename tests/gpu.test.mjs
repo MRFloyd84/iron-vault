@@ -4,7 +4,10 @@ import { createRequire } from 'node:module';
 import { classifyGpu, shortGpuName } from '../lib/gpu-info.ts';
 
 const require = createRequire(import.meta.url);
-const { primeOffloadEnv } = require('../electron/gpu.cjs');
+const { primeOffloadEnv, clearOwnEnv, readMode, writeMode } = require('../electron/gpu.cjs');
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const NV = '0x10de';
 const INTEL = '0x8086';
@@ -14,6 +17,7 @@ const laptop = {
   nvidiaDriver: true,
   vendors: [INTEL, NV],
   eglVendorFile: '/usr/share/glvnd/egl_vendor.d/10_nvidia.json',
+  eglMesaFile: '/usr/share/glvnd/egl_vendor.d/50_mesa.json',
 };
 
 test('Laptop mit Intel + NVIDIA: PRIME-Offload wird gesetzt', () => {
@@ -28,11 +32,38 @@ test('Laptop mit Intel + NVIDIA: PRIME-Offload wird gesetzt', () => {
   assert.equal(amd.__EGL_VENDOR_LIBRARY_FILENAMES, undefined);
 });
 
-test('Nur NVIDIA, kein Treiber, kein Linux oder IRON_VAULT_GPU=auto: nichts ändern', () => {
+test('Automatisch bei nur NVIDIA, ohne Treiber oder ohne Linux: nichts ändern', () => {
   assert.deepEqual(primeOffloadEnv({ ...laptop, vendors: [NV] }, {}), {});
   assert.deepEqual(primeOffloadEnv({ ...laptop, nvidiaDriver: false }, {}), {});
   assert.deepEqual(primeOffloadEnv({ ...laptop, platform: 'win32' }, {}), {});
-  assert.deepEqual(primeOffloadEnv(laptop, { IRON_VAULT_GPU: 'auto' }), {});
+});
+
+test('Wahl im Menü: nvidia erzwingt, integrated nutzt Mesa, Umgebung hat Vorrang', () => {
+  const desktop = { ...laptop, vendors: [NV] };
+  assert.equal(primeOffloadEnv(desktop, {}, 'nvidia').__NV_PRIME_RENDER_OFFLOAD, '1');
+  assert.deepEqual(primeOffloadEnv(laptop, {}, 'integrated'), {
+    __GLX_VENDOR_LIBRARY_NAME: 'mesa',
+    DRI_PRIME: '0',
+    __EGL_VENDOR_LIBRARY_FILENAMES: '/usr/share/glvnd/egl_vendor.d/50_mesa.json',
+  });
+  assert.equal(primeOffloadEnv(laptop, { IRON_VAULT_GPU: 'integrated' }, 'nvidia').DRI_PRIME, '0');
+  assert.equal(primeOffloadEnv(laptop, {}, 'quatsch').__NV_PRIME_RENDER_OFFLOAD, '1');
+});
+
+test('Wahl wird gespeichert; Neustart räumt eigene Variablen weg', () => {
+  const file = join(mkdtempSync(join(tmpdir(), 'iv-gpu-')), 'sub', 'gpu.json');
+  assert.equal(readMode(file), 'auto');
+  writeMode(file, 'integrated');
+  assert.equal(readMode(file), 'integrated');
+  const env = {
+    __NV_PRIME_RENDER_OFFLOAD: '1',
+    __GLX_VENDOR_LIBRARY_NAME: 'nvidia',
+    IRON_VAULT_GPU_SET: '__NV_PRIME_RENDER_OFFLOAD,__GLX_VENDOR_LIBRARY_NAME',
+    HOME: '/home/rene',
+  };
+  clearOwnEnv(env);
+  assert.deepEqual(env, { HOME: '/home/rene' });
+  assert.equal(primeOffloadEnv(laptop, env, 'integrated').__GLX_VENDOR_LIBRARY_NAME, 'mesa');
 });
 
 test('IRON_VAULT_GPU=nvidia erzwingt Offload auch ohne erkannten Zweitchip', () => {
