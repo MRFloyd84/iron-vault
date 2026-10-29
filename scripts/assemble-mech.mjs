@@ -190,6 +190,9 @@ const JOINT = {
   thigh: { top: [0, 0.888, 0.065], bottom: [0, 0.132, -0.009], widen: 1.35 },
   shin: { top: [0, 0.888, 0.018], bottom: [0, 0.104, 0.011], widen: 1.5 },
   upperarm: { shoulder: [-0.17, 0.804, 0], elbow: [0.031, 0.124, 0.013], scale: 0.45 },
+  /** Schultergelenk = Mitte der runden Schulterringe des neuen Rumpfs (Modellkoordinaten);
+   *  die Trommel des Oberarms steckt darin. Der alte Gelenkpunkt (y 0,797) lag zu tief. */
+  shoulderPivot: { x: 0.262, y: 0.905, z: -0.002 },
   // toeIn: Läufe leicht nach innen (Konvergenzpunkt vorn); hält den Mech im Kollisionskreis
   forearm: { elbow: [-0.39, 0.224, 0], muzzle: [0.49, 0.184, 0], scale: 0.4, outward: 0, toeIn: 0.21 },
 };
@@ -237,6 +240,8 @@ for (const [file, seg, child, j] of [
     const U = mm3(diag(ua.scale, ua.scale, ua.scale), sign > 0 ? diag(1, 1, 1) : ROT_Y180);
     const shoulderNode = node(side + '_Upperarm'),
       elbowNode = node(side + '_Forearm');
+    const sp = JOINT.shoulderPivot;
+    shoulderNode.setTranslation([sign * sp.x, sp.y, sp.z]);
     transformMesh(upperMesh, affine(U, ua.shoulder, [0, 0, 0]));
     const elbow = mul3(U, sub(ua.elbow, ua.shoulder));
     elbowNode.setTranslation(elbow);

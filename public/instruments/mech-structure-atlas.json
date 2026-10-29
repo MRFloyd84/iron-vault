@@ -1,6 +1,6 @@
 {
   "source": "models/iv-04-mech.glb",
-  "sourceSha256": "47d10c693ff92552b86805f7a5745fdfbb6e23757e193ae2650cba5f92ea9e16",
+  "sourceSha256": "e59461bde301916d3e72caa06328a1d2033bb0c79187ce01df3b37a31ebbd718",
   "triangleCount": 319680,
   "tile": 512,
   "columns": [
@@ -16,14 +16,14 @@
   ],
   "maskCounts": [
     [
-      57009,
-      57250,
+      54592,
+      55221,
       64261,
       64457
     ],
     [
-      56977,
-      56964,
+      54434,
+      54470,
       65152,
       65521
     ]
