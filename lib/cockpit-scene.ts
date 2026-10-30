@@ -72,7 +72,7 @@ import {
 } from './drone';
 import { DroneFeed, DroneRig, LASER_LAYER, TargetMarker } from './drone-model';
 import { DroneSensor } from './drone-sensor';
-import { RetroPass, SCREEN_LAYER } from './retro-pass';
+import { RetroPass, SCREEN_LAYER, LABEL_LAYER, isPixelLook } from './retro-pass';
 import { DesertWorld } from './world-scene';
 import { WorldTargets } from './world-targets';
 import { PerfMonitor } from './perf-monitor';
@@ -253,6 +253,8 @@ export class CockpitScene {
   droneSensor!: DroneSensor;
   /** Pixel-Look (Grafikmenü „Look“) */
   readonly retro = new RetroPass();
+  /** Alle Beschriftungen; die der Kanzel kommen auf LABEL_LAYER (im Comic/Pixel-Look scharf). */
+  labelMeshes: THREE.Mesh[] = [];
   /** Bildwinkel der Drohnenkamera (Zoom 1–8× über das Mausrad bzw. + / −) */
   droneFov = 70;
   private sunDirection = new THREE.Vector3();
@@ -587,8 +589,15 @@ export class CockpitScene {
     // One explicit world update per frame serves both the main camera and the
     // monitor cameras; their renderer passes must not repeat this traversal.
     this.scene.matrixWorldAutoUpdate = false;
+    // Beschriftungen der Kanzel: eigene Ebene, die Hauptkamera sieht sie immer mit
+    this.camera.layers.enable(LABEL_LAYER);
+    for (const m of this.labelMeshes) {
+      let inCabin = false;
+      for (let a: THREE.Object3D | null = m; a; a = a.parent) if (a === this.cabin) inCabin = true;
+      if (inCabin) m.layers.set(LABEL_LAYER);
+    }
     for (const screen of this.screens) {
-      // Pixel-Look: Anzeigen werden scharf darübergelegt (retro-pass.ts)
+      // Pixel-/Comic-Look: Anzeigen werden scharf darübergelegt (retro-pass.ts)
       screen.mesh.layers.enable(SCREEN_LAYER);
       screen.texture.generateMipmaps = false;
       screen.texture.minFilter = THREE.LinearFilter;
@@ -599,7 +608,7 @@ export class CockpitScene {
         h = Math.max(1, host.clientHeight);
       // Pixel-Look: das Bild entsteht ohnehin in wenigen Zeilen, volle Pixeldichte wäre verschenkt
       this.renderer.setPixelRatio(
-        this.graphics.look !== 'normal'
+        isPixelLook(this.graphics.look)
           ? 1
           : cockpitPixelRatio(w, h, window.devicePixelRatio) * this.graphics.resolution,
       );
@@ -958,7 +967,9 @@ export class CockpitScene {
       polygonOffsetUnits: -1,
     });
     this.materials.push(mat);
-    return this.plane(parent, x, y, z + 0.003, w, h, mat);
+    const plane = this.plane(parent, x, y, z + 0.003, w, h, mat);
+    this.labelMeshes.push(plane);
+    return plane;
   }
   materialTexture(kind: string, file: string, repeat: number, color = false) {
     const key = kind + '/' + file;

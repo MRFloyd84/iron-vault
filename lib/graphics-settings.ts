@@ -4,9 +4,9 @@
 export type ShadowLevel = 'high' | 'medium' | 'low' | 'off';
 export type ViewDistance = 'far' | 'medium' | 'near';
 export type MonitorRate = 'smooth' | 'saver';
-/** Bildstil: normal oder Pixel-Look der frühen 90er (siehe retro-pass.ts) */
-export type RetroLook = 'normal' | 'pixel' | 'coarse';
-export const RETRO_LOOKS: RetroLook[] = ['normal', 'pixel', 'coarse'];
+/** Bildstil: normal, Pixel-Look der frühen 90er oder Comic (siehe retro-pass.ts) */
+export type RetroLook = 'normal' | 'pixel' | 'coarse' | 'comic';
+export const RETRO_LOOKS: RetroLook[] = ['normal', 'pixel', 'coarse', 'comic'];
 
 export type Graphics = {
   /** Anteil der Renderauflösung (1 = volle Auflösung, wie bisher) */
@@ -129,11 +129,11 @@ export function onGraphicsChange(cb: (g: Graphics) => void) {
   };
 }
 
-/** Zuletzt gewählter Pixel-Look, damit F4 dorthin zurückkehrt (Standard: Pixel). */
+/** Zuletzt gewählter Stil, damit F4 dorthin zurückkehrt (Standard: Pixel). */
 let lastRetro: Exclude<RetroLook, 'normal'> = 'pixel';
 /**
- * F4: zwischen normalem Bild und Pixel-Look wechseln. Merkt sich, ob zuletzt „Pixel“ oder
- * „Grob“ gewählt war. Gibt den neuen Look zurück.
+ * F4: zwischen normalem Bild und dem zuletzt gewählten Stil wechseln (Pixel, Grob oder
+ * Comic). Gibt den neuen Look zurück.
  */
 export function toggleLook(): RetroLook {
   const look = getGraphics().look;

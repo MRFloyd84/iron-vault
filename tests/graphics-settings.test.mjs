@@ -70,3 +70,13 @@ test('Grafik: F4 wechselt zwischen normal und dem zuletzt gewählten Pixel-Look'
   assert.equal(toggleLook(), 'coarse', 'merkt sich Grob');
   setGraphics({ look: 'normal' });
 });
+
+test('Grafik: Bildstil-Ziele lassen sich für alle Looks anlegen (Pixel ohne, Comic mit Tiefe)', async () => {
+  const { RetroPass } = await import('../lib/retro-pass.ts');
+  const pass = new RetroPass();
+  pass.ensureTarget(480, 270, false);
+  assert.equal(pass.target.depthTexture, null, 'Pixel: keine Tiefentextur');
+  pass.ensureTarget(960, 540, true);
+  assert.ok(pass.target.depthTexture, 'Comic: Tiefentextur für die Konturen');
+  pass.dispose();
+});

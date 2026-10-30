@@ -29,11 +29,12 @@ const SHADOW_LABEL = { high: 'Hoch', medium: 'Mittel', low: 'Niedrig', off: 'Aus
 const DISTANCE_LABEL = { far: 'Weit', medium: 'Mittel', near: 'Nah' } as const;
 const DISTANCE_HINT = { far: '2,6 km', medium: '1,5 km', near: '0,9 km' } as const;
 const MONITOR_LABEL = { smooth: 'Flüssig', saver: 'Sparsam' } as const;
-const LOOK_LABEL = { normal: 'Normal', pixel: 'Pixel', coarse: 'Grob' } as const;
+const LOOK_LABEL = { normal: 'Normal', pixel: 'Pixel', coarse: 'Grob', comic: 'Comic' } as const;
 const LOOK_HINT = {
   normal: 'Volle Grafik',
   pixel: 'Pixel-Look der 90er: 270 Zeilen, 216 Farben',
   coarse: 'Ganz grob: 200 Zeilen, 125 Farben',
+  comic: 'Comic: Tuschekonturen, flache Farben, Rasterpunkte',
 } as const;
 const GPU_LABEL: Record<GpuMode, string> = {
   auto: 'Automatisch',
@@ -217,7 +218,7 @@ export default function GraphicsMenu() {
           <GpuRow />
           <p>
             {tr(
-              '„Hoch“ ist die volle Qualität. Wirkt sofort; mit F3 siehst du, was es bringt. Schatten an/aus kann beim Umschalten kurz stocken. F4 wechselt jederzeit zwischen normalem Bild und Pixel-Look.',
+              '„Hoch“ ist die volle Qualität. Wirkt sofort; mit F3 siehst du, was es bringt. Schatten an/aus kann beim Umschalten kurz stocken. F4 wechselt jederzeit zwischen normalem Bild und dem gewählten Look.',
             )}
           </p>
         </div>

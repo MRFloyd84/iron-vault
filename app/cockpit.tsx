@@ -571,8 +571,10 @@ export default function Cockpit() {
           error: false,
           message:
             look === 'normal'
-              ? 'Grafik: normales Bild (F4 = Pixel-Look).'
-              : 'Grafik: Pixel-Look ' + (look === 'pixel' ? 'Pixel' : 'Grob') + ' (F4 = normales Bild).',
+              ? 'Grafik: normales Bild (F4 = gewählter Look).'
+              : look === 'comic'
+                ? 'Grafik: Comic-Look (F4 = normales Bild).'
+                : 'Grafik: Pixel-Look ' + (look === 'pixel' ? 'Pixel' : 'Grob') + ' (F4 = normales Bild).',
         });
         return;
       }
