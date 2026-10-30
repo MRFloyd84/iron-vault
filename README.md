@@ -65,6 +65,12 @@ background and offers a restart. Remove it with `bash install-desktop.sh --remov
 
 Without installing: `chmod +x` the AppImage and run it.
 
+**Graphics card:** on laptops with an Intel/AMD chip plus an NVIDIA card the app uses the
+NVIDIA card automatically (PRIME offload) once the NVIDIA driver is loaded. The graphics menu
+(top right) offers Automatic, NVIDIA and Integrated under “Graphics card” (applies after a
+restart). The diagnostics overlay (F3) shows the rendering card in its first row. The
+environment variable `IRON_VAULT_GPU=auto|nvidia|integrated` overrides the menu.
+
 ## Run from source
 
 Requirements: Node.js 22.13 or newer and npm.

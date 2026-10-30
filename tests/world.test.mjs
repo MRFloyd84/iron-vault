@@ -277,7 +277,12 @@ test('Taktik-Display zeichnet Lagebild, Einsatzziel und Entfernung', async () =>
       drone: { x: 40, z: -650 },
       roads: ROADS,
       blips: [{ x: 70, z: -640 }],
-      targets: TARGETS.map((t) => ({ x: t.x, z: t.z, destroyed: t.id === 'tank-a', objective: t.id.startsWith('tank') })),
+      targets: TARGETS.map((t) => ({
+        x: t.x,
+        z: t.z,
+        destroyed: t.id === 'tank-a',
+        objective: t.id.startsWith('tank'),
+      })),
       objective: { x: -452, z: -634, r: 10, exact: true, label: 'Tank A zerstören', distance: 513 },
       mission: 'TREIBSTOFFLAGER ASCHE-7',
     },

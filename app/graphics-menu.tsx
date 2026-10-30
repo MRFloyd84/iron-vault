@@ -17,6 +17,7 @@ import {
   type PresetId,
 } from '../lib/graphics-settings';
 import { useLang } from './language-menu';
+import { desktop, GPU_MODES, vendorName, type GpuMode, type GpuState } from '../lib/desktop-bridge';
 
 const PRESET_LABEL: Record<PresetId, string> = {
   high: 'Hoch',
@@ -27,6 +28,60 @@ const SHADOW_LABEL = { high: 'Hoch', medium: 'Mittel', low: 'Niedrig', off: 'Aus
 const DISTANCE_LABEL = { far: 'Weit', medium: 'Mittel', near: 'Nah' } as const;
 const DISTANCE_HINT = { far: '2,6 km', medium: '1,5 km', near: '0,9 km' } as const;
 const MONITOR_LABEL = { smooth: 'Flüssig', saver: 'Sparsam' } as const;
+const GPU_LABEL: Record<GpuMode, string> = {
+  auto: 'Automatisch',
+  nvidia: 'NVIDIA',
+  integrated: 'Integriert',
+};
+const GPU_HINT: Record<GpuMode, string> = {
+  auto: 'NVIDIA, wenn neben ihr ein zweiter Chip steckt',
+  nvidia: 'NVIDIA-Karte immer anfordern',
+  integrated: 'Eingebauten Intel/AMD-Chip nutzen (spart Strom)',
+};
+
+/** Grafikkarten-Wahl – nur in der Desktop-App, wirkt nach Neustart. */
+function GpuRow() {
+  const bridge = desktop();
+  const [state, setState] = useState<GpuState | null>(null);
+  useEffect(() => {
+    let alive = true;
+    desktop()
+      ?.gpu.get()
+      .then((s) => alive && setState(s))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  if (!bridge || !state) return null;
+  const pick = (mode: GpuMode) => {
+    setState({ ...state, saved: mode });
+    void bridge.gpu.set(mode);
+  };
+  const pending = state.saved !== state.mode;
+  const devices = state.devices
+    .map((d) => vendorName(d.vendor) + (d.active ? ' ●' : ''))
+    .join(' · ');
+  return (
+    <>
+      <hr />
+      <Row
+        label="Grafikkarte"
+        values={GPU_MODES}
+        current={state.saved}
+        name={(v) => tr(GPU_LABEL[v])}
+        hint={(v) => tr(GPU_HINT[v])}
+        pick={pick}
+      />
+      {devices && <p className="graphics-gpus">{tr('Erkannt: ' + devices + ' (● = aktiv)')}</p>}
+      {pending && (
+        <button className="graphics-restart" onClick={() => void bridge.gpu.restart()}>
+          {tr('Neu starten, um die Grafikkarte zu wechseln')}
+        </button>
+      )}
+    </>
+  );
+}
 
 function useGraphics(): Graphics {
   const [g, set] = useState(getGraphics());
@@ -144,6 +199,7 @@ export default function GraphicsMenu() {
             name={(v) => tr(MONITOR_LABEL[v])}
             pick={(v) => setGraphics({ monitors: v })}
           />
+          <GpuRow />
           <p>
             {tr(
               '„Hoch“ ist die volle Qualität. Wirkt sofort; mit F3 siehst du, was es bringt. Schatten an/aus kann beim Umschalten kurz stocken.',

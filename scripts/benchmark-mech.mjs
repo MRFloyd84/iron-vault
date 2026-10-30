@@ -21,7 +21,9 @@ delete g.images;
 delete g.textures;
 g.buffers[0].uri = 'data:application/octet-stream;base64,' + b.subarray(28 + n).toString('base64');
 globalThis.ProgressEvent ??= class {};
-const { scene: model } = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(JSON.stringify(g), '');
+const { scene: model } = await new GLTFLoader()
+  .setMeshoptDecoder(MeshoptDecoder)
+  .parseAsync(JSON.stringify(g), '');
 prepareTorsoRig(model);
 const joints = { ...neutralJoints(), torso: 0.7, leftShoulder: 0.5, leftElbow: 0.7 };
 const legs = prepareMechanicalRig(model),

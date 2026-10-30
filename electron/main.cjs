@@ -1,7 +1,7 @@
 // IRON VAULT als Desktop-App (Electron). Lädt den fertigen Vite-Build aus `dist/`
 // über ein eigenes Protokoll app://iron-vault/ – so funktionieren fetch() für Modelle,
 // Texturen und Sounds genau wie auf einem Webserver (mit file:// ginge das nicht).
-const { app, BrowserWindow, Menu, dialog, net, protocol, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, net, protocol, shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
@@ -15,6 +15,11 @@ protocol.registerSchemesAsPrivileged([
     privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true },
   },
 ]);
+// Laptop mit Intel/AMD + NVIDIA: gewählte Grafikkarte nutzen (muss vor dem GPU-Prozess
+// passieren). Die Wahl kommt aus dem Grafikmenü und liegt in <userData>/gpu.json.
+const gpu = require('./gpu.cjs');
+const GPU_FILE = path.join(app.getPath('userData'), 'gpu.json');
+const gpuStart = gpu.preferDedicatedGpu(GPU_FILE);
 // Ton ohne vorherigen Klick erlauben; Wayland automatisch nutzen, wenn vorhanden.
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 app.commandLine.appendSwitch('ozone-platform-hint', 'auto');
@@ -43,7 +48,12 @@ function createWindow() {
     icon: path.join(__dirname, 'icon.png'),
     show: false,
     autoHideMenuBar: true,
-    webPreferences: { contextIsolation: true, sandbox: true, backgroundThrottling: false },
+    webPreferences: {
+      contextIsolation: true,
+      sandbox: true,
+      backgroundThrottling: false,
+      preload: path.join(__dirname, 'preload.cjs'),
+    },
   });
   win.once('ready-to-show', () => win.show());
   // F11: Vollbild; Externe Links im normalen Browser öffnen.
@@ -102,8 +112,38 @@ function checkForUpdates(win) {
   autoUpdater.checkForUpdates().catch(() => {});
 }
 
+// Grafikkarten-Wahl für das Grafikmenü im Spiel.
+function gpuIpc() {
+  ipcMain.handle('gpu:get', async () => {
+    let devices = [];
+    try {
+      const info = await app.getGPUInfo('basic');
+      devices = (info.gpuDevice || []).map((d) => ({
+        vendor: d.vendorId,
+        device: d.deviceId,
+        active: !!d.active,
+      }));
+    } catch {
+      // ohne GPU-Infos bleibt die Liste leer
+    }
+    return {
+      mode: gpuStart.mode,
+      saved: gpu.readMode(GPU_FILE),
+      offload: Object.keys(gpuStart.set).length > 0,
+      devices,
+    };
+  });
+  ipcMain.handle('gpu:set', (_e, mode) => gpu.writeMode(GPU_FILE, mode));
+  ipcMain.handle('app:restart', () => {
+    // Im AppImage die AppImage-Datei neu starten, nicht das entpackte Programm.
+    app.relaunch(process.env.APPIMAGE ? { execPath: process.env.APPIMAGE } : undefined);
+    app.exit(0);
+  });
+}
+
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
+  gpuIpc();
   serve();
   const win = createWindow();
   // Erst prüfen, wenn das Spiel geladen ist – der Download stört den Start nicht.

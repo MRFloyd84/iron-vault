@@ -40,7 +40,9 @@ delete g.textures;
 delete g.images;
 g.buffers[0].uri = 'data:application/octet-stream;base64,' + binary.toString('base64');
 globalThis.ProgressEvent ??= class {};
-const { scene } = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(JSON.stringify(g), '');
+const { scene } = await new GLTFLoader()
+  .setMeshoptDecoder(MeshoptDecoder)
+  .parseAsync(JSON.stringify(g), '');
 scene.updateMatrixWorld(true);
 const meshes = [],
   bounds = new THREE.Box3().setFromObject(scene);
