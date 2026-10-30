@@ -4,6 +4,8 @@
 const { app, BrowserWindow, Menu, dialog, ipcMain, net, protocol, shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('node:path');
+const { spawn } = require('node:child_process');
+const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
 
 const DIST = path.join(__dirname, '..', 'dist');
@@ -112,6 +114,40 @@ function checkForUpdates(win) {
   autoUpdater.checkForUpdates().catch(() => {});
 }
 
+// Neustart (z. B. nach Wechsel der Grafikkarte). Im AppImage startet app.relaunch() über
+// einen Helfer aus dem eingehängten AppImage, das beim Beenden ausgehängt wird – der neue
+// Start scheiterte dann mit „Cannot mount AppImage“. Deshalb starten wir die AppImage-Datei
+// selbst als eigenständigen Prozess (wie electron-updater bei Updates) und beenden uns.
+function restartApp() {
+  const appImage = process.env.APPIMAGE;
+  if (!appImage) {
+    app.relaunch();
+    app.exit(0);
+    return;
+  }
+  const env = { ...process.env };
+  // Variablen der laufenden AppImage-Instanz nicht an die neue weiterreichen.
+  for (const k of ['APPDIR', 'APPIMAGE', 'ARGV0', 'OWD']) delete env[k];
+  gpu.clearOwnEnv(env);
+  app.releaseSingleInstanceLock();
+  // Electron vererbt offene Dateien aus dem alten Einhängepunkt (app.asar, ICU-Daten);
+  // die würden ihn bis zum nächsten Beenden blockieren. bash schließt sie vor dem Start.
+  const args = process.argv.slice(1);
+  const viaBash = fs.existsSync('/bin/bash');
+  const closeFds =
+    'for f in /proc/$$/fd/*; do n=${f##*/}; [ "$n" -gt 2 ] && eval "exec $n>&-"; done 2>/dev/null; exec "$0" "$@"';
+  const cmd = viaBash ? '/bin/bash' : appImage;
+  const cmdArgs = viaBash ? ['-c', closeFds, appImage, ...args] : args;
+  const child = spawn(cmd, cmdArgs, {
+    detached: true,
+    stdio: 'ignore',
+    env,
+    cwd: process.env.OWD || process.cwd(),
+  });
+  child.unref();
+  app.exit(0);
+}
+
 // Grafikkarten-Wahl für das Grafikmenü im Spiel.
 function gpuIpc() {
   ipcMain.handle('gpu:get', async () => {
@@ -134,11 +170,7 @@ function gpuIpc() {
     };
   });
   ipcMain.handle('gpu:set', (_e, mode) => gpu.writeMode(GPU_FILE, mode));
-  ipcMain.handle('app:restart', () => {
-    // Im AppImage die AppImage-Datei neu starten, nicht das entpackte Programm.
-    app.relaunch(process.env.APPIMAGE ? { execPath: process.env.APPIMAGE } : undefined);
-    app.exit(0);
-  });
+  ipcMain.handle('app:restart', () => restartApp());
 }
 
 app.whenReady().then(() => {
