@@ -72,6 +72,7 @@ import {
 } from './drone';
 import { DroneFeed, DroneRig, LASER_LAYER, TargetMarker } from './drone-model';
 import { DroneSensor } from './drone-sensor';
+import { RetroPass } from './retro-pass';
 import { DesertWorld } from './world-scene';
 import { WorldTargets } from './world-targets';
 import { PerfMonitor } from './perf-monitor';
@@ -250,6 +251,8 @@ export class CockpitScene {
   targetFov = 60;
   /** Sensor im Drohnenkopf: TV, Wärmebild, Nachtsicht (Taste 8) */
   droneSensor!: DroneSensor;
+  /** Pixel-Look (Grafikmenü „Look“) */
+  readonly retro = new RetroPass();
   /** Bildwinkel der Drohnenkamera (Zoom 1–8× über das Mausrad bzw. + / −) */
   droneFov = 70;
   private sunDirection = new THREE.Vector3();
@@ -570,7 +573,11 @@ export class CockpitScene {
     void this.exterior.ready.then(() => {
       if (this.exterior?.model) this.weaponSystem?.attach(this.exterior.model);
     });
-    this.ready = Promise.all([this.ready, this.exterior.ready]).then(() => {});
+    this.ready = Promise.all([this.ready, this.exterior.ready]).then(() => {
+      // Nachgeladene Modelle (Mech, Sitz, Drohne) auch ungefiltert zeigen
+      this.retro.refresh(this.scene);
+    });
+    this.cleanup.push(() => this.retro.dispose());
     this.pickMeshes = [...worldBatches.picking, ...cabinBatches.picking];
     this.cleanup.push(() =>
       [...worldBatches.geometries, ...cabinBatches.geometries].forEach((g) => g.dispose()),
@@ -588,8 +595,11 @@ export class CockpitScene {
     const resize = () => {
       const w = Math.max(1, host.clientWidth),
         h = Math.max(1, host.clientHeight);
+      // Pixel-Look: das Bild entsteht ohnehin in wenigen Zeilen, volle Pixeldichte wäre verschenkt
       this.renderer.setPixelRatio(
-        cockpitPixelRatio(w, h, window.devicePixelRatio) * this.graphics.resolution,
+        this.graphics.look !== 'normal'
+          ? 1
+          : cockpitPixelRatio(w, h, window.devicePixelRatio) * this.graphics.resolution,
       );
       this.renderer.setSize(w, h);
       this.camera.aspect = w / h;
@@ -1472,7 +1482,8 @@ export class CockpitScene {
   applyGraphics(g: Graphics, initial = false) {
     const old = this.graphics;
     this.graphics = g;
-    if (initial || old.resolution !== g.resolution) this.resizeView();
+    if (initial || old.resolution !== g.resolution || old.look !== g.look) this.resizeView();
+    this.retro.setLook(g.look, this.scene);
     // Schatten: Auflösung der Schattenkarten, ganz aus nur auf ausdrücklichen Wunsch
     if (initial || old.shadows !== g.shadows) {
       const enabled = g.shadows !== 'off';
@@ -2283,7 +2294,8 @@ export class CockpitScene {
         this.nightAmount,
         this.sunDirection.subVectors(this.sun.position, this.sun.target.position),
       );
-    if (!sensed) this.renderer.render(this.scene, this.camera);
+    if (!sensed && !this.retro.render(this.renderer, this.scene, this.camera))
+      this.renderer.render(this.scene, this.camera);
     this.perf.gpuEnd();
     this.perf.section('render');
     this.perf.endFrame();

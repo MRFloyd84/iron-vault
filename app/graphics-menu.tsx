@@ -7,6 +7,7 @@ import {
   DISTANCES,
   MONITOR_RATES,
   PRESETS,
+  RETRO_LOOKS,
   RESOLUTIONS,
   SHADOW_LEVELS,
   getGraphics,
@@ -28,6 +29,12 @@ const SHADOW_LABEL = { high: 'Hoch', medium: 'Mittel', low: 'Niedrig', off: 'Aus
 const DISTANCE_LABEL = { far: 'Weit', medium: 'Mittel', near: 'Nah' } as const;
 const DISTANCE_HINT = { far: '2,6 km', medium: '1,5 km', near: '0,9 km' } as const;
 const MONITOR_LABEL = { smooth: 'Flüssig', saver: 'Sparsam' } as const;
+const LOOK_LABEL = { normal: 'Normal', pixel: 'Pixel', coarse: 'Grob' } as const;
+const LOOK_HINT = {
+  normal: 'Volle Grafik',
+  pixel: 'Pixel-Look der 90er: 270 Zeilen, 216 Farben',
+  coarse: 'Ganz grob: 200 Zeilen, 125 Farben',
+} as const;
 const GPU_LABEL: Record<GpuMode, string> = {
   auto: 'Automatisch',
   nvidia: 'NVIDIA',
@@ -167,7 +174,15 @@ export default function GraphicsMenu() {
             values={presets}
             current={preset ?? ('' as PresetId)}
             name={(v) => tr(PRESET_LABEL[v])}
-            pick={(v) => setGraphics(PRESETS[v])}
+            pick={(v) => setGraphics({ ...PRESETS[v], look: g.look })}
+          />
+          <Row
+            label="Look"
+            values={RETRO_LOOKS}
+            current={g.look}
+            name={(v) => tr(LOOK_LABEL[v])}
+            hint={(v) => tr(LOOK_HINT[v])}
+            pick={(v) => setGraphics({ look: v })}
           />
           <hr />
           <Row

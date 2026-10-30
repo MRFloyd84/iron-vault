@@ -117,7 +117,7 @@ The **?** button (top right) explains everything. In short:
 | I | mission control and map |
 | F3 | diagnostics overlay (FPS, frame time, draw calls, memory) |
 | MCDU (keypad at the bottom of the console) | navigation computer and march autopilot: DIR, M-PLN, PROG, PERF, AP, HOLD, SPD 1/2, RTB |
-| slider icon, top right | graphics settings (High/Medium/Low, resolution, shadows, view distance) |
+| slider icon, top right | graphics settings (High/Medium/Low, look: normal / 90s pixel / coarse, resolution, shadows, view distance) |
 | N, Z, L | day/night, rain, cabin light |
 | X / Y | tilt the torso up / down |
 | Shift | speed gear 1 / 2 |

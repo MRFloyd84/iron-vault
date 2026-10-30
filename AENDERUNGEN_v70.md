@@ -1,11 +1,25 @@
-# Änderungen in Version 70 – Grafikkarte wählbar
+# Änderungen in Version 70 – Pixel-Look der 90er
 
-- Auf Laptops mit zwei Grafikchips (Intel oder AMD plus NVIDIA) lief die Desktop-App unter
-  Linux meist auf dem schwachen Chip. Jetzt fordert sie beim Start die NVIDIA-Karte an,
-  genau wie ein Start mit `prime-run`.
-- Im Grafikmenü oben rechts gibt es die neue Zeile „Grafikkarte“: Automatisch, NVIDIA oder
-  Integriert. Die Wahl wird gespeichert und wirkt nach einem Neustart; dafür erscheint ein
-  Knopf „Neu starten“. Darunter steht, welche Chips erkannt wurden und welcher aktiv ist.
-- Die Diagnose (F3) zeigt in der ersten Zeile, welche Grafikkarte rendert. Läuft das Spiel
-  ohne Grafikkarte, steht dort rot „ohne Grafikkarte!“.
-- Neun Skripte, Tests und die Übersetzungsdatei sind einheitlich formatiert (nur Technik).
+Neue Einstellung **Look** im Grafikmenü (Schieberegler-Symbol oben rechts), angelehnt an
+Retro-Shooter wie Doom, Duke Nukem, Quake und Mekkablood: Quarry Assault.
+
+- **Normal**: die volle Grafik wie bisher.
+- **Pixel**: Das Bild entsteht in 270 Zeilen (bei 16:9 also 480 × 270) und wird ohne
+  Glättung hochgezogen. Die Farben laufen über eine Palette mit 216 Farben, sind etwas
+  kräftiger und haben mehr Kontrast. Dazu kommt leichtes Dithering wie bei alten
+  256-Farben-Spielen.
+- **Grob**: 200 Zeilen (wie 320 × 200) und 125 Farben.
+
+Details:
+
+- Texturen werden im Pixel-Look ungefiltert vergrößert, aus der Nähe sieht man also die
+  einzelnen Texel.
+- Dunkle Töne haben mehr Farbstufen, damit Schatten im Cockpit nicht in bunte Krümel
+  zerfallen.
+- Der Look ist unabhängig von der Voreinstellung (Hoch/Mittel/Niedrig) und wird
+  gespeichert.
+- Im Pixel-Look rendert das Spiel deutlich weniger Pixel, auf schwacher Hardware läuft es
+  dadurch schneller.
+- Der Look gilt für Cockpit, Außenansicht und Drohne im TV-Modus. Wärmebild und Nachtsicht
+  der Drohne behalten ihre eigene Darstellung.
+- Schalter, Mausklicks und Zielen funktionieren unverändert.

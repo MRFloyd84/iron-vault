@@ -48,3 +48,14 @@ test('Grafik: Voreinstellung erkennen, Änderungen melden', () => {
   assert.equal(getGraphics().resolution, PRESETS.medium.resolution);
   assert.equal(shadowMapSize('off', 1024), 256, 'nie eine leere Schattenkarte');
 });
+
+test('Grafik: Pixel-Look ist eigene Wahl, bleibt bei Voreinstellungen erhalten', async () => {
+  const { retroSize } = await import('../lib/retro-pass.ts');
+  assert.equal(sanitize(null).look, 'normal');
+  assert.equal(sanitize({ look: 'vga' }).look, 'normal', 'Unbekanntes fällt auf normal');
+  assert.equal(matchPreset({ ...PRESETS.high, look: 'pixel' }), 'high', 'Look zählt nicht zur Voreinstellung');
+  // Feste Zeilenzahl, Breite nach Seitenverhältnis (16:9 → 480 × 270)
+  assert.deepEqual(retroSize('pixel', 1920, 1080), { width: 480, height: 270 });
+  assert.deepEqual(retroSize('coarse', 1600, 1000), { width: 320, height: 200 });
+  assert.deepEqual(retroSize('pixel', 300, 100), { width: 300, height: 100 }, 'nie hochskalieren');
+});

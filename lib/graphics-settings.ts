@@ -4,6 +4,9 @@
 export type ShadowLevel = 'high' | 'medium' | 'low' | 'off';
 export type ViewDistance = 'far' | 'medium' | 'near';
 export type MonitorRate = 'smooth' | 'saver';
+/** Bildstil: normal oder Pixel-Look der frühen 90er (siehe retro-pass.ts) */
+export type RetroLook = 'normal' | 'pixel' | 'coarse';
+export const RETRO_LOOKS: RetroLook[] = ['normal', 'pixel', 'coarse'];
 
 export type Graphics = {
   /** Anteil der Renderauflösung (1 = volle Auflösung, wie bisher) */
@@ -11,14 +14,22 @@ export type Graphics = {
   shadows: ShadowLevel;
   distance: ViewDistance;
   monitors: MonitorRate;
+  /** Bildstil: normal oder Pixel-Look der frühen 90er (unabhängig von der Voreinstellung) */
+  look: RetroLook;
 };
 
 export type PresetId = 'high' | 'medium' | 'low';
 
 export const PRESETS: Record<PresetId, Graphics> = {
-  high: { resolution: 1, shadows: 'high', distance: 'far', monitors: 'smooth' },
-  medium: { resolution: 0.85, shadows: 'medium', distance: 'medium', monitors: 'smooth' },
-  low: { resolution: 0.7, shadows: 'low', distance: 'near', monitors: 'saver' },
+  high: { resolution: 1, shadows: 'high', distance: 'far', monitors: 'smooth', look: 'normal' },
+  medium: {
+    resolution: 0.85,
+    shadows: 'medium',
+    distance: 'medium',
+    monitors: 'smooth',
+    look: 'normal',
+  },
+  low: { resolution: 0.7, shadows: 'low', distance: 'near', monitors: 'saver', look: 'normal' },
 };
 
 export const RESOLUTIONS = [1, 0.85, 0.7, 0.5] as const;
@@ -51,6 +62,7 @@ export const MONITOR_INTERVAL: Record<MonitorRate, { grid: number; selected: num
   saver: { grid: 400, selected: 100 },
 };
 
+/** Voreinstellung erkennen; der Bildstil (look) zählt nicht dazu. */
 export function matchPreset(g: Graphics): PresetId | null {
   for (const id of Object.keys(PRESETS) as PresetId[]) {
     const p = PRESETS[id];
@@ -78,6 +90,7 @@ export function sanitize(raw: unknown): Graphics {
     shadows: SHADOW_LEVELS.includes(r.shadows as ShadowLevel) ? r.shadows! : d.shadows,
     distance: DISTANCES.includes(r.distance as ViewDistance) ? r.distance! : d.distance,
     monitors: MONITOR_RATES.includes(r.monitors as MonitorRate) ? r.monitors! : d.monitors,
+    look: RETRO_LOOKS.includes(r.look as RetroLook) ? r.look! : d.look,
   };
 }
 
