@@ -118,6 +118,7 @@ The **?** button (top right) explains everything. In short:
 | F3 | diagnostics overlay (FPS, frame time, draw calls, memory) |
 | MCDU (keypad at the bottom of the console) | navigation computer and march autopilot: DIR, M-PLN, PROG, PERF, AP, HOLD, SPD 1/2, RTB |
 | slider icon, top right | graphics settings (High/Medium/Low, look: normal / 90s pixel / coarse, resolution, shadows, view distance) |
+| F4 | switch between normal image and 90s pixel look (displays stay sharp) |
 | N, Z, L | day/night, rain, cabin light |
 | X / Y | tilt the torso up / down |
 | Shift | speed gear 1 / 2 |

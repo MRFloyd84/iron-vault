@@ -5,6 +5,10 @@
 // die typischen Farbstufen statt weicher Verläufe.
 //
 // Texturen werden im Pixel-Look ohne Filterung vergrößert (sichtbare Texel aus der Nähe).
+//
+// Die Cockpit-Anzeigen bleiben lesbar: Nach dem Pixelbild werden nur die Bildschirmflächen
+// noch einmal in voller Auflösung darübergelegt. Damit davor Liegendes (Zettel am Rahmen,
+// Hebel, Hände) die Anzeige weiter verdeckt, schreibt zuerst die nahe Kanzel nur ihre Tiefe.
 import * as THREE from 'three';
 import type { RetroLook } from './graphics-settings';
 /** Bildzeilen der inneren Auflösung (Breite folgt dem Seitenverhältnis). */
@@ -58,6 +62,11 @@ void main() {
   gl_FragColor = vec4(c, 1.0);
 }`;
 
+/** Ebene der Bildschirmflächen für die scharfe Überlagerung im Pixel-Look. */
+export const SCREEN_LAYER = 5;
+/** Reichweite der Überlagerung: nur die Kanzel, die Welt draußen kann keine Anzeige verdecken. */
+const SCREEN_RANGE = 8;
+
 export class RetroPass {
   private target: THREE.WebGLRenderTarget | null = null;
   private readonly quadScene = new THREE.Scene();
@@ -66,6 +75,11 @@ export class RetroPass {
   /** Ursprüngliche Vergrößerungsfilter der Texturen, solange der Pixel-Look aktiv ist. */
   private readonly filters = new Map<THREE.Texture, THREE.MagnificationTextureFilter>();
   look: RetroLook = 'normal';
+  /** Anzeigen scharf über das Pixelbild legen (lesbar); aus = Anzeigen ebenfalls verpixelt */
+  sharpScreens = true;
+  private readonly depthOnly = new THREE.MeshBasicMaterial({ colorWrite: false });
+  /** Unsichtbare Flächen der Kanzel (Tastfelder, Glas): dürfen keine Tiefe schreiben. */
+  private clear: THREE.Object3D[] | null = null;
 
   constructor() {
     this.material = new THREE.ShaderMaterial({
@@ -126,7 +140,58 @@ export class RetroPass {
     this.filters.clear();
   }
 
-  render(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera) {
+  /**
+   * Bildschirmflächen (Ebene SCREEN_LAYER) in voller Auflösung über das Pixelbild legen.
+   * `cabin`: die Kanzel; ihre Tiefe sorgt dafür, dass Davorliegendes verdeckt bleibt.
+   */
+  private overlayScreens(
+    renderer: THREE.WebGLRenderer,
+    scene: THREE.Scene,
+    camera: THREE.PerspectiveCamera,
+    cabin: THREE.Object3D,
+  ) {
+    if (!this.clear) {
+      this.clear = [];
+      cabin.traverse((o) => {
+        const mat = (o as THREE.Mesh).material;
+        if (!mat || !(o as THREE.Mesh).isMesh) return;
+        const mats = [mat].flat();
+        if (mats.every((m) => !m.depthWrite || (m.transparent && m.opacity < 0.5)))
+          this.clear!.push(o);
+      });
+    }
+    const far = camera.far,
+      layers = camera.layers.mask,
+      background = scene.background,
+      override = scene.overrideMaterial,
+      autoClear = renderer.autoClear;
+    camera.far = Math.min(far, SCREEN_RANGE);
+    camera.updateProjectionMatrix();
+    scene.background = null;
+    renderer.autoClear = false;
+    renderer.clearDepth();
+    const hidden = this.clear.filter((o) => o.visible);
+    for (const o of hidden) o.visible = false;
+    scene.overrideMaterial = this.depthOnly;
+    renderer.render(scene, camera);
+    scene.overrideMaterial = override;
+    for (const o of hidden) o.visible = true;
+    camera.layers.set(SCREEN_LAYER);
+    renderer.render(scene, camera);
+    camera.layers.mask = layers;
+    camera.far = far;
+    camera.updateProjectionMatrix();
+    scene.background = background;
+    renderer.autoClear = autoClear;
+  }
+
+  render(
+    renderer: THREE.WebGLRenderer,
+    scene: THREE.Scene,
+    camera: THREE.PerspectiveCamera,
+    /** Kanzel, wenn aus dem Cockpit geschaut wird (dann Anzeigen scharf darüberlegen) */
+    cabin?: THREE.Object3D | null,
+  ) {
     if (this.look === 'normal') return false;
     const canvas = renderer.getSize(new THREE.Vector2());
     const size = retroSize(this.look, canvas.x, canvas.y);
@@ -151,6 +216,7 @@ export class RetroPass {
     renderer.autoClear = true;
     renderer.render(this.quadScene, this.quadCamera);
     renderer.autoClear = autoClear;
+    if (cabin && this.sharpScreens) this.overlayScreens(renderer, scene, camera, cabin);
     return true;
   }
 
@@ -158,6 +224,7 @@ export class RetroPass {
     this.restoreFilters();
     this.target?.dispose();
     this.material.dispose();
+    this.depthOnly.dispose();
     (this.quadScene.children[0] as THREE.Mesh).geometry.dispose();
   }
 }

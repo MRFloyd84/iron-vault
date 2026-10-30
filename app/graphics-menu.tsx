@@ -217,7 +217,7 @@ export default function GraphicsMenu() {
           <GpuRow />
           <p>
             {tr(
-              '„Hoch“ ist die volle Qualität. Wirkt sofort; mit F3 siehst du, was es bringt. Schatten an/aus kann beim Umschalten kurz stocken.',
+              '„Hoch“ ist die volle Qualität. Wirkt sofort; mit F3 siehst du, was es bringt. Schatten an/aus kann beim Umschalten kurz stocken. F4 wechselt jederzeit zwischen normalem Bild und Pixel-Look.',
             )}
           </p>
         </div>

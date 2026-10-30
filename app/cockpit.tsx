@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import LanguageMenu, { useLang } from './language-menu';
 import GraphicsMenu from './graphics-menu';
+import { toggleLook } from '../lib/graphics-settings';
 import { HELP } from './help-content';
 import { tr } from '../lib/i18n';
 import ArticulationPanel from './articulation-panel';
@@ -559,6 +560,20 @@ export default function Cockpit() {
       if (e.code === 'F3') {
         e.preventDefault();
         toggleDiag();
+        return;
+      }
+      // F4: Pixel-Look ein/aus (jederzeit zurück zum normalen Bild)
+      if (e.code === 'F4') {
+        e.preventDefault();
+        const look = toggleLook();
+        apply({
+          ...stateRef.current,
+          error: false,
+          message:
+            look === 'normal'
+              ? 'Grafik: normales Bild (F4 = Pixel-Look).'
+              : 'Grafik: Pixel-Look ' + (look === 'pixel' ? 'Pixel' : 'Grob') + ' (F4 = normales Bild).',
+        });
         return;
       }
       if (e.code === 'KeyG' && !helpRef.current) {

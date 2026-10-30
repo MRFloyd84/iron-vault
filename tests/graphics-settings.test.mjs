@@ -10,6 +10,7 @@ import {
   sanitize,
   setGraphics,
   shadowMapSize,
+  toggleLook,
 } from '../lib/graphics-settings.ts';
 
 test('Grafik: "Hoch" ist der bisherige Stand und Standard', () => {
@@ -58,4 +59,14 @@ test('Grafik: Pixel-Look ist eigene Wahl, bleibt bei Voreinstellungen erhalten',
   assert.deepEqual(retroSize('pixel', 1920, 1080), { width: 480, height: 270 });
   assert.deepEqual(retroSize('coarse', 1600, 1000), { width: 320, height: 200 });
   assert.deepEqual(retroSize('pixel', 300, 100), { width: 300, height: 100 }, 'nie hochskalieren');
+});
+
+test('Grafik: F4 wechselt zwischen normal und dem zuletzt gewählten Pixel-Look', () => {
+  setGraphics({ look: 'normal' });
+  assert.equal(toggleLook(), 'pixel', 'Standard: Pixel');
+  assert.equal(toggleLook(), 'normal');
+  setGraphics({ look: 'coarse' });
+  assert.equal(toggleLook(), 'normal');
+  assert.equal(toggleLook(), 'coarse', 'merkt sich Grob');
+  setGraphics({ look: 'normal' });
 });

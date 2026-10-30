@@ -128,3 +128,17 @@ export function onGraphicsChange(cb: (g: Graphics) => void) {
     listeners.delete(cb);
   };
 }
+
+/** Zuletzt gewählter Pixel-Look, damit F4 dorthin zurückkehrt (Standard: Pixel). */
+let lastRetro: Exclude<RetroLook, 'normal'> = 'pixel';
+/**
+ * F4: zwischen normalem Bild und Pixel-Look wechseln. Merkt sich, ob zuletzt „Pixel“ oder
+ * „Grob“ gewählt war. Gibt den neuen Look zurück.
+ */
+export function toggleLook(): RetroLook {
+  const look = getGraphics().look;
+  if (look !== 'normal') lastRetro = look;
+  const next: RetroLook = look === 'normal' ? lastRetro : 'normal';
+  setGraphics({ look: next });
+  return next;
+}

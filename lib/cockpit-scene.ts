@@ -72,7 +72,7 @@ import {
 } from './drone';
 import { DroneFeed, DroneRig, LASER_LAYER, TargetMarker } from './drone-model';
 import { DroneSensor } from './drone-sensor';
-import { RetroPass } from './retro-pass';
+import { RetroPass, SCREEN_LAYER } from './retro-pass';
 import { DesertWorld } from './world-scene';
 import { WorldTargets } from './world-targets';
 import { PerfMonitor } from './perf-monitor';
@@ -588,6 +588,8 @@ export class CockpitScene {
     // monitor cameras; their renderer passes must not repeat this traversal.
     this.scene.matrixWorldAutoUpdate = false;
     for (const screen of this.screens) {
+      // Pixel-Look: Anzeigen werden scharf darübergelegt (retro-pass.ts)
+      screen.mesh.layers.enable(SCREEN_LAYER);
       screen.texture.generateMipmaps = false;
       screen.texture.minFilter = THREE.LinearFilter;
       this.drawScreen(screen, this.getState(), 0);
@@ -2294,7 +2296,10 @@ export class CockpitScene {
         this.nightAmount,
         this.sunDirection.subVectors(this.sun.position, this.sun.target.position),
       );
-    if (!sensed && !this.retro.render(this.renderer, this.scene, this.camera))
+    if (
+      !sensed &&
+      !this.retro.render(this.renderer, this.scene, this.camera, outside ? null : this.cabin)
+    )
       this.renderer.render(this.scene, this.camera);
     this.perf.gpuEnd();
     this.perf.section('render');

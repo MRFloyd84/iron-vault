@@ -193,8 +193,10 @@ export const EN: Record<string, string> = {
   'Volle Grafik': 'Full graphics',
   'Pixel-Look der 90er: 270 Zeilen, 216 Farben': '90s pixel look: 270 lines, 216 colours',
   'Ganz grob: 200 Zeilen, 125 Farben': 'Very coarse: 200 lines, 125 colours',
-  '„Hoch“ ist die volle Qualität. Wirkt sofort; mit F3 siehst du, was es bringt. Schatten an/aus kann beim Umschalten kurz stocken.':
-    '“High” is full quality. Changes apply instantly; press F3 to see the effect. Turning shadows on or off may stutter briefly.',
+  '„Hoch“ ist die volle Qualität. Wirkt sofort; mit F3 siehst du, was es bringt. Schatten an/aus kann beim Umschalten kurz stocken. F4 wechselt jederzeit zwischen normalem Bild und Pixel-Look.':
+    '“High” is full quality. Changes apply instantly; press F3 to see the effect. Turning shadows on or off may stutter briefly. F4 switches between the normal image and the pixel look at any time.',
+  'Grafik: normales Bild (F4 = Pixel-Look).': 'Graphics: normal image (F4 = pixel look).',
+  'Grafik: Pixel-Look {0} (F4 = normales Bild).': 'Graphics: pixel look {0} (F4 = normal image).',
   'TESTGELÄNDE 07': 'TEST GROUND 07',
   'IV–04 · AUSSENANSICHT': 'IV–04 · EXTERIOR VIEW',
   'AUSSENKAMERA · PRÜFSTRECKE': 'EXTERIOR CAMERA · TEST LANE',
